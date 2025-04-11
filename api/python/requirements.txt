@@ -1,0 +1,2 @@
+# api/python/requirements.txt
+# No dependencies required for this simple example
