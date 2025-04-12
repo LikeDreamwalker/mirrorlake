@@ -5,7 +5,6 @@ import type React from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Copy, Wand2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -16,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { toast } from "sonner";
 
 type ColorFormat = "hex" | "rgb" | "hsl";
 
@@ -181,7 +181,6 @@ export default function ColorPicker() {
 
   const wheelRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
-  // const { toast } = useToast();
 
   // RGB values derived from HSL
   const rgb = hslToRgb(hue, saturation, lightness);
@@ -215,6 +214,7 @@ export default function ColorPicker() {
     updateWheelPosition(e);
   };
 
+  // Fixed function to correctly calculate and update the color wheel position
   const updateWheelPosition = useCallback(
     (e: React.MouseEvent<HTMLDivElement> | MouseEvent) => {
       if (!wheelRef.current) return;
@@ -235,7 +235,11 @@ export default function ColorPicker() {
         const y = e.clientY - rect.top - centerY;
 
         // Calculate angle (hue) and distance from center (saturation)
+        // Math.atan2 returns the angle in radians, convert to degrees
         let angle = Math.atan2(y, x) * (180 / Math.PI);
+
+        // Adjust angle to start from the top (0 degrees) and go clockwise
+        angle = (angle + 90) % 360;
         if (angle < 0) angle += 360;
 
         const radius = rect.width / 2;
@@ -330,11 +334,10 @@ export default function ColorPicker() {
   const copyToClipboard = () => {
     const colorString = getColorString();
     navigator.clipboard.writeText(colorString);
-    // toast({
-    //   title: "Copied!",
-    //   description: `${colorString} has been copied to clipboard`,
-    //   duration: 2000,
-    // });
+    toast("copied!", {
+      description: `${colorString} has been copied to clipboard`,
+      duration: 2000,
+    });
   };
 
   // Generate a random color
@@ -431,6 +434,24 @@ export default function ColorPicker() {
     </div>
   );
 
+  // Calculate marker position correctly based on hue and saturation
+  const getMarkerPosition = () => {
+    // Convert hue to radians, adjusting to start from the top (270 degrees in standard position)
+    const hueRadians = ((hue - 90) * Math.PI) / 180;
+
+    // Calculate x and y coordinates based on saturation (distance from center)
+    const saturationPercent = saturation / 100;
+
+    // Calculate position
+    const x = 50 + Math.cos(hueRadians) * saturationPercent * 50;
+    const y = 50 + Math.sin(hueRadians) * saturationPercent * 50;
+
+    return { x, y };
+  };
+
+  // Get marker position
+  const markerPosition = getMarkerPosition();
+
   return (
     <div
       className="w-full p-6 space-y-6 rounded-xl shadow-lg"
@@ -489,16 +510,12 @@ export default function ColorPicker() {
             }}
           ></div>
 
-          {/* Selection marker */}
+          {/* Selection marker - using the corrected position calculation */}
           <div
             className="absolute w-4 h-4 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
             style={{
-              left: `${
-                50 + Math.cos((hue * Math.PI) / 180) * (saturation / 100) * 50
-              }%`,
-              top: `${
-                50 + Math.sin((hue * Math.PI) / 180) * (saturation / 100) * 50
-              }%`,
+              left: `${markerPosition.x}%`,
+              top: `${markerPosition.y}%`,
               backgroundColor: baseColor,
             }}
           ></div>
