@@ -18,6 +18,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useColorPicker, type ColorFormat } from "./context";
 
+// Dummy component to avoid errors. Replace with actual implementation if available.
+const BackgroundSettings = () => {
+  return (
+    <Card className="border-dashed">
+      <CardContent>
+        <div>Background Settings Placeholder</div>
+      </CardContent>
+    </Card>
+  );
+};
+
 export default function ColorPicker() {
   const {
     baseColor,
@@ -46,16 +57,9 @@ export default function ColorPicker() {
   const wheelRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  // Handle color wheel interaction with performance optimization
-  const handleWheelMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
-    updateWheelPosition(e);
-  };
-
-  // Fixed function to correctly calculate and update the color wheel position
+  // Generic function to update wheel position from any pointer event (mouse or touch)
   const updateWheelPosition = useCallback(
-    (e: React.MouseEvent<HTMLDivElement> | MouseEvent) => {
+    (clientX: number, clientY: number) => {
       if (!wheelRef.current) return;
 
       // Cancel any pending animation frame
@@ -70,8 +74,8 @@ export default function ColorPicker() {
         const centerY = rect.height / 2;
 
         // Calculate position relative to center
-        const x = e.clientX - rect.left - centerX;
-        const y = e.clientY - rect.top - centerY;
+        const x = clientX - rect.left - centerX;
+        const y = clientY - rect.top - centerY;
 
         // Calculate angle (hue) and distance from center (saturation)
         // Math.atan2 returns the angle in radians, convert to degrees
@@ -92,15 +96,44 @@ export default function ColorPicker() {
     [setHue, setSaturation]
   );
 
-  // Handle mouse move and up events
+  // Handle mouse down event
+  const handleWheelMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    updateWheelPosition(e.clientX, e.clientY);
+  };
+
+  // Handle touch start event
+  const handleWheelTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    // Prevent scrolling while touching the color wheel
+    e.preventDefault();
+    setIsDragging(true);
+
+    if (e.touches.length > 0) {
+      const touch = e.touches[0];
+      updateWheelPosition(touch.clientX, touch.clientY);
+    }
+  };
+
+  // Handle mouse/touch move and end events
   useEffect(() => {
+    if (!isDragging) return;
+
+    // Mouse move handler
     const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging) {
-        updateWheelPosition(e as any);
+      updateWheelPosition(e.clientX, e.clientY);
+    };
+
+    // Touch move handler
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        updateWheelPosition(touch.clientX, touch.clientY);
       }
     };
 
-    const handleMouseUp = () => {
+    // Common end handler for both mouse and touch
+    const handleEnd = () => {
       setIsDragging(false);
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -108,14 +141,21 @@ export default function ColorPicker() {
       }
     };
 
-    if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-    }
+    // Add event listeners
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleEnd);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleEnd);
+    window.addEventListener("touchcancel", handleEnd);
 
+    // Clean up event listeners
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("mouseup", handleEnd);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleEnd);
+      window.removeEventListener("touchcancel", handleEnd);
+
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -264,7 +304,7 @@ export default function ColorPicker() {
         <CardContent>
           <div
             ref={wheelRef}
-            className="relative w-full aspect-square rounded-full overflow-hidden cursor-crosshair shadow-inner mx-auto"
+            className="relative w-full aspect-square rounded-full overflow-hidden cursor-crosshair shadow-inner mx-auto touch-none"
             style={{
               background: `conic-gradient(
                 from 0deg,
@@ -279,6 +319,13 @@ export default function ColorPicker() {
               maxWidth: "280px",
             }}
             onMouseDown={handleWheelMouseDown}
+            onTouchStart={handleWheelTouchStart}
+            aria-label="Color wheel selector"
+            role="slider"
+            aria-valuemin={0}
+            aria-valuemax={360}
+            aria-valuenow={hue}
+            aria-valuetext={`Hue: ${hue} degrees, Saturation: ${saturation}%`}
           >
             {/* White radial gradient for saturation */}
             <div
@@ -291,7 +338,7 @@ export default function ColorPicker() {
 
             {/* Selection marker - using the corrected position calculation */}
             <div
-              className="absolute w-4 h-4 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+              className="absolute w-6 h-6 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
               style={{
                 left: `${markerPosition.x}%`,
                 top: `${markerPosition.y}%`,
@@ -299,8 +346,14 @@ export default function ColorPicker() {
               }}
             ></div>
           </div>
+          <p className="text-center text-xs text-muted-foreground mt-2">
+            Tap or drag to select color
+          </p>
         </CardContent>
       </Card>
+
+      {/* Background Settings */}
+      <BackgroundSettings />
 
       {/* Color Format Tabs */}
       <Card className="border-dashed">
@@ -507,7 +560,7 @@ export default function ColorPicker() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        className="w-8 h-8 rounded-md border shadow-sm transition-transform hover:scale-110"
+                        className="w-8 h-8 rounded-md border shadow-sm transition-transform hover:scale-110 active:scale-95"
                         style={{
                           backgroundColor:
                             color.length > 7
