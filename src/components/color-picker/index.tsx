@@ -18,17 +18,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useColorPicker, type ColorFormat } from "./context";
 
-// Dummy component to avoid errors. Replace with actual implementation if available.
-const BackgroundSettings = () => {
-  return (
-    <Card className="border-dashed">
-      <CardContent>
-        <div>Background Settings Placeholder</div>
-      </CardContent>
-    </Card>
-  );
-};
-
 export default function ColorPicker() {
   const {
     baseColor,
@@ -50,7 +39,9 @@ export default function ColorPicker() {
     generateRandomColor,
     setColorFromHex,
     setColorFromRgb,
+    setColorFromHsl,
     hexToRgb,
+    currentColor,
   } = useColorPicker();
 
   const [isDragging, setIsDragging] = useState(false);
@@ -176,9 +167,9 @@ export default function ColorPicker() {
 
   // Handle HSL input changes
   const handleHslChange = (component: "h" | "s" | "l", value: number) => {
-    if (component === "h") setHue(value);
-    if (component === "s") setSaturation(value);
-    if (component === "l") setLightness(value);
+    const newHsl = { h: hue, s: saturation, l: lightness };
+    newHsl[component] = value;
+    setColorFromHsl(newHsl.h, newHsl.s, newHsl.l);
   };
 
   // Copy color to clipboard
@@ -193,7 +184,7 @@ export default function ColorPicker() {
 
   // Render lightness slider
   const renderLightnessSlider = () => (
-    <div className="space-y-2 mt-4">
+    <div className="space-y-2">
       <div className="flex justify-between">
         <Label>Lightness: {lightness}%</Label>
       </div>
@@ -221,7 +212,7 @@ export default function ColorPicker() {
 
   // Render alpha slider
   const renderAlphaSlider = () => (
-    <div className="space-y-2 mt-4">
+    <div className="space-y-2 mt-3">
       <div className="flex justify-between">
         <Label>Alpha: {alpha.toFixed(2)}</Label>
       </div>
@@ -267,137 +258,116 @@ export default function ColorPicker() {
   const markerPosition = getMarkerPosition();
 
   return (
-    <div className="w-full space-y-6">
-      {/* Color Display */}
-      <Card
-        className="border-dashed"
-        style={{
-          backgroundColor: getBackgroundColor(),
-          backgroundImage:
-            alpha < 1
-              ? 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==")'
-              : undefined,
-          backgroundPosition: "left center",
-        }}
-      >
-        <CardContent>
+    <div className="w-full">
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Left side: Color wheel */}
+        <div className="flex-1 flex flex-col items-center justify-center">
           <div
-            className="h-24 flex items-center justify-center transition-colors duration-300 relative bg-white bg-opacity-10 backdrop-blur-sm"
+            className="rounded-xl w-full aspect-square flex items-center justify-center p-4"
             style={{
-              color:
-                alpha < 1 ? "#000000" : lightness > 50 ? "#000000" : "#ffffff",
+              backgroundColor: currentColor,
             }}
           >
-            <div className="text-center z-10">
-              <div className="font-mono text-xl mb-2">{getColorString()}</div>
-              <div className="text-sm opacity-80">
-                HSL: {hue}°, {saturation}%, {lightness}%
-                {alpha < 1 ? `, ${alpha.toFixed(2)}` : ""}
-              </div>
+            <div
+              ref={wheelRef}
+              className="relative w-full aspect-square rounded-full overflow-hidden cursor-crosshair touch-none shadow-sm"
+              style={{
+                background: `conic-gradient(
+                    from 0deg,
+                    hsl(0, 100%, 50%),
+                    hsl(60, 100%, 50%),
+                    hsl(120, 100%, 50%),
+                    hsl(180, 100%, 50%),
+                    hsl(240, 100%, 50%),
+                    hsl(300, 100%, 50%),
+                    hsl(360, 100%, 50%)
+                  )`,
+              }}
+              onMouseDown={handleWheelMouseDown}
+              onTouchStart={handleWheelTouchStart}
+              aria-label="Color wheel selector"
+              role="slider"
+              aria-valuemin={0}
+              aria-valuemax={360}
+              aria-valuenow={hue}
+              aria-valuetext={`Hue: ${hue} degrees, Saturation: ${saturation}%`}
+            >
+              {/* White radial gradient for saturation */}
+              <div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background:
+                    "radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%)",
+                }}
+              ></div>
+
+              {/* Selection marker */}
+              <div
+                className="absolute w-6 h-6 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                style={{
+                  left: `${markerPosition.x}%`,
+                  top: `${markerPosition.y}%`,
+                  backgroundColor: baseColor,
+                }}
+              ></div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Color Wheel */}
-      <Card className="border-dashed">
-        <CardContent>
-          <div
-            ref={wheelRef}
-            className="relative w-full aspect-square rounded-full overflow-hidden cursor-crosshair shadow-inner mx-auto touch-none"
-            style={{
-              background: `conic-gradient(
-                from 0deg,
-                hsl(0, 100%, 50%),
-                hsl(60, 100%, 50%),
-                hsl(120, 100%, 50%),
-                hsl(180, 100%, 50%),
-                hsl(240, 100%, 50%),
-                hsl(300, 100%, 50%),
-                hsl(360, 100%, 50%)
-              )`,
-              maxWidth: "280px",
-            }}
-            onMouseDown={handleWheelMouseDown}
-            onTouchStart={handleWheelTouchStart}
-            aria-label="Color wheel selector"
-            role="slider"
-            aria-valuemin={0}
-            aria-valuemax={360}
-            aria-valuenow={hue}
-            aria-valuetext={`Hue: ${hue} degrees, Saturation: ${saturation}%`}
-          >
-            {/* White radial gradient for saturation */}
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{
-                background:
-                  "radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%)",
-              }}
-            ></div>
-
-            {/* Selection marker - using the corrected position calculation */}
-            <div
-              className="absolute w-6 h-6 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-              style={{
-                left: `${markerPosition.x}%`,
-                top: `${markerPosition.y}%`,
-                backgroundColor: baseColor,
-              }}
-            ></div>
-          </div>
-          <p className="text-center text-xs text-muted-foreground mt-2">
-            Tap or drag to select color
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Background Settings */}
-      <BackgroundSettings />
-
-      {/* Color Format Tabs */}
-      <Card className="border-dashed">
-        <CardContent>
+        {/* Right side: Color values and inputs */}
+        <div className="flex-1">
           <Tabs
             value={format}
             onValueChange={(value) => setFormat(value as ColorFormat)}
+            className="w-full"
           >
-            <TabsList>
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="hex">HEX</TabsTrigger>
               <TabsTrigger value="rgb">RGB</TabsTrigger>
               <TabsTrigger value="hsl">HSL</TabsTrigger>
             </TabsList>
 
             {/* HEX Format */}
-            <TabsContent value="hex" className="space-y-4">
+            <TabsContent value="hex" className="mt-4">
               <div className="flex items-center space-x-2">
-                <Input
-                  value={getFullColor()}
-                  onChange={handleHexChange}
-                  className="font-mono uppercase"
-                  maxLength={9}
-                  aria-label="Hex color value"
-                />
+                <div className="flex-1">
+                  <Label
+                    htmlFor="hex-input"
+                    className="text-sm font-medium mb-1 block"
+                  >
+                    Hex Value
+                  </Label>
+                  <Input
+                    id="hex-input"
+                    value={getFullColor()}
+                    onChange={handleHexChange}
+                    className="font-mono uppercase"
+                    maxLength={9}
+                    aria-label="Hex color value"
+                  />
+                </div>
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={copyToClipboard}
                   aria-label="Copy hex value"
+                  className="mt-6"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-
-              {/* Lightness and Alpha sliders */}
-              {renderLightnessSlider()}
-              {renderAlphaSlider()}
             </TabsContent>
 
             {/* RGB Format */}
-            <TabsContent value="rgb" className="space-y-4">
+            <TabsContent value="rgb" className="mt-4">
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <Label htmlFor="rgb-r">R</Label>
+                  <Label
+                    htmlFor="rgb-r"
+                    className="text-sm font-medium mb-1 block"
+                  >
+                    R
+                  </Label>
                   <Input
                     id="rgb-r"
                     type="number"
@@ -411,7 +381,12 @@ export default function ColorPicker() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="rgb-g">G</Label>
+                  <Label
+                    htmlFor="rgb-g"
+                    className="text-sm font-medium mb-1 block"
+                  >
+                    G
+                  </Label>
                   <Input
                     id="rgb-g"
                     type="number"
@@ -425,7 +400,12 @@ export default function ColorPicker() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="rgb-b">B</Label>
+                  <Label
+                    htmlFor="rgb-b"
+                    className="text-sm font-medium mb-1 block"
+                  >
+                    B
+                  </Label>
                   <Input
                     id="rgb-b"
                     type="number"
@@ -439,11 +419,11 @@ export default function ColorPicker() {
                   />
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mt-3">
                 <Input
                   value={getColorString()}
                   readOnly
-                  className="font-mono"
+                  className="font-mono text-sm"
                   aria-label="RGB color value"
                 />
                 <Button
@@ -455,17 +435,18 @@ export default function ColorPicker() {
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-
-              {/* Lightness and Alpha sliders */}
-              {renderLightnessSlider()}
-              {renderAlphaSlider()}
             </TabsContent>
 
             {/* HSL Format */}
-            <TabsContent value="hsl" className="space-y-4">
+            <TabsContent value="hsl" className="mt-4">
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <Label htmlFor="hsl-h">H</Label>
+                  <Label
+                    htmlFor="hsl-h"
+                    className="text-sm font-medium mb-1 block"
+                  >
+                    H
+                  </Label>
                   <Input
                     id="hsl-h"
                     type="number"
@@ -479,7 +460,12 @@ export default function ColorPicker() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="hsl-s">S</Label>
+                  <Label
+                    htmlFor="hsl-s"
+                    className="text-sm font-medium mb-1 block"
+                  >
+                    S
+                  </Label>
                   <Input
                     id="hsl-s"
                     type="number"
@@ -493,7 +479,12 @@ export default function ColorPicker() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="hsl-l">L</Label>
+                  <Label
+                    htmlFor="hsl-l"
+                    className="text-sm font-medium mb-1 block"
+                  >
+                    L
+                  </Label>
                   <Input
                     id="hsl-l"
                     type="number"
@@ -507,11 +498,11 @@ export default function ColorPicker() {
                   />
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 mt-3">
                 <Input
                   value={getColorString()}
                   readOnly
-                  className="font-mono"
+                  className="font-mono text-sm"
                   aria-label="HSL color value"
                 />
                 <Button
@@ -523,84 +514,15 @@ export default function ColorPicker() {
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-
-              {/* Lightness and Alpha sliders */}
-              {renderLightnessSlider()}
-              {renderAlphaSlider()}
             </TabsContent>
           </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={generateRandomColor}>
-          <Wand2 className="h-4 w-4 mr-2" />
-          Random
-        </Button>
-        <Button onClick={copyToClipboard}>
-          <Copy className="h-4 w-4 mr-2" />
-          Copy
-        </Button>
+          {/* Lightness and Alpha sliders */}
+          <div className="w-full mt-4 space-y-4">
+            {renderLightnessSlider()}
+            {renderAlphaSlider()}
+          </div>
+        </div>
       </div>
-
-      {/* Recent Colors */}
-      {recentColors.length > 0 && (
-        <Card className="border-dashed">
-          <CardContent>
-            <div className="flex items-center mb-2">
-              <Zap className="h-4 w-4 mr-2 text-muted-foreground" />
-              <Label className="text-xs text-muted-foreground">
-                Recent Colors
-              </Label>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {recentColors.slice(0, 8).map((color, index) => (
-                <TooltipProvider key={index}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        className="w-8 h-8 rounded-md border shadow-sm transition-transform hover:scale-110 active:scale-95"
-                        style={{
-                          backgroundColor:
-                            color.length > 7
-                              ? (() => {
-                                  const rgb = hexToRgb(color.substring(0, 7));
-                                  return rgb
-                                    ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${
-                                        Number.parseInt(
-                                          color.substring(7, 9),
-                                          16
-                                        ) / 255
-                                      })`
-                                    : color;
-                                })()
-                              : color,
-                        }}
-                        onClick={() => {
-                          if (color.length > 7) {
-                            setColorFromHex(color.substring(0, 7));
-                            setAlpha(
-                              Number.parseInt(color.substring(7, 9), 16) / 255
-                            );
-                          } else {
-                            setColorFromHex(color);
-                            setAlpha(1);
-                          }
-                        }}
-                        aria-label={`Select color ${color}`}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{color}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

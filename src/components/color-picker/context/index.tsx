@@ -9,6 +9,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { useTheme } from "next-themes"; // Import useTheme from next-themes
 
 // Color utility functions
 export const hslToRgb = (
@@ -147,10 +148,37 @@ export const hexToHsl = (
   return { ...hsl, a: rgb.a };
 };
 
+// Calculate luminance for WCAG contrast
+export const calculateLuminance = (r: number, g: number, b: number): number => {
+  // Convert RGB to linear values
+  const rsrgb = r / 255;
+  const gsrgb = g / 255;
+  const bsrgb = b / 255;
+
+  // Convert to linear RGB
+  const rlinear =
+    rsrgb <= 0.03928 ? rsrgb / 12.92 : Math.pow((rsrgb + 0.055) / 1.055, 2.4);
+  const glinear =
+    gsrgb <= 0.03928 ? gsrgb / 12.92 : Math.pow((gsrgb + 0.055) / 1.055, 2.4);
+  const blinear =
+    bsrgb <= 0.03928 ? bsrgb / 12.92 : Math.pow((bsrgb + 0.055) / 1.055, 2.4);
+
+  // Calculate luminance
+  return 0.2126 * rlinear + 0.7152 * glinear + 0.0722 * blinear;
+};
+
 export const getContrastColor = (hex: string): string => {
   const rgb = hexToRgb(hex);
   const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
   return luminance > 0.5 ? "#000000" : "#ffffff";
+};
+
+// Determine if a color is dark (for theme switching)
+export const isColorDark = (hex: string): boolean => {
+  const rgb = hexToRgb(hex);
+  const luminance = calculateLuminance(rgb.r, rgb.g, rgb.b);
+  // Using 0.5 as threshold - colors with luminance < 0.5 are considered dark
+  return luminance < 0.5;
 };
 
 export type ColorFormat = "hex" | "rgb" | "hsl";
@@ -166,6 +194,7 @@ interface ColorPickerContextType {
   rgb: { r: number; g: number; b: number };
   format: ColorFormat;
   recentColors: string[];
+  isDark: boolean; // Add a flag to indicate if the current color is dark
 
   // Setters
   setBaseColor: (color: string) => void;
@@ -201,12 +230,15 @@ export const useColorPicker = () => {
 interface ColorPickerProviderProps {
   children: ReactNode;
   initialColor?: string;
+  autoSwitchTheme?: boolean; // Add option to enable/disable auto theme switching
 }
 
 export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
   children,
   initialColor = "#6366F1",
+  autoSwitchTheme = true, // Default to true
 }) => {
+  const { setTheme } = useTheme(); // Get setTheme from next-themes
   const [baseColor, setBaseColor] = useState(initialColor);
   const [currentColor, setCurrentColor] = useState(initialColor);
   const [hue, setHue] = useState(240);
@@ -215,6 +247,7 @@ export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
   const [alpha, setAlpha] = useState(1);
   const [format, setFormat] = useState<ColorFormat>("hex");
   const [recentColors, setRecentColors] = useState<string[]>([initialColor]);
+  const [isDark, setIsDark] = useState(false);
 
   // Combined useEffect for color updates and tracking
   useEffect(() => {
@@ -238,6 +271,16 @@ export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
       if (!recentColors.includes(newCurrentColor)) {
         setRecentColors((prev) => [newCurrentColor, ...prev.slice(0, 7)]);
       }
+
+      // Step 4: Check if the color is dark and update the isDark state
+      const dark = isColorDark(newBaseColor);
+      setIsDark(dark);
+
+      // Step 5: Auto switch theme if enabled
+      if (autoSwitchTheme) {
+        // If color is dark, use light theme for better contrast and vice versa
+        setTheme(dark ? "dark" : "light");
+      }
     }
   }, [
     hue,
@@ -247,6 +290,8 @@ export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
     baseColor,
     currentColor,
     recentColors,
+    autoSwitchTheme,
+    setTheme,
   ]);
 
   // Get the full color with alpha
@@ -354,6 +399,7 @@ export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
     rgb,
     format,
     recentColors,
+    isDark,
     setBaseColor,
     setHue,
     setSaturation,
@@ -375,7 +421,7 @@ export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
       <div
         className="size-full transition-all duration-500"
         style={{
-          backgroundColor: currentColor, // Apply the current color with 12.5% opacity (20 in hex)
+          backgroundColor: currentColor,
         }}
       >
         {children}
