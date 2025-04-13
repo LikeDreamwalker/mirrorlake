@@ -128,16 +128,16 @@
 }
 
 /* Add this new section after your @layer base to transition all color-related CSS variables */
-:root,
+/* :root,
 .dark {
   transition: background-color 0.3s ease, color 0.3s ease,
     border-color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
-}
+} */
 
 /* Make sure all shadcn components transition smoothly */
-* {
+/* * {
   transition-property: color, background-color, border-color,
     text-decoration-color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 500ms;
-}
+} */
