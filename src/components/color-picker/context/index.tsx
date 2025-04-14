@@ -6,8 +6,8 @@ import {
   useContext,
   useState,
   useEffect,
-  useCallback,
   type ReactNode,
+  useRef,
 } from "react";
 import { useTheme } from "next-themes"; // Import useTheme from next-themes
 
@@ -84,6 +84,11 @@ export const hexToRgb = (
 ): { r: number; g: number; b: number; a?: number } => {
   // Remove the # if present
   hex = hex.replace(/^#/, "");
+
+  // Ensure we have at least 6 characters for a valid hex color
+  if (!/^[0-9A-Fa-f]{6,8}$/.test(hex)) {
+    return { r: 0, g: 0, b: 0 }; // Return black for invalid hex
+  }
 
   // Parse the hex values
   const r = Number.parseInt(hex.slice(0, 2), 16);
@@ -249,38 +254,36 @@ export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
   const [recentColors, setRecentColors] = useState<string[]>([initialColor]);
   const [isDark, setIsDark] = useState(false);
 
-  // Combined useEffect for color updates and tracking
-  useEffect(() => {
-    // Step 1: Update baseColor from HSL values
-    const newBaseColor = hslToHex(hue, saturation, lightness);
+  // Add this ref to track HSL changes
+  const hslChanged = useRef(false);
 
-    // Only update if it's different to avoid unnecessary re-renders
-    if (baseColor !== newBaseColor) {
-      setBaseColor(newBaseColor);
+  // Replace the entire useEffect for color updates with this simpler approach
+  useEffect(() => {
+    // When HSL values change, update the baseColor (our source of truth)
+    if (hslChanged.current) {
+      const newHex = hslToHex(hue, saturation, lightness);
+      setBaseColor(newHex);
+      hslChanged.current = false;
     }
 
-    // Step 2: Update currentColor from baseColor and alpha
+    // Update currentColor from baseColor and alpha
     const newCurrentColor =
-      alpha < 1 ? `${newBaseColor}${alphaToHex(alpha)}` : newBaseColor;
+      alpha < 1 ? `${baseColor}${alphaToHex(alpha)}` : baseColor;
 
     // Only update if it's different
     if (currentColor !== newCurrentColor) {
       setCurrentColor(newCurrentColor);
 
-      // Step 3: Update recent colors if this is a new color
+      // Update recent colors if this is a new color
       if (!recentColors.includes(newCurrentColor)) {
         setRecentColors((prev) => [newCurrentColor, ...prev.slice(0, 7)]);
       }
 
-      // Step 4: Check if the color is dark and update the isDark state
-      const dark = isColorDark(newBaseColor);
+      // Check if the color is dark and update the isDark state
+      const dark = isColorDark(baseColor);
       setIsDark(dark);
 
-      // Step 5: Auto switch theme if enabled
-      if (autoSwitchTheme) {
-        // If color is dark, use light theme for better contrast and vice versa
-        setTheme(dark ? "dark" : "light");
-      }
+      setTheme(dark ? "dark" : "light");
     }
   }, [
     hue,
@@ -294,53 +297,71 @@ export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
     setTheme,
   ]);
 
-  // Get the full color with alpha
-  const getFullColor = useCallback(() => {
-    return currentColor;
-  }, [currentColor]);
-
-  // Generate a random color
-  const generateRandomColor = () => {
-    const h = Math.floor(Math.random() * 360);
-    const s = Math.floor(Math.random() * 100);
-    const l = Math.floor(Math.random() * 100);
-
+  // Update the setHue, setSaturation, and setLightness functions
+  const setHueValue = (h: number) => {
+    hslChanged.current = true;
     setHue(h);
+  };
+
+  const setSaturationValue = (s: number) => {
+    hslChanged.current = true;
     setSaturation(s);
+  };
+
+  const setLightnessValue = (l: number) => {
+    hslChanged.current = true;
     setLightness(l);
   };
 
-  // Set color from hex value
+  // Update the setColorFromHex function to be the primary way to set color
   const setColorFromHex = (hex: string) => {
     // Basic validation for hex format
-    if (/^#[0-9A-F]{0,8}$/i.test(hex)) {
-      // If we have at least a 6-digit hex
+    if (/^#?[0-9A-Fa-f]{0,8}$/i.test(hex)) {
+      // Ensure the hex starts with #
+      if (!hex.startsWith("#")) {
+        hex = `#${hex}`;
+      }
+
+      // Only process complete hex values
       if (hex.length >= 7) {
-        const baseHex = hex.substring(0, 7);
+        const baseHex = hex.substring(0, 7).toUpperCase();
+        setBaseColor(baseHex);
 
-        const hsl = hexToHsl(baseHex);
-        setHue(hsl.h);
-        setSaturation(hsl.s);
-        setLightness(hsl.l);
+        // Update HSL values without triggering another update
+        try {
+          const rgb = hexToRgb(baseHex);
+          const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
-        // If we have alpha in the hex
-        if (hex.length === 9) {
-          const alphaHex = hex.substring(7, 9);
-          const alphaValue = Number.parseInt(alphaHex, 16) / 255;
-          setAlpha(alphaValue);
-        } else {
-          setAlpha(1); // Reset alpha if no alpha in hex
+          // Update HSL without triggering the hslChanged flag
+          hslChanged.current = false;
+          setHue(hsl.h);
+          setSaturation(hsl.s);
+          setLightness(hsl.l);
+
+          // If we have alpha in the hex
+          if (hex.length === 9) {
+            const alphaHex = hex.substring(7, 9);
+            const alphaValue = Number.parseInt(alphaHex, 16) / 255;
+            setAlpha(alphaValue);
+          } else {
+            setAlpha(1); // Reset alpha if no alpha in hex
+          }
+        } catch (error) {
+          console.log("Invalid hex value:", hex, error);
         }
-      } else {
-        // Handle partial input
-        setBaseColor(hex);
       }
     }
   };
 
-  // Set color from RGB values
+  // Update the setColorFromRgb function
   const setColorFromRgb = (r: number, g: number, b: number) => {
+    // Convert RGB directly to hex and update the source of truth
+    const hex = rgbToHex(r, g, b);
+    setBaseColor(hex);
+
+    // Update HSL values without triggering another update
     const hsl = rgbToHsl(r, g, b);
+    hslChanged.current = false;
     setHue(hsl.h);
     setSaturation(hsl.s);
     setLightness(hsl.l);
@@ -389,6 +410,18 @@ export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
   // RGB values derived from HSL
   const rgb = hslToRgb(hue, saturation, lightness);
 
+  const getFullColor = () => {
+    return alpha < 1 ? `${baseColor}${alphaToHex(alpha)}` : baseColor;
+  };
+
+  const generateRandomColor = () => {
+    const randomHex = `#${Math.floor(Math.random() * 16777215)
+      .toString(16)
+      .padStart(6, "0")}`;
+    setColorFromHex(randomHex);
+  };
+
+  // Update the value object to use the new setter functions
   const value = {
     baseColor,
     currentColor,
@@ -401,9 +434,9 @@ export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
     recentColors,
     isDark,
     setBaseColor,
-    setHue,
-    setSaturation,
-    setLightness,
+    setHue: setHueValue,
+    setSaturation: setSaturationValue,
+    setLightness: setLightnessValue,
     setAlpha,
     setFormat,
     getFullColor,
@@ -418,15 +451,13 @@ export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
 
   return (
     <ColorPickerContext.Provider value={value}>
-      <div className="size-full transition-all duration-500 bg-background">
-        <div
-          className="size-full transition-all duration-500"
-          style={{
-            backgroundColor: currentColor,
-          }}
-        >
-          {children}
-        </div>
+      <div
+        className="size-full transition-all duration-500"
+        style={{
+          backgroundColor: currentColor, // Apply the current color with 12.5% opacity (20 in hex)
+        }}
+      >
+        {children}
       </div>
     </ColorPickerContext.Provider>
   );

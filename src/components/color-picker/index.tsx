@@ -2,19 +2,12 @@
 
 import type React from "react";
 import { useRef, useState, useCallback, useEffect } from "react";
-import { Copy, Wand2, Zap } from "lucide-react";
+import { Copy, Wand2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useColorPicker, type ColorFormat } from "./context";
 
@@ -27,7 +20,6 @@ export default function ColorPicker() {
     alpha,
     rgb,
     format,
-    recentColors,
     setHue,
     setSaturation,
     setLightness,
@@ -35,18 +27,53 @@ export default function ColorPicker() {
     setFormat,
     getFullColor,
     getColorString,
-    getBackgroundColor,
     generateRandomColor,
     setColorFromHex,
     setColorFromRgb,
     setColorFromHsl,
-    hexToRgb,
     currentColor,
   } = useColorPicker();
-
   const [isDragging, setIsDragging] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
+
+  // Local state for input values
+  const [hexValue, setHexValue] = useState(getFullColor());
+  const [rValue, setRValue] = useState(rgb.r.toString());
+  const [gValue, setGValue] = useState(rgb.g.toString());
+  const [bValue, setBValue] = useState(rgb.b.toString());
+  const [hValue, setHValue] = useState(hue.toString());
+  const [sValue, setSValue] = useState(saturation.toString());
+  const [lValue, setLValue] = useState(lightness.toString());
+
+  // Validation states
+  const [hexError, setHexError] = useState("");
+  const [rError, setRError] = useState("");
+  const [gError, setGError] = useState("");
+  const [bError, setBError] = useState("");
+  const [hError, setHError] = useState("");
+  const [sError, setSError] = useState("");
+  const [lError, setLError] = useState("");
+
+  // Update local state when color changes from outside
+  useEffect(() => {
+    setHexValue(getFullColor());
+    setRValue(rgb.r.toString());
+    setGValue(rgb.g.toString());
+    setBValue(rgb.b.toString());
+    setHValue(hue.toString());
+    setSValue(saturation.toString());
+    setLValue(lightness.toString());
+
+    // Clear all errors when color changes
+    setHexError("");
+    setRError("");
+    setGError("");
+    setBError("");
+    setHError("");
+    setSError("");
+    setLError("");
+  }, [getFullColor, rgb.r, rgb.g, rgb.b, hue, saturation, lightness]);
 
   // Generic function to update wheel position from any pointer event (mouse or touch)
   const updateWheelPosition = useCallback(
@@ -155,21 +182,289 @@ export default function ColorPicker() {
 
   // Handle hex input change
   const handleHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toUpperCase();
-    setColorFromHex(value);
+    const value = e.target.value;
+    setHexValue(value);
+    setHexError("");
+
+    // Validate hex format
+    if (value && !/^#?[0-9A-Fa-f]{0,8}$/.test(value)) {
+      setHexError("Invalid hex format");
+      return;
+    }
+  };
+
+  // Handle hex input blur - apply the color when editing is complete
+  const handleHexBlur = () => {
+    // If the hex is empty, reset to current color
+    if (!hexValue) {
+      setHexValue(getFullColor());
+      setHexError("");
+      return;
+    }
+
+    // If the hex is invalid or incomplete, show error and reset
+    if (!/^#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/.test(hexValue)) {
+      setHexError("Invalid hex color. Format: #RRGGBB or #RRGGBBAA");
+      setHexValue(getFullColor());
+      return;
+    }
+
+    // Format and apply the hex value
+    const formattedValue = hexValue.startsWith("#") ? hexValue : `#${hexValue}`;
+    setHexValue(formattedValue.toUpperCase());
+    setColorFromHex(formattedValue);
+  };
+
+  // Add a key handler to apply the color on Enter key
+  const handleHexKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleHexBlur();
+    }
   };
 
   // Handle RGB input changes
-  const handleRgbChange = (component: "r" | "g" | "b", value: number) => {
-    const newRgb = { ...rgb, [component]: value };
-    setColorFromRgb(newRgb.r, newRgb.g, newRgb.b);
+  const handleRgbChange = (component: "r" | "g" | "b", value: string) => {
+    // Update the local state
+    if (component === "r") {
+      setRValue(value);
+      setRError("");
+    }
+    if (component === "g") {
+      setGValue(value);
+      setGError("");
+    }
+    if (component === "b") {
+      setBValue(value);
+      setBError("");
+    }
+
+    // Validate input
+    if (value === "") return; // Allow empty for typing
+
+    const numValue = Number.parseInt(value, 10);
+
+    // Check if it's a valid number
+    if (isNaN(numValue)) {
+      if (component === "r") setRError("Must be a number");
+      if (component === "g") setGError("Must be a number");
+      if (component === "b") setBError("Must be a number");
+      return;
+    }
+
+    // Check if it's in range
+    if (numValue < 0 || numValue > 255) {
+      if (component === "r") setRError("Must be 0-255");
+      if (component === "g") setGError("Must be 0-255");
+      if (component === "b") setBError("Must be 0-255");
+      return;
+    }
+
+    // Only update the color if all values are valid numbers
+    const newRgb = {
+      r: component === "r" ? numValue : Number.parseInt(rValue, 10) || 0,
+      g: component === "g" ? numValue : Number.parseInt(gValue, 10) || 0,
+      b: component === "b" ? numValue : Number.parseInt(bValue, 10) || 0,
+    };
+
+    // Only update if all values are valid
+    if (
+      !isNaN(newRgb.r) &&
+      !isNaN(newRgb.g) &&
+      !isNaN(newRgb.b) &&
+      newRgb.r >= 0 &&
+      newRgb.r <= 255 &&
+      newRgb.g >= 0 &&
+      newRgb.g <= 255 &&
+      newRgb.b >= 0 &&
+      newRgb.b <= 255
+    ) {
+      setColorFromRgb(newRgb.r, newRgb.g, newRgb.b);
+    }
+  };
+
+  // Handle RGB input blur - fix any invalid values
+  const handleRgbBlur = (component: "r" | "g" | "b") => {
+    let value: string;
+    if (component === "r") value = rValue;
+    else if (component === "g") value = gValue;
+    else value = bValue;
+
+    // Handle empty input
+    if (value === "") {
+      if (component === "r") {
+        setRValue(rgb.r.toString());
+        setRError("");
+      }
+      if (component === "g") {
+        setGValue(rgb.g.toString());
+        setGError("");
+      }
+      if (component === "b") {
+        setBValue(rgb.b.toString());
+        setBError("");
+      }
+      return;
+    }
+
+    const numValue = Number.parseInt(value, 10);
+
+    // If invalid, reset to current RGB value
+    if (isNaN(numValue) || numValue < 0 || numValue > 255) {
+      if (component === "r") {
+        setRValue(rgb.r.toString());
+        setRError("");
+      }
+      if (component === "g") {
+        setGValue(rgb.g.toString());
+        setGError("");
+      }
+      if (component === "b") {
+        setBValue(rgb.b.toString());
+        setBError("");
+      }
+    } else {
+      // If valid but different format (e.g., "05" instead of "5"), normalize
+      if (component === "r") {
+        setRValue(numValue.toString());
+        setRError("");
+      }
+      if (component === "g") {
+        setGValue(numValue.toString());
+        setGError("");
+      }
+      if (component === "b") {
+        setBValue(numValue.toString());
+        setBError("");
+      }
+    }
   };
 
   // Handle HSL input changes
-  const handleHslChange = (component: "h" | "s" | "l", value: number) => {
-    const newHsl = { h: hue, s: saturation, l: lightness };
-    newHsl[component] = value;
-    setColorFromHsl(newHsl.h, newHsl.s, newHsl.l);
+  const handleHslChange = (component: "h" | "s" | "l", value: string) => {
+    // Update the local state
+    if (component === "h") {
+      setHValue(value);
+      setHError("");
+    }
+    if (component === "s") {
+      setSValue(value);
+      setSError("");
+    }
+    if (component === "l") {
+      setLValue(value);
+      setLError("");
+    }
+
+    // Allow empty for typing
+    if (value === "") return;
+
+    const numValue = Number.parseInt(value, 10);
+
+    // Check if it's a valid number
+    if (isNaN(numValue)) {
+      if (component === "h") setHError("Must be a number");
+      if (component === "s") setSError("Must be a number");
+      if (component === "l") setLError("Must be a number");
+      return;
+    }
+
+    // Check if it's in range
+    if (component === "h" && (numValue < 0 || numValue > 359)) {
+      setHError("Must be 0-359");
+      return;
+    }
+    if (
+      (component === "s" || component === "l") &&
+      (numValue < 0 || numValue > 100)
+    ) {
+      if (component === "s") setSError("Must be 0-100");
+      if (component === "l") setLError("Must be 0-100");
+      return;
+    }
+
+    // Only update the color if the value is valid
+    const newHsl = {
+      h: component === "h" ? numValue : Number.parseInt(hValue, 10) || 0,
+      s: component === "s" ? numValue : Number.parseInt(sValue, 10) || 0,
+      l: component === "l" ? numValue : Number.parseInt(lValue, 10) || 0,
+    };
+
+    // Only update if all values are valid
+    if (
+      !isNaN(newHsl.h) &&
+      !isNaN(newHsl.s) &&
+      !isNaN(newHsl.l) &&
+      newHsl.h >= 0 &&
+      newHsl.h <= 359 &&
+      newHsl.s >= 0 &&
+      newHsl.s <= 100 &&
+      newHsl.l >= 0 &&
+      newHsl.l <= 100
+    ) {
+      setColorFromHsl(newHsl.h, newHsl.s, newHsl.l);
+    }
+  };
+
+  // Handle HSL input blur - fix any invalid values
+  const handleHslBlur = (component: "h" | "s" | "l") => {
+    let value: string;
+    if (component === "h") value = hValue;
+    else if (component === "s") value = sValue;
+    else value = lValue;
+
+    // Handle empty input
+    if (value === "") {
+      if (component === "h") {
+        setHValue(hue.toString());
+        setHError("");
+      }
+      if (component === "s") {
+        setSValue(saturation.toString());
+        setSError("");
+      }
+      if (component === "l") {
+        setLValue(lightness.toString());
+        setLError("");
+      }
+      return;
+    }
+
+    const numValue = Number.parseInt(value, 10);
+
+    // If invalid, reset to current HSL value
+    if (
+      isNaN(numValue) ||
+      (component === "h" && (numValue < 0 || numValue > 359)) ||
+      ((component === "s" || component === "l") &&
+        (numValue < 0 || numValue > 100))
+    ) {
+      if (component === "h") {
+        setHValue(hue.toString());
+        setHError("");
+      }
+      if (component === "s") {
+        setSValue(saturation.toString());
+        setSError("");
+      }
+      if (component === "l") {
+        setLValue(lightness.toString());
+        setLError("");
+      }
+    } else {
+      // If valid but different format, normalize
+      if (component === "h") {
+        setHValue(numValue.toString());
+        setHError("");
+      }
+      if (component === "s") {
+        setSValue(numValue.toString());
+        setSError("");
+      }
+      if (component === "l") {
+        setLValue(numValue.toString());
+        setLError("");
+      }
+    }
   };
 
   // Copy color to clipboard
@@ -188,25 +483,15 @@ export default function ColorPicker() {
       <div className="flex justify-between">
         <Label>Lightness: {lightness}%</Label>
       </div>
-      <div className="relative">
-        <div
-          className="absolute inset-0 rounded-md -z-10"
-          style={{
-            background: `linear-gradient(to right, 
-              hsl(${hue}, ${saturation}%, 0%), 
-              hsl(${hue}, ${saturation}%, 50%), 
-              hsl(${hue}, ${saturation}%, 100%))`,
-          }}
-        ></div>
-        <Slider
-          min={0}
-          max={100}
-          step={1}
-          value={[lightness]}
-          onValueChange={(value) => setLightness(value[0])}
-          className="z-10"
-        />
-      </div>
+      <Slider
+        min={0}
+        max={100}
+        step={1}
+        value={[lightness]}
+        onValueChange={(value) => setLightness(value[0])}
+        // trackClassName="bg-gradient-to-r from-black via-current to-white"
+        // rangeClassName="bg-transparent"
+      />
     </div>
   );
 
@@ -216,26 +501,22 @@ export default function ColorPicker() {
       <div className="flex justify-between">
         <Label>Alpha: {alpha.toFixed(2)}</Label>
       </div>
-      <div className="relative">
-        <div
-          className="absolute inset-0 rounded-md -z-10"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0), rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 1)),
-              url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==")
-            `,
-            backgroundPosition: "left center",
-          }}
-        ></div>
-        <Slider
-          min={0}
-          max={1}
-          step={0.01}
-          value={[alpha]}
-          onValueChange={(value) => setAlpha(value[0])}
-          className="z-10"
-        />
-      </div>
+      <Slider
+        min={0}
+        max={1}
+        step={0.01}
+        value={[alpha]}
+        onValueChange={(value) => setAlpha(value[0])}
+        // trackClassName="bg-checkerboard"
+        // rangeClassName={`bg-gradient-to-r from-transparent to-[${baseColor}]`}
+        style={
+          {
+            "--slider-track-background": `linear-gradient(to right, 
+            rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0), 
+            rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 1))`,
+          } as React.CSSProperties
+        }
+      />
     </div>
   );
 
@@ -257,31 +538,43 @@ export default function ColorPicker() {
   // Get marker position
   const markerPosition = getMarkerPosition();
 
+  // Helper to render error message
+  const renderErrorMessage = (error: string) => {
+    if (!error) return null;
+    return (
+      <div className="text-destructive text-xs flex items-center mt-1">
+        <AlertCircle className="h-3 w-3 mr-1" />
+        {error}
+      </div>
+    );
+  };
+
   return (
     <div className="w-full">
       <div className="flex flex-col md:flex-row gap-6">
         {/* Left side: Color wheel */}
         <div className="flex-1 flex flex-col items-center justify-center">
           <div
-            className="rounded-xl w-full aspect-square flex items-center justify-center p-4"
+            className="rounded-xl w-full aspect-square flex items-center justify-center p-4 relative border-border border border-dashed"
             style={{
               backgroundColor: currentColor,
             }}
           >
             <div
               ref={wheelRef}
-              className="relative w-full aspect-square rounded-full overflow-hidden cursor-crosshair touch-none shadow-sm"
+              className="relative w-full max-w-full aspect-square rounded-full overflow-hidden cursor-crosshair touch-none shadow-sm"
               style={{
                 background: `conic-gradient(
-                    from 0deg,
-                    hsl(0, 100%, 50%),
-                    hsl(60, 100%, 50%),
-                    hsl(120, 100%, 50%),
-                    hsl(180, 100%, 50%),
-                    hsl(240, 100%, 50%),
-                    hsl(300, 100%, 50%),
-                    hsl(360, 100%, 50%)
-                  )`,
+                  from 0deg,
+                  hsl(0, 100%, 50%),
+                  hsl(60, 100%, 50%),
+                  hsl(120, 100%, 50%),
+                  hsl(180, 100%, 50%),
+                  hsl(240, 100%, 50%),
+                  hsl(300, 100%, 50%),
+                  hsl(360, 100%, 50%)
+                )`,
+                maxWidth: "min(100%, 320px)",
               }}
               onMouseDown={handleWheelMouseDown}
               onTouchStart={handleWheelTouchStart}
@@ -339,12 +632,19 @@ export default function ColorPicker() {
                   </Label>
                   <Input
                     id="hex-input"
-                    value={getFullColor()}
+                    value={hexValue}
                     onChange={handleHexChange}
-                    className="font-mono uppercase"
+                    onBlur={handleHexBlur}
+                    onKeyDown={handleHexKeyDown}
+                    className={`font-mono uppercase ${
+                      hexError ? "border-destructive" : ""
+                    }`}
                     maxLength={9}
                     aria-label="Hex color value"
+                    aria-invalid={!!hexError}
+                    aria-describedby={hexError ? "hex-error" : undefined}
                   />
+                  {renderErrorMessage(hexError)}
                 </div>
                 <Button
                   variant="outline"
@@ -366,66 +666,78 @@ export default function ColorPicker() {
                     htmlFor="rgb-r"
                     className="text-sm font-medium mb-1 block"
                   >
-                    R
+                    R (0-255)
                   </Label>
                   <Input
                     id="rgb-r"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    value={rValue}
+                    onChange={(e) => handleRgbChange("r", e.target.value)}
+                    onBlur={() => handleRgbBlur("r")}
+                    className={`font-mono ${
+                      rError ? "border-destructive" : ""
+                    }`}
+                    aria-invalid={!!rError}
+                    aria-describedby={rError ? "r-error" : undefined}
                     min="0"
                     max="255"
-                    value={rgb.r}
-                    onChange={(e) =>
-                      handleRgbChange("r", Number(e.target.value))
-                    }
-                    className="font-mono"
                   />
+                  {renderErrorMessage(rError)}
                 </div>
                 <div>
                   <Label
                     htmlFor="rgb-g"
                     className="text-sm font-medium mb-1 block"
                   >
-                    G
+                    G (0-255)
                   </Label>
                   <Input
                     id="rgb-g"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    value={gValue}
+                    onChange={(e) => handleRgbChange("g", e.target.value)}
+                    onBlur={() => handleRgbBlur("g")}
+                    className={`font-mono ${
+                      gError ? "border-destructive" : ""
+                    }`}
+                    aria-invalid={!!gError}
+                    aria-describedby={gError ? "g-error" : undefined}
                     min="0"
                     max="255"
-                    value={rgb.g}
-                    onChange={(e) =>
-                      handleRgbChange("g", Number(e.target.value))
-                    }
-                    className="font-mono"
                   />
+                  {renderErrorMessage(gError)}
                 </div>
                 <div>
                   <Label
                     htmlFor="rgb-b"
                     className="text-sm font-medium mb-1 block"
                   >
-                    B
+                    B (0-255)
                   </Label>
                   <Input
                     id="rgb-b"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    value={bValue}
+                    onChange={(e) => handleRgbChange("b", e.target.value)}
+                    onBlur={() => handleRgbBlur("b")}
+                    className={`font-mono ${
+                      bError ? "border-destructive" : ""
+                    }`}
+                    aria-invalid={!!bError}
+                    aria-describedby={bError ? "b-error" : undefined}
                     min="0"
                     max="255"
-                    value={rgb.b}
-                    onChange={(e) =>
-                      handleRgbChange("b", Number(e.target.value))
-                    }
-                    className="font-mono"
                   />
+                  {renderErrorMessage(bError)}
                 </div>
               </div>
               <div className="flex items-center space-x-2 mt-3">
-                <Input
-                  value={getColorString()}
-                  readOnly
-                  className="font-mono text-sm"
-                  aria-label="RGB color value"
-                />
+                <div className="flex-1 p-2 bg-muted rounded-md font-mono text-sm overflow-x-auto">
+                  {getColorString()}
+                </div>
                 <Button
                   variant="outline"
                   size="icon"
@@ -445,66 +757,78 @@ export default function ColorPicker() {
                     htmlFor="hsl-h"
                     className="text-sm font-medium mb-1 block"
                   >
-                    H
+                    H (0-359)
                   </Label>
                   <Input
                     id="hsl-h"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    value={hValue}
+                    onChange={(e) => handleHslChange("h", e.target.value)}
+                    onBlur={() => handleHslBlur("h")}
+                    className={`font-mono ${
+                      hError ? "border-destructive" : ""
+                    }`}
+                    aria-invalid={!!hError}
+                    aria-describedby={hError ? "h-error" : undefined}
                     min="0"
                     max="359"
-                    value={hue}
-                    onChange={(e) =>
-                      handleHslChange("h", Number(e.target.value))
-                    }
-                    className="font-mono"
                   />
+                  {renderErrorMessage(hError)}
                 </div>
                 <div>
                   <Label
                     htmlFor="hsl-s"
                     className="text-sm font-medium mb-1 block"
                   >
-                    S
+                    S (0-100)
                   </Label>
                   <Input
                     id="hsl-s"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    value={sValue}
+                    onChange={(e) => handleHslChange("s", e.target.value)}
+                    onBlur={() => handleHslBlur("s")}
+                    className={`font-mono ${
+                      sError ? "border-destructive" : ""
+                    }`}
+                    aria-invalid={!!sError}
+                    aria-describedby={sError ? "s-error" : undefined}
                     min="0"
                     max="100"
-                    value={saturation}
-                    onChange={(e) =>
-                      handleHslChange("s", Number(e.target.value))
-                    }
-                    className="font-mono"
                   />
+                  {renderErrorMessage(sError)}
                 </div>
                 <div>
                   <Label
                     htmlFor="hsl-l"
                     className="text-sm font-medium mb-1 block"
                   >
-                    L
+                    L (0-100)
                   </Label>
                   <Input
                     id="hsl-l"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    value={lValue}
+                    onChange={(e) => handleHslChange("l", e.target.value)}
+                    onBlur={() => handleHslBlur("l")}
+                    className={`font-mono ${
+                      lError ? "border-destructive" : ""
+                    }`}
+                    aria-invalid={!!lError}
+                    aria-describedby={lError ? "l-error" : undefined}
                     min="0"
                     max="100"
-                    value={lightness}
-                    onChange={(e) =>
-                      handleHslChange("l", Number(e.target.value))
-                    }
-                    className="font-mono"
                   />
+                  {renderErrorMessage(lError)}
                 </div>
               </div>
               <div className="flex items-center space-x-2 mt-3">
-                <Input
-                  value={getColorString()}
-                  readOnly
-                  className="font-mono text-sm"
-                  aria-label="HSL color value"
-                />
+                <div className="flex-1 p-2 bg-muted rounded-md font-mono text-sm overflow-x-auto">
+                  {getColorString()}
+                </div>
                 <Button
                   variant="outline"
                   size="icon"
@@ -516,6 +840,19 @@ export default function ColorPicker() {
               </div>
             </TabsContent>
           </Tabs>
+
+          {/* Actions */}
+          <div className="flex justify-between mt-6">
+            <Button variant="outline" onClick={generateRandomColor} size="sm">
+              <Wand2 className="h-4 w-4 mr-2" />
+              Random
+            </Button>
+            <Button onClick={copyToClipboard} size="sm">
+              <Copy className="h-4 w-4 mr-2" />
+              Copy
+            </Button>
+          </div>
+
           {/* Lightness and Alpha sliders */}
           <div className="w-full mt-4 space-y-4">
             {renderLightnessSlider()}
