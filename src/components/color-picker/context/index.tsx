@@ -418,13 +418,15 @@ export const ColorPickerProvider: React.FC<ColorPickerProviderProps> = ({
 
   return (
     <ColorPickerContext.Provider value={value}>
-      <div
-        className="size-full transition-all duration-500"
-        style={{
-          backgroundColor: currentColor,
-        }}
-      >
-        {children}
+      <div className="size-full transition-all duration-500 bg-background">
+        <div
+          className="size-full transition-all duration-500"
+          style={{
+            backgroundColor: currentColor,
+          }}
+        >
+          {children}
+        </div>
       </div>
     </ColorPickerContext.Provider>
   );

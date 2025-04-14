@@ -5,7 +5,7 @@ import { ColorPickerProvider } from "@/components/color-picker/context";
 
 export default function Home() {
   return (
-    <ColorPickerProvider initialColor="#6366F1">
+    <ColorPickerProvider initialColor="#0066ffff">
       <div className="h-screen w-screen overflow-hidden flex flex-col py-4">
         {/* Main content area with CSS-based scrolling */}
         <div
