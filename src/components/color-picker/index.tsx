@@ -551,9 +551,9 @@ export default function ColorPicker() {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col md:flex-row gap-6">
+      <div className="flex flex-wrap content-start gap-6">
         {/* Left side: Color wheel */}
-        <div className="flex-1 flex flex-col items-center justify-center">
+        <div className="w-full flex flex-col items-center justify-center">
           <div
             className="rounded-xl w-full aspect-square flex items-center justify-center p-4 relative border-border border border-dashed"
             style={{
@@ -574,7 +574,6 @@ export default function ColorPicker() {
                   hsl(300, 100%, 50%),
                   hsl(360, 100%, 50%)
                 )`,
-                maxWidth: "min(100%, 320px)",
               }}
               onMouseDown={handleWheelMouseDown}
               onTouchStart={handleWheelTouchStart}
@@ -608,7 +607,7 @@ export default function ColorPicker() {
         </div>
 
         {/* Right side: Color values and inputs */}
-        <div className="flex-1">
+        <div className="w-full">
           <Tabs
             value={format}
             onValueChange={(value) => setFormat(value as ColorFormat)}
@@ -842,7 +841,7 @@ export default function ColorPicker() {
           </Tabs>
 
           {/* Actions */}
-          <div className="flex justify-between mt-6">
+          {/* <div className="flex justify-between mt-6">
             <Button variant="outline" onClick={generateRandomColor} size="sm">
               <Wand2 className="h-4 w-4 mr-2" />
               Random
@@ -851,7 +850,7 @@ export default function ColorPicker() {
               <Copy className="h-4 w-4 mr-2" />
               Copy
             </Button>
-          </div>
+          </div> */}
 
           {/* Lightness and Alpha sliders */}
           <div className="w-full mt-4 space-y-4">
