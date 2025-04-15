@@ -555,14 +555,14 @@ export default function ColorPicker() {
         {/* Left side: Color wheel */}
         <div className="w-full flex flex-col items-center justify-center">
           <div
-            className="rounded-xl w-full aspect-square flex items-center justify-center p-4 relative border-border border border-dashed"
+            className="rounded-xl w-full aspect-square flex items-center justify-center p-4 relative"
             style={{
               backgroundColor: currentColor,
             }}
           >
             <div
               ref={wheelRef}
-              className="relative w-full max-w-full aspect-square rounded-full overflow-hidden cursor-crosshair touch-none shadow-sm"
+              className="relative w-full max-w-full aspect-square rounded-full cursor-crosshair touch-none shadow-sm"
               style={{
                 background: `conic-gradient(
                   from 0deg,
