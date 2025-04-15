@@ -2,14 +2,35 @@
 
 import type React from "react";
 import { useRef, useState, useCallback, useEffect } from "react";
-import { Copy, Wand2, AlertCircle } from "lucide-react";
+import { Copy, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { useColorPicker, type ColorFormat } from "./context";
+import { useStore, type ColorFormat } from "@/store";
+
+// Debounce function to limit how often a function is called
+function useDebounce<T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  return useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        func(...args);
+      }, delay);
+    },
+    [func, delay]
+  );
+}
 
 export default function ColorPicker() {
   const {
@@ -32,7 +53,28 @@ export default function ColorPicker() {
     setColorFromRgb,
     setColorFromHsl,
     currentColor,
-  } = useColorPicker();
+  } = useStore();
+
+  // Create debounced versions of the setter functions
+  const debouncedSetHue = useDebounce(setHue, 300);
+  const debouncedSetSaturation = useDebounce(setSaturation, 300);
+  const debouncedSetLightness = useDebounce(setLightness, 300);
+  const debouncedSetAlpha = useDebounce(setAlpha, 300);
+
+  // For immediate UI feedback, we'll use local state
+  const [localHue, setLocalHue] = useState(hue);
+  const [localSaturation, setLocalSaturation] = useState(saturation);
+  const [localLightness, setLocalLightness] = useState(lightness);
+  const [localAlpha, setLocalAlpha] = useState(alpha);
+
+  // Update local state when store values change
+  useEffect(() => {
+    setLocalHue(hue);
+    setLocalSaturation(saturation);
+    setLocalLightness(lightness);
+    setLocalAlpha(alpha);
+  }, [hue, saturation, lightness, alpha]);
+
   const [isDragging, setIsDragging] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -107,11 +149,16 @@ export default function ColorPicker() {
         const distance = Math.min(Math.sqrt(x * x + y * y), radius);
         const newSaturation = Math.round((distance / radius) * 100);
 
-        setHue(Math.round(angle));
-        setSaturation(newSaturation);
+        // Update local state immediately for UI feedback
+        setLocalHue(Math.round(angle));
+        setLocalSaturation(newSaturation);
+
+        // Debounce the actual store updates
+        debouncedSetHue(Math.round(angle));
+        debouncedSetSaturation(newSaturation);
       });
     },
-    [setHue, setSaturation]
+    [debouncedSetHue, debouncedSetSaturation]
   );
 
   // Handle mouse down event
@@ -477,20 +524,30 @@ export default function ColorPicker() {
     });
   };
 
+  // Handle lightness slider change with debounce
+  const handleLightnessChange = (value: number[]) => {
+    setLocalLightness(value[0]);
+    debouncedSetLightness(value[0]);
+  };
+
+  // Handle alpha slider change with debounce
+  const handleAlphaChange = (value: number[]) => {
+    setLocalAlpha(value[0]);
+    debouncedSetAlpha(value[0]);
+  };
+
   // Render lightness slider
   const renderLightnessSlider = () => (
     <div className="space-y-2">
       <div className="flex justify-between">
-        <Label>Lightness: {lightness}%</Label>
+        <Label>Lightness: {localLightness}%</Label>
       </div>
       <Slider
         min={0}
         max={100}
         step={1}
-        value={[lightness]}
-        onValueChange={(value) => setLightness(value[0])}
-        // trackClassName="bg-gradient-to-r from-black via-current to-white"
-        // rangeClassName="bg-transparent"
+        value={[localLightness]}
+        onValueChange={handleLightnessChange}
       />
     </div>
   );
@@ -499,16 +556,14 @@ export default function ColorPicker() {
   const renderAlphaSlider = () => (
     <div className="space-y-2 mt-3">
       <div className="flex justify-between">
-        <Label>Alpha: {alpha.toFixed(2)}</Label>
+        <Label>Alpha: {localAlpha.toFixed(2)}</Label>
       </div>
       <Slider
         min={0}
         max={1}
         step={0.01}
-        value={[alpha]}
-        onValueChange={(value) => setAlpha(value[0])}
-        // trackClassName="bg-checkerboard"
-        // rangeClassName={`bg-gradient-to-r from-transparent to-[${baseColor}]`}
+        value={[localAlpha]}
+        onValueChange={handleAlphaChange}
         style={
           {
             "--slider-track-background": `linear-gradient(to right, 
@@ -523,10 +578,10 @@ export default function ColorPicker() {
   // Calculate marker position correctly based on hue and saturation
   const getMarkerPosition = () => {
     // Convert hue to radians, adjusting to start from the top (270 degrees in standard position)
-    const hueRadians = ((hue - 90) * Math.PI) / 180;
+    const hueRadians = ((localHue - 90) * Math.PI) / 180;
 
     // Calculate x and y coordinates based on saturation (distance from center)
-    const saturationPercent = saturation / 100;
+    const saturationPercent = localSaturation / 100;
 
     // Calculate position
     const x = 50 + Math.cos(hueRadians) * saturationPercent * 50;
@@ -581,8 +636,8 @@ export default function ColorPicker() {
               role="slider"
               aria-valuemin={0}
               aria-valuemax={360}
-              aria-valuenow={hue}
-              aria-valuetext={`Hue: ${hue} degrees, Saturation: ${saturation}%`}
+              aria-valuenow={localHue}
+              aria-valuetext={`Hue: ${localHue} degrees, Saturation: ${localSaturation}%`}
             >
               {/* White radial gradient for saturation */}
               <div
@@ -839,18 +894,6 @@ export default function ColorPicker() {
               </div>
             </TabsContent>
           </Tabs>
-
-          {/* Actions */}
-          {/* <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={generateRandomColor} size="sm">
-              <Wand2 className="h-4 w-4 mr-2" />
-              Random
-            </Button>
-            <Button onClick={copyToClipboard} size="sm">
-              <Copy className="h-4 w-4 mr-2" />
-              Copy
-            </Button>
-          </div> */}
 
           {/* Lightness and Alpha sliders */}
           <div className="w-full mt-4 space-y-4">
