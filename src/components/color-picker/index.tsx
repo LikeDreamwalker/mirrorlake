@@ -60,19 +60,19 @@ export default function ColorPicker() {
   // Create debounced versions of the setter functions
   const debouncedSetHue = useDebounce((h: number) => {
     setHue(h);
-  }, 300);
+  }, 100);
 
   const debouncedSetSaturation = useDebounce((s: number) => {
     setSaturation(s);
-  }, 300);
+  }, 100);
 
   const debouncedSetLightness = useDebounce((l: number) => {
     setLightness(l);
-  }, 300);
+  }, 100);
 
   const debouncedSetAlpha = useDebounce((a: number) => {
     setAlpha(a);
-  }, 300);
+  }, 100);
 
   // For immediate UI feedback, we'll use local state
   const [localHue, setLocalHue] = useState(hue);
@@ -177,7 +177,7 @@ export default function ColorPicker() {
       hue: localHue,
       saturation: localSaturation,
     });
-  }, 300);
+  }, 100);
 
   // Handle mouse down event
   const handleWheelMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -560,7 +560,7 @@ export default function ColorPicker() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       updateColorValues({ lightness: localLightness });
-    }, 300);
+    }, 100);
 
     return () => clearTimeout(timeoutId);
   }, [localLightness, updateColorValues]);
@@ -574,7 +574,7 @@ export default function ColorPicker() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       updateColorValues({ alpha: localAlpha });
-    }, 300);
+    }, 100);
 
     return () => clearTimeout(timeoutId);
   }, [localAlpha, updateColorValues]);
@@ -669,7 +669,7 @@ export default function ColorPicker() {
                   hsl(120, 100%, 50%),
                   hsl(180, 100%, 50%),
                   hsl(240, 100%, 50%),
-                  hsl(300, 100%, 50%),
+                  hsl(100, 100%, 50%),
                   hsl(360, 100%, 50%)
                 )`,
               }}
@@ -693,7 +693,7 @@ export default function ColorPicker() {
 
               {/* Selection marker */}
               <div
-                className="absolute w-6 h-6 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                className="absolute w-6 h-6 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-[background] duration-500"
                 style={{
                   left: `${markerPosition.x}%`,
                   top: `${markerPosition.y}%`,

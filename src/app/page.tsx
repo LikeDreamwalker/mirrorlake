@@ -5,7 +5,7 @@ import ColorHistory from "@/components/color-history";
 
 export default function Home() {
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col py-4">
+    <div className="h-screen w-screen overflow-hidden flex flex-col py-4 max-w-screen-2xl">
       {/* Main content area with CSS-based scrolling */}
       <div
         id="scroll-container"

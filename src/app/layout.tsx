@@ -19,9 +19,9 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="dark">
           <ColorProvider initialColor="#0066FF">
-            {children}
+            <div className="flex justify-center">{children}</div>
             <Toaster />
           </ColorProvider>
         </ThemeProvider>
