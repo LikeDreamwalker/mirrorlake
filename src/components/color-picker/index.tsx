@@ -53,13 +53,26 @@ export default function ColorPicker() {
     setColorFromRgb,
     setColorFromHsl,
     currentColor,
+    updateCurrentColor,
+    updateColorValues, // Add this
   } = useStore();
 
   // Create debounced versions of the setter functions
-  const debouncedSetHue = useDebounce(setHue, 300);
-  const debouncedSetSaturation = useDebounce(setSaturation, 300);
-  const debouncedSetLightness = useDebounce(setLightness, 300);
-  const debouncedSetAlpha = useDebounce(setAlpha, 300);
+  const debouncedSetHue = useDebounce((h: number) => {
+    setHue(h);
+  }, 300);
+
+  const debouncedSetSaturation = useDebounce((s: number) => {
+    setSaturation(s);
+  }, 300);
+
+  const debouncedSetLightness = useDebounce((l: number) => {
+    setLightness(l);
+  }, 300);
+
+  const debouncedSetAlpha = useDebounce((a: number) => {
+    setAlpha(a);
+  }, 300);
 
   // For immediate UI feedback, we'll use local state
   const [localHue, setLocalHue] = useState(hue);
@@ -149,17 +162,22 @@ export default function ColorPicker() {
         const distance = Math.min(Math.sqrt(x * x + y * y), radius);
         const newSaturation = Math.round((distance / radius) * 100);
 
-        // Update local state immediately for UI feedback
+        // Update local state immediately for UI feedback only
         setLocalHue(Math.round(angle));
         setLocalSaturation(newSaturation);
-
-        // Debounce the actual store updates
-        debouncedSetHue(Math.round(angle));
-        debouncedSetSaturation(newSaturation);
       });
     },
-    [debouncedSetHue, debouncedSetSaturation]
+    []
   );
+
+  // Add this new debounced function to update the store
+  const debouncedUpdateColor = useDebounce(() => {
+    // Use the new combined method instead of individual setters
+    updateColorValues({
+      hue: localHue,
+      saturation: localSaturation,
+    });
+  }, 300);
 
   // Handle mouse down event
   const handleWheelMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -204,6 +222,9 @@ export default function ColorPicker() {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
+
+      // Update the store once when dragging ends
+      debouncedUpdateColor();
     };
 
     // Add event listeners
@@ -225,7 +246,13 @@ export default function ColorPicker() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isDragging, updateWheelPosition]);
+  }, [
+    isDragging,
+    updateWheelPosition,
+    debouncedUpdateColor,
+    localHue,
+    localSaturation,
+  ]);
 
   // Handle hex input change
   const handleHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -527,14 +554,30 @@ export default function ColorPicker() {
   // Handle lightness slider change with debounce
   const handleLightnessChange = (value: number[]) => {
     setLocalLightness(value[0]);
-    debouncedSetLightness(value[0]);
   };
+
+  // Add a debounced effect for lightness changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      updateColorValues({ lightness: localLightness });
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [localLightness, updateColorValues]);
 
   // Handle alpha slider change with debounce
   const handleAlphaChange = (value: number[]) => {
     setLocalAlpha(value[0]);
-    debouncedSetAlpha(value[0]);
   };
+
+  // Add a debounced effect for alpha changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      updateColorValues({ alpha: localAlpha });
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [localAlpha, updateColorValues]);
 
   // Render lightness slider
   const renderLightnessSlider = () => (
@@ -610,7 +653,7 @@ export default function ColorPicker() {
         {/* Left side: Color wheel */}
         <div className="w-full flex flex-col items-center justify-center">
           <div
-            className="rounded-xl w-full aspect-square flex items-center justify-center p-4 relative"
+            className="rounded-xl w-full aspect-square flex items-center justify-center p-4 relative transition-all duration-500"
             style={{
               backgroundColor: currentColor,
             }}

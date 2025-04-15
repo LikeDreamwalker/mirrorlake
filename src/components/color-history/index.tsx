@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore, type ColorItem } from "@/store";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,8 +16,66 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ColorHistory() {
-  const { colors, toggleFavorite, removeColor } = useStore();
+  const {
+    colors,
+    toggleFavorite,
+    removeColor,
+    baseColor,
+    hue,
+    saturation,
+    lightness,
+    rgb,
+  } = useStore();
   const [selectedColor, setSelectedColor] = useState<ColorItem | null>(null);
+  const [userSelected, setUserSelected] = useState(false);
+
+  // Initialize with current color info when component mounts
+  useEffect(() => {
+    if (colors.length > 0 && !selectedColor) {
+      // If we have colors but no selection, select the first one
+      setSelectedColor(colors[0]);
+    } else if (!selectedColor) {
+      // Create a virtual color item for the current color if no colors exist
+      setSelectedColor(createCurrentColorItem());
+    }
+  }, [colors, selectedColor]);
+
+  // Create a current color item based on the current state
+  const createCurrentColorItem = (): ColorItem => {
+    return {
+      id: "current",
+      name: "Current Color",
+      color: baseColor,
+      rgb: rgb,
+      hsl: { h: hue, s: saturation, l: lightness },
+      alpha: 1,
+      createdAt: new Date(),
+    };
+  };
+
+  // Update the selected color when the current color changes
+  // but only if the user hasn't manually selected a color
+  useEffect(() => {
+    // Only update the selected color when the current color changes
+    // if the user hasn't manually selected a color
+    if (!userSelected) {
+      setSelectedColor(createCurrentColorItem());
+    }
+  }, [baseColor, rgb, hue, saturation, lightness]);
+
+  // Add a debounced effect to handle color selection reset
+  useEffect(() => {
+    // Reset userSelected flag after a delay when the current color changes
+    // This allows the color info card to update to the new current color
+    // after the user changes colors in the picker
+    if (userSelected) {
+      const timeoutId = setTimeout(() => {
+        setUserSelected(false);
+      }, 500); // Reset after half a second of no changes
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [baseColor, userSelected]);
 
   // Handle copying color to clipboard
   const copyToClipboard = (color: string, format = "hex") => {
@@ -28,19 +86,37 @@ export default function ColorHistory() {
     });
   };
 
-  // If theme has no colors
-  if (colors.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <p className="text-muted-foreground">
-          No colors in your collection yet
-        </p>
-        <p className="text-muted-foreground text-sm mt-2">
-          Use the color picker to add colors
-        </p>
-      </div>
-    );
-  }
+  // Handle color selection
+  const handleSelectColor = (color: ColorItem) => {
+    setSelectedColor(color);
+    setUserSelected(true); // Mark that user has manually selected a color
+  };
+
+  // Handle color removal
+  const handleRemoveColor = (colorId: string) => {
+    removeColor(colorId);
+    // If we're removing the selected color, select the first available color
+    if (selectedColor?.id === colorId) {
+      if (colors.length > 1) {
+        // Find the next color that's not being removed
+        const nextColor = colors.find((c) => c.id !== colorId);
+        if (nextColor) {
+          setSelectedColor(nextColor);
+          setUserSelected(true);
+        }
+      } else {
+        // Reset to current color if no colors will be left
+        setSelectedColor(createCurrentColorItem());
+        setUserSelected(false);
+      }
+    }
+  };
+
+  // Reset to current color
+  const resetToCurrentColor = () => {
+    setSelectedColor(createCurrentColorItem());
+    setUserSelected(false);
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -49,28 +125,47 @@ export default function ColorHistory() {
         <Badge variant="outline">{colors.length} colors</Badge>
       </div>
 
-      {/* Use ScrollArea with a fixed height */}
-      <div className="h-[500px] mb-4">
-        <ScrollArea className="h-full pr-4">
-          <div className="grid grid-cols-1 gap-3">
-            {colors.map((color) => (
-              <ColorCard
-                key={color.id}
-                color={color}
-                isSelected={selectedColor?.id === color.id}
-                onSelect={() => setSelectedColor(color)}
-                onCopy={() => copyToClipboard(color.color)}
-                onToggleFavorite={() => toggleFavorite(color.id)}
-                onRemove={() => removeColor(color.id)}
-              />
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
-
+      {/* Color Info Card - Always shown at the top */}
       {selectedColor && (
-        <div className="mt-auto">
-          <ColorDetails color={selectedColor} onCopy={copyToClipboard} />
+        <div className="mb-4">
+          <ColorDetails
+            color={selectedColor}
+            onCopy={copyToClipboard}
+            isCurrentColor={selectedColor.id === "current"}
+            onResetToCurrent={resetToCurrentColor}
+            userSelected={userSelected}
+          />
+        </div>
+      )}
+
+      {/* If theme has no colors */}
+      {colors.length === 0 ? (
+        <div className="flex flex-col items-center justify-center flex-1">
+          <p className="text-muted-foreground">
+            No colors in your collection yet
+          </p>
+          <p className="text-muted-foreground text-sm mt-2">
+            Use the color picker to add colors
+          </p>
+        </div>
+      ) : (
+        /* Use ScrollArea with a fixed height */
+        <div className="h-[400px]">
+          <ScrollArea className="h-full">
+            <div className="grid grid-cols-1 gap-3 pr-4">
+              {colors.map((color) => (
+                <ColorCard
+                  key={color.id}
+                  color={color}
+                  isSelected={selectedColor?.id === color.id}
+                  onSelect={() => handleSelectColor(color)}
+                  onCopy={() => copyToClipboard(color.color)}
+                  onToggleFavorite={() => toggleFavorite(color.id)}
+                  onRemove={() => handleRemoveColor(color.id)}
+                />
+              ))}
+            </div>
+          </ScrollArea>
         </div>
       )}
     </div>
@@ -178,9 +273,18 @@ function ColorCard({
 interface ColorDetailsProps {
   color: ColorItem;
   onCopy: (value: string, format?: string) => void;
+  isCurrentColor?: boolean;
+  onResetToCurrent?: () => void;
+  userSelected?: boolean;
 }
 
-function ColorDetails({ color, onCopy }: ColorDetailsProps) {
+function ColorDetails({
+  color,
+  onCopy,
+  isCurrentColor = false,
+  onResetToCurrent,
+  userSelected = false,
+}: ColorDetailsProps) {
   return (
     <Card className="p-4">
       <div className="flex items-center mb-3">
@@ -188,8 +292,20 @@ function ColorDetails({ color, onCopy }: ColorDetailsProps) {
           className="w-12 h-12 rounded-md mr-3"
           style={{ backgroundColor: color.color }}
         ></div>
-        <div>
-          <h3 className="font-bold text-lg">{color.name}</h3>
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-lg">{color.name}</h3>
+            {userSelected && onResetToCurrent && !isCurrentColor && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onResetToCurrent}
+                className="h-8 px-2 text-xs"
+              >
+                Show current
+              </Button>
+            )}
+          </div>
           {color.info && (
             <div className="flex items-center text-sm text-muted-foreground">
               <Info className="h-3 w-3 mr-1" />
@@ -223,8 +339,12 @@ function ColorDetails({ color, onCopy }: ColorDetailsProps) {
           }
         />
         <DetailItem
-          label="Created"
-          value={new Date(color.createdAt).toLocaleDateString()}
+          label={color.id === "current" ? "Status" : "Created"}
+          value={
+            color.id === "current"
+              ? "Active color"
+              : new Date(color.createdAt).toLocaleDateString()
+          }
         />
       </div>
     </Card>

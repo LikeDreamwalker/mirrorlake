@@ -277,11 +277,19 @@ interface StoreState {
   isDark: boolean;
   hslChanged: boolean;
   autoSwitchTheme: boolean;
-  lastColorChangeTime: number;
 
   // Theme state
   colors: ColorItem[];
   recentColors: string[];
+}
+
+// Add a new interface for the combined update method parameters
+interface ColorUpdateParams {
+  hue?: number;
+  saturation?: number;
+  lightness?: number;
+  alpha?: number;
+  baseColor?: string;
 }
 
 // Define the store actions
@@ -302,6 +310,9 @@ interface StoreActions {
   setColorFromRgb: (r: number, g: number, b: number) => void;
   setColorFromHsl: (h: number, s: number, l: number) => void;
   updateCurrentColor: () => void;
+
+  // Add this new method
+  updateColorValues: (params: ColorUpdateParams) => void;
 
   // Theme actions
   addColor: (color: string, name?: string, info?: string) => void;
@@ -328,7 +339,6 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   isDark: defaultIsDark,
   hslChanged: false,
   autoSwitchTheme: true,
-  lastColorChangeTime: Date.now(),
 
   // Initial theme state
   colors: [createColorItem(defaultColor, "Blue", "Default blue color")],
@@ -337,27 +347,27 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   // Color picker actions
   setBaseColor: (color: string) => {
     set({ baseColor: color });
-    get().updateCurrentColor();
+    // Don't call updateCurrentColor here
   },
 
   setHue: (hue: number) => {
     set({ hue, hslChanged: true });
-    get().updateCurrentColor();
+    // Don't call updateCurrentColor here
   },
 
   setSaturation: (saturation: number) => {
     set({ saturation, hslChanged: true });
-    get().updateCurrentColor();
+    // Don't call updateCurrentColor here
   },
 
   setLightness: (lightness: number) => {
     set({ lightness, hslChanged: true });
-    get().updateCurrentColor();
+    // Don't call updateCurrentColor here
   },
 
   setAlpha: (alpha: number) => {
     set({ alpha });
-    get().updateCurrentColor();
+    // Don't call updateCurrentColor here
   },
 
   setFormat: (format: ColorFormat) => set({ format }),
@@ -484,7 +494,6 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       hslChanged,
       recentColors,
       autoSwitchTheme,
-      lastColorChangeTime,
     } = get();
 
     // When HSL values change, update the baseColor
@@ -510,24 +519,49 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       updatedRecentColors = [newCurrentColor, ...recentColors.slice(0, 7)];
     }
 
-    const now = Date.now();
     set({
       currentColor: newCurrentColor,
       rgb,
       isDark: dark,
       recentColors: updatedRecentColors,
-      lastColorChangeTime: now,
     });
 
-    // Add color to history after a delay (to avoid adding too many colors during rapid changes)
-    // We use setTimeout to debounce the color addition
-    const DEBOUNCE_TIME = 500; // 1 second
-    setTimeout(() => {
-      // Only add the color if it's still the current one after the delay
-      if (get().lastColorChangeTime === now) {
-        get().addColor(newBaseColor);
-      }
-    }, DEBOUNCE_TIME);
+    // Add to color history - we'll debounce this at the component level
+    get().addColor(newBaseColor);
+  },
+
+  // Add this after the existing setter methods
+  updateColorValues: (params: ColorUpdateParams) => {
+    const updates: any = {};
+
+    if (params.baseColor !== undefined) {
+      updates.baseColor = params.baseColor;
+    }
+
+    if (params.hue !== undefined) {
+      updates.hue = params.hue;
+      updates.hslChanged = true;
+    }
+
+    if (params.saturation !== undefined) {
+      updates.saturation = params.saturation;
+      updates.hslChanged = true;
+    }
+
+    if (params.lightness !== undefined) {
+      updates.lightness = params.lightness;
+      updates.hslChanged = true;
+    }
+
+    if (params.alpha !== undefined) {
+      updates.alpha = params.alpha;
+    }
+
+    // Only update state if we have changes
+    if (Object.keys(updates).length > 0) {
+      set(updates);
+      get().updateCurrentColor();
+    }
   },
 
   // Theme actions
