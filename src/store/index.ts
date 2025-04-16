@@ -563,8 +563,8 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       recentColors: updatedRecentColors,
     });
 
-    // Add to color history - we'll debounce this at the component level
-    get().addColor(newBaseColor);
+    // REMOVE THIS LINE - Don't automatically add to color history
+    // get().addColor(newBaseColor)
   },
 
   // Add this after the existing setter methods

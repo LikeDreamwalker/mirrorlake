@@ -1,8 +1,9 @@
 "use client";
 
 import type React from "react";
+
 import { useRef, useState, useCallback, useEffect } from "react";
-import { Copy, AlertCircle, RefreshCw } from "lucide-react";
+import { Copy, AlertCircle, RefreshCw, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,27 +12,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useStore } from "@/store";
+import { debounce } from "@/lib/utils";
 
-// Debounce function to limit how often a function is called
-function useDebounce<T extends (...args: any[]) => any>(
-  func: T,
-  delay: number
-): (...args: Parameters<T>) => void {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  return useCallback(
-    (...args: Parameters<T>) => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        func(...args);
-      }, delay);
-    },
-    [func, delay]
-  );
-}
+// Debounce timeout in milliseconds
+const DEBOUNCE_TIMEOUT = 50;
 
 export default function ColorPicker() {
   const {
@@ -46,35 +30,17 @@ export default function ColorPicker() {
     setSaturation,
     setLightness,
     setAlpha,
-    setFormat,
     getFullColor,
-    getColorString,
     generateRandomColor,
     setColorFromHex,
     setColorFromRgb,
     setColorFromHsl,
     currentColor,
-    updateCurrentColor,
     updateColorValues,
     getColorName,
+    colors,
+    removeColor,
   } = useStore();
-
-  // Create debounced versions of the setter functions
-  const debouncedSetHue = useDebounce((h: number) => {
-    setHue(h);
-  }, 300);
-
-  const debouncedSetSaturation = useDebounce((s: number) => {
-    setSaturation(s);
-  }, 300);
-
-  const debouncedSetLightness = useDebounce((l: number) => {
-    setLightness(l);
-  }, 300);
-
-  const debouncedSetAlpha = useDebounce((a: number) => {
-    setAlpha(a);
-  }, 300);
 
   // For immediate UI feedback, we'll use local state
   const [localHue, setLocalHue] = useState(hue);
@@ -132,7 +98,35 @@ export default function ColorPicker() {
     setLError("");
   }, [getFullColor, rgb.r, rgb.g, rgb.b, hue, saturation, lightness]);
 
-  // Generic function to update wheel position from any pointer event (mouse or touch)
+  // Create debounced update function
+  const debouncedUpdateColor = useCallback(
+    debounce(
+      (updates: {
+        hue?: number;
+        saturation?: number;
+        lightness?: number;
+        alpha?: number;
+      }) => {
+        updateColorValues(updates);
+      },
+      DEBOUNCE_TIMEOUT
+    ),
+    [updateColorValues]
+  );
+
+  // Handle lightness slider change
+  const handleLightnessChange = (value: number[]) => {
+    setLocalLightness(value[0]);
+    debouncedUpdateColor({ lightness: value[0] });
+  };
+
+  // Handle alpha slider change
+  const handleAlphaChange = (value: number[]) => {
+    setLocalAlpha(value[0]);
+    debouncedUpdateColor({ alpha: value[0] });
+  };
+
+  // Update the wheel position function to update color immediately for better responsiveness
   const updateWheelPosition = useCallback(
     (clientX: number, clientY: number) => {
       if (!wheelRef.current) return;
@@ -153,7 +147,6 @@ export default function ColorPicker() {
         const y = clientY - rect.top - centerY;
 
         // Calculate angle (hue) and distance from center (saturation)
-        // Math.atan2 returns the angle in radians, convert to degrees
         let angle = Math.atan2(y, x) * (180 / Math.PI);
 
         // Adjust angle to start from the top (0 degrees) and go clockwise
@@ -163,23 +156,23 @@ export default function ColorPicker() {
         const radius = rect.width / 2;
         const distance = Math.min(Math.sqrt(x * x + y * y), radius);
         const newSaturation = Math.round((distance / radius) * 100);
+        const newHue = Math.round(angle);
 
-        // Update local state immediately for UI feedback only
-        setLocalHue(Math.round(angle));
+        // Update local state immediately for UI feedback
+        setLocalHue(newHue);
         setLocalSaturation(newSaturation);
+
+        // Update the color while dragging for immediate feedback
+        if (isDragging) {
+          debouncedUpdateColor({
+            hue: newHue,
+            saturation: newSaturation,
+          });
+        }
       });
     },
-    []
+    [isDragging, debouncedUpdateColor]
   );
-
-  // Add this new debounced function to update the store
-  const debouncedUpdateColor = useDebounce(() => {
-    // Use the new combined method instead of individual setters
-    updateColorValues({
-      hue: localHue,
-      saturation: localSaturation,
-    });
-  }, 300);
 
   // Handle mouse down event
   const handleWheelMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -190,7 +183,6 @@ export default function ColorPicker() {
 
   // Handle touch start event
   const handleWheelTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    // Prevent scrolling while touching the color wheel
     e.preventDefault();
     setIsDragging(true);
 
@@ -199,6 +191,21 @@ export default function ColorPicker() {
       updateWheelPosition(touch.clientX, touch.clientY);
     }
   };
+
+  // Common end handler for both mouse and touch
+  const handleEnd = useCallback(() => {
+    setIsDragging(false);
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    // Ensure the final position is applied
+    updateColorValues({
+      hue: localHue,
+      saturation: localSaturation,
+    });
+  }, [localHue, localSaturation, updateColorValues]);
 
   // Handle mouse/touch move and end events
   useEffect(() => {
@@ -215,18 +222,6 @@ export default function ColorPicker() {
         const touch = e.touches[0];
         updateWheelPosition(touch.clientX, touch.clientY);
       }
-    };
-
-    // Common end handler for both mouse and touch
-    const handleEnd = () => {
-      setIsDragging(false);
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-
-      // Update the store once when dragging ends
-      debouncedUpdateColor();
     };
 
     // Add event listeners
@@ -248,13 +243,7 @@ export default function ColorPicker() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [
-    isDragging,
-    updateWheelPosition,
-    debouncedUpdateColor,
-    localHue,
-    localSaturation,
-  ]);
+  }, [isDragging, updateWheelPosition, handleEnd]);
 
   // Handle hex input change
   const handleHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -560,41 +549,13 @@ export default function ColorPicker() {
   };
 
   // Copy color to clipboard
-  const copyToClipboard = (value: string, format = "hex") => {
+  const copyToClipboard = (value: string) => {
     navigator.clipboard.writeText(value);
     toast("Copied!", {
       description: `${value} has been copied to clipboard`,
       duration: 2000,
     });
   };
-
-  // Handle lightness slider change with debounce
-  const handleLightnessChange = (value: number[]) => {
-    setLocalLightness(value[0]);
-  };
-
-  // Add a debounced effect for lightness changes
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      updateColorValues({ lightness: localLightness });
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [localLightness, updateColorValues]);
-
-  // Handle alpha slider change with debounce
-  const handleAlphaChange = (value: number[]) => {
-    setLocalAlpha(value[0]);
-  };
-
-  // Add a debounced effect for alpha changes
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      updateColorValues({ alpha: localAlpha });
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [localAlpha, updateColorValues]);
 
   // Render lightness slider
   const renderLightnessSlider = () => (
@@ -637,10 +598,8 @@ export default function ColorPicker() {
 
   // Calculate marker position correctly based on hue and saturation
   const getMarkerPosition = () => {
-    // Convert hue to radians, adjusting to start from the top (270 degrees in standard position)
+    // Convert hue to radians, adjusting to start from the top
     const hueRadians = ((localHue - 90) * Math.PI) / 180;
-
-    // Calculate x and y coordinates based on saturation (distance from center)
     const saturationPercent = localSaturation / 100;
 
     // Calculate position
@@ -694,6 +653,35 @@ export default function ColorPicker() {
 
   // Get the color name
   const colorName = getColorName();
+
+  // Find if this color exists in the current theme
+  const currentColorInTheme = colors.find(
+    (c) => c.color.toLowerCase() === baseColor.toLowerCase()
+  );
+
+  // Handle removing the current color from the theme
+  const handleRemoveCurrentColor = () => {
+    if (currentColorInTheme) {
+      removeColor(currentColorInTheme.id);
+      toast("Color removed", {
+        description: `${baseColor} has been removed from your theme`,
+        duration: 2000,
+      });
+    }
+  };
+
+  // Add current color to theme
+  const handleAddToTheme = () => {
+    // Only add if it doesn't already exist in the theme
+    if (!currentColorInTheme) {
+      // Use the store's addColor function
+      useStore.getState().addColor(baseColor, colorName);
+      toast("Color added", {
+        description: `${baseColor} has been added to your theme`,
+        duration: 2000,
+      });
+    }
+  };
 
   return (
     <div className="w-full">
@@ -762,15 +750,38 @@ export default function ColorPicker() {
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-lg">{colorName}</h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={generateRandomColor}
-                  className="h-8 w-8"
-                  aria-label="Generate random color"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-2">
+                  {currentColorInTheme ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRemoveCurrentColor}
+                      className="h-8 w-8"
+                      aria-label="Remove color from theme"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleAddToTheme}
+                      className="h-8 w-8"
+                      aria-label="Add color to theme"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={generateRandomColor}
+                    className="h-8 w-8"
+                    aria-label="Generate random color"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <Badge variant="outline" className="mt-1">
                 {baseColor}
@@ -805,7 +816,7 @@ export default function ColorPicker() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => copyToClipboard(hexValue, "hex")}
+                  onClick={() => copyToClipboard(hexValue)}
                   aria-label="Copy hex value"
                 >
                   <Copy className="h-4 w-4" />
@@ -820,23 +831,20 @@ export default function ColorPicker() {
             <DetailItem
               label="HEX"
               value={baseColor}
-              onClick={() => copyToClipboard(baseColor, "hex")}
+              onClick={() => copyToClipboard(baseColor)}
             />
             <DetailItem
               label="RGB"
               value={`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`}
               onClick={() =>
-                copyToClipboard(`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`, "rgb")
+                copyToClipboard(`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`)
               }
             />
             <DetailItem
               label="HSL"
               value={`hsl(${hue}, ${saturation}%, ${lightness}%)`}
               onClick={() =>
-                copyToClipboard(
-                  `hsl(${hue}, ${saturation}%, ${lightness}%)`,
-                  "hsl"
-                )
+                copyToClipboard(`hsl(${hue}, ${saturation}%, ${lightness}%)`)
               }
             />
             <DetailItem
@@ -844,8 +852,7 @@ export default function ColorPicker() {
               value={`rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(2)})`}
               onClick={() =>
                 copyToClipboard(
-                  `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(2)})`,
-                  "rgba"
+                  `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(2)})`
                 )
               }
             />
