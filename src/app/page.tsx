@@ -2,6 +2,7 @@ import ColorPicker from "@/components/color-picker";
 import NavigationControls from "@/components/navigation";
 import CardContainer from "@/components/card-container";
 import ColorHistory from "@/components/color-history";
+import ColorAssistant from "@/components/color-assistant";
 
 export default function Home() {
   return (
@@ -20,8 +21,8 @@ export default function Home() {
             <ColorHistory />
           </CardContainer>
 
-          <CardContainer id="color-assistant">
-            <p className="text-gray-400 text-lg">Chat Assistant Content</p>
+          <CardContainer id="color-assistant" needScroll={false}>
+            <ColorAssistant />
           </CardContainer>
         </div>
       </div>
