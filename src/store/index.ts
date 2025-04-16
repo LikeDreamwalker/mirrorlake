@@ -179,6 +179,41 @@ export const isColorDark = (hex: string): boolean => {
   return luminance < 0.5;
 };
 
+// Add this function after the existing utility functions, before the store definition
+
+// Helper function to generate a color name based on HSL values
+export function generateColorName(h: number, s: number, l: number): string {
+  // Determine hue name
+  let hueName = "";
+  if ((h >= 0 && h < 15) || (h >= 345 && h <= 360)) hueName = "Red";
+  else if (h >= 15 && h < 45) hueName = "Orange";
+  else if (h >= 45 && h < 75) hueName = "Yellow";
+  else if (h >= 75 && h < 105) hueName = "Yellow-Green";
+  else if (h >= 105 && h < 135) hueName = "Green";
+  else if (h >= 135 && h < 165) hueName = "Mint";
+  else if (h >= 165 && h < 195) hueName = "Cyan";
+  else if (h >= 195 && h < 225) hueName = "Sky Blue";
+  else if (h >= 225 && h < 255) hueName = "Blue";
+  else if (h >= 255 && h < 285) hueName = "Purple";
+  else if (h >= 285 && h < 315) hueName = "Magenta";
+  else if (h >= 315 && h < 345) hueName = "Pink";
+
+  // Determine saturation modifier
+  let satModifier = "";
+  if (s < 10) satModifier = "Gray ";
+  else if (s < 30) satModifier = "Muted ";
+  else if (s > 85) satModifier = "Vibrant ";
+
+  // Determine lightness modifier
+  let lightModifier = "";
+  if (l < 20) lightModifier = "Dark ";
+  else if (l < 40) lightModifier = "Deep ";
+  else if (l > 80) lightModifier = "Pale ";
+  else if (l > 60) lightModifier = "Light ";
+
+  return `${lightModifier}${satModifier}${hueName}`;
+}
+
 export type ColorFormat = "hex" | "rgb" | "hsl";
 
 // Define the color item type for the theme
@@ -232,30 +267,30 @@ const createColorItem = (color: string, name = "", info = ""): ColorItem => {
 };
 
 // Helper function to generate a simple color name based on HSL values
-function generateColorName(h: number, s: number, l: number): string {
-  // Determine hue name
-  let hueName = "";
-  if (h >= 0 && h < 30) hueName = "Red";
-  else if (h >= 30 && h < 60) hueName = "Orange";
-  else if (h >= 60 && h < 90) hueName = "Yellow";
-  else if (h >= 90 && h < 150) hueName = "Green";
-  else if (h >= 150 && h < 210) hueName = "Cyan";
-  else if (h >= 210 && h < 270) hueName = "Blue";
-  else if (h >= 270 && h < 330) hueName = "Purple";
-  else hueName = "Pink";
+// function generateColorName(h: number, s: number, l: number): string {
+//   // Determine hue name
+//   let hueName = ""
+//   if (h >= 0 && h < 30) hueName = "Red"
+//   else if (h >= 30 && h < 60) hueName = "Orange"
+//   else if (h >= 60 && h < 90) hueName = "Yellow"
+//   else if (h >= 90 && h < 150) hueName = "Green"
+//   else if (h >= 150 && h < 210) hueName = "Cyan"
+//   else if (h >= 210 && h < 270) hueName = "Blue"
+//   else if (h >= 270 && h < 330) hueName = "Purple"
+//   else hueName = "Pink"
 
-  // Determine saturation modifier
-  let satModifier = "";
-  if (s < 30) satModifier = "Grayish ";
-  else if (s > 80) satModifier = "Vibrant ";
+//   // Determine saturation modifier
+//   let satModifier = ""
+//   if (s < 30) satModifier = "Grayish "
+//   else if (s > 80) satModifier = "Vibrant "
 
-  // Determine lightness modifier
-  let lightModifier = "";
-  if (l < 30) lightModifier = "Dark ";
-  else if (l > 70) lightModifier = "Light ";
+//   // Determine lightness modifier
+//   let lightModifier = ""
+//   if (l < 30) lightModifier = "Dark "
+//   else if (l > 70) lightModifier = "Light "
 
-  return `${lightModifier}${satModifier}${hueName}`;
-}
+//   return `${lightModifier}${satModifier}${hueName}`
+// }
 
 // Calculate the correct values for #0066FF
 const defaultColor = "#0066FF";
@@ -292,7 +327,7 @@ interface ColorUpdateParams {
   baseColor?: string;
 }
 
-// Define the store actions
+// Add this to the StoreActions interface
 interface StoreActions {
   // Color picker actions
   setBaseColor: (color: string) => void;
@@ -323,9 +358,10 @@ interface StoreActions {
   ) => void;
   toggleFavorite: (colorId: string) => void;
   getColorById: (colorId: string) => ColorItem | null;
+  getColorName: () => string;
 }
 
-// Create the unified store
+// Add this to the store implementation
 export const useStore = create<StoreState & StoreActions>((set, get) => ({
   // Initial color picker state
   baseColor: defaultColor,
@@ -456,6 +492,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     }
   },
 
+  // Modify the setColorFromRgb function to preserve exact RGB values
   setColorFromRgb: (r: number, g: number, b: number) => {
     // Convert RGB directly to hex and update the source of truth
     const hex = rgbToHex(r, g, b);
@@ -467,7 +504,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       saturation: hsl.s,
       lightness: hsl.l,
       hslChanged: false,
-      rgb: { r, g, b },
+      rgb: { r, g, b }, // Store the exact RGB values provided by the user
     });
 
     get().updateCurrentColor();
@@ -627,33 +664,11 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   getColorById: (colorId: string) => {
     return get().colors.find((c) => c.id === colorId) || null;
   },
+  getColorName: () => {
+    const { hue, saturation, lightness } = get();
+    return generateColorName(hue, saturation, lightness);
+  },
 }));
-
-// Helper function to generate a simple color name based on HSL values
-// function generateColorName(h: number, s: number, l: number): string {
-//   // Determine hue name
-//   let hueName = ""
-//   if (h >= 0 && h < 30) hueName = "Red"
-//   else if (h >= 30 && h < 60) hueName = "Orange"
-//   else if (h >= 60 && h < 90) hueName = "Yellow"
-//   else if (h >= 90 && h < 150) hueName = "Green"
-//   else if (h >= 150 && h < 210) hueName = "Cyan"
-//   else if (h >= 210 && h < 270) hueName = "Blue"
-//   else if (h >= 270 && h < 330) hueName = "Purple"
-//   else hueName = "Pink"
-
-//   // Determine saturation modifier
-//   let satModifier = ""
-//   if (s < 30) satModifier = "Grayish "
-//   else if (s > 80) satModifier = "Vibrant "
-
-//   // Determine lightness modifier
-//   let lightModifier = ""
-//   if (l < 30) lightModifier = "Dark "
-//   else if (l > 70) lightModifier = "Light "
-
-//   return `${lightModifier}${satModifier}${hueName}`
-// }
 
 // Create a hook to handle theme switching
 export function useColorThemeSwitcher(initialColor = "#0066FF") {

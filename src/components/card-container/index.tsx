@@ -13,9 +13,9 @@ export default function CardContainer({ id, children }: CardContainerProps) {
       id={id}
       className="h-full min-w-full w-full flex-shrink-0 snap-center lg:min-w-0 lg:w-1/3 lg:flex-1 border-dashed shadow-sm"
     >
-      <CardContent className="h-full">
+      <CardContent className="h-full p-2">
         <ScrollArea className="h-full rounded-xl">
-          <div className="h-full my-2">{children}</div>
+          <div className="h-full p-2">{children}</div>
         </ScrollArea>
       </CardContent>
     </Card>

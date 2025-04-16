@@ -2,14 +2,15 @@
 
 import type React from "react";
 import { useRef, useState, useCallback, useEffect } from "react";
-import { Copy, AlertCircle } from "lucide-react";
+import { Copy, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useStore, type ColorFormat } from "@/store";
+import { useStore } from "@/store";
 
 // Debounce function to limit how often a function is called
 function useDebounce<T extends (...args: any[]) => any>(
@@ -54,25 +55,26 @@ export default function ColorPicker() {
     setColorFromHsl,
     currentColor,
     updateCurrentColor,
-    updateColorValues, // Add this
+    updateColorValues,
+    getColorName,
   } = useStore();
 
   // Create debounced versions of the setter functions
   const debouncedSetHue = useDebounce((h: number) => {
     setHue(h);
-  }, 100);
+  }, 300);
 
   const debouncedSetSaturation = useDebounce((s: number) => {
     setSaturation(s);
-  }, 100);
+  }, 300);
 
   const debouncedSetLightness = useDebounce((l: number) => {
     setLightness(l);
-  }, 100);
+  }, 300);
 
   const debouncedSetAlpha = useDebounce((a: number) => {
     setAlpha(a);
-  }, 100);
+  }, 300);
 
   // For immediate UI feedback, we'll use local state
   const [localHue, setLocalHue] = useState(hue);
@@ -177,7 +179,7 @@ export default function ColorPicker() {
       hue: localHue,
       saturation: localSaturation,
     });
-  }, 100);
+  }, 300);
 
   // Handle mouse down event
   const handleWheelMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -332,28 +334,6 @@ export default function ColorPicker() {
       if (component === "b") setBError("Must be 0-255");
       return;
     }
-
-    // Only update the color if all values are valid numbers
-    const newRgb = {
-      r: component === "r" ? numValue : Number.parseInt(rValue, 10) || 0,
-      g: component === "g" ? numValue : Number.parseInt(gValue, 10) || 0,
-      b: component === "b" ? numValue : Number.parseInt(bValue, 10) || 0,
-    };
-
-    // Only update if all values are valid
-    if (
-      !isNaN(newRgb.r) &&
-      !isNaN(newRgb.g) &&
-      !isNaN(newRgb.b) &&
-      newRgb.r >= 0 &&
-      newRgb.r <= 255 &&
-      newRgb.g >= 0 &&
-      newRgb.g <= 255 &&
-      newRgb.b >= 0 &&
-      newRgb.b <= 255
-    ) {
-      setColorFromRgb(newRgb.r, newRgb.g, newRgb.b);
-    }
   };
 
   // Handle RGB input blur - fix any invalid values
@@ -410,6 +390,36 @@ export default function ColorPicker() {
         setBValue(numValue.toString());
         setBError("");
       }
+
+      // Only update the color if all values are valid numbers
+      const r = component === "r" ? numValue : Number.parseInt(rValue, 10) || 0;
+      const g = component === "g" ? numValue : Number.parseInt(gValue, 10) || 0;
+      const b = component === "b" ? numValue : Number.parseInt(bValue, 10) || 0;
+
+      // Only update if all values are valid
+      if (
+        !isNaN(r) &&
+        !isNaN(g) &&
+        !isNaN(b) &&
+        r >= 0 &&
+        r <= 255 &&
+        g >= 0 &&
+        g <= 255 &&
+        b >= 0 &&
+        b <= 255
+      ) {
+        setColorFromRgb(r, g, b);
+      }
+    }
+  };
+
+  // Add a key handler to apply RGB values on Enter key
+  const handleRgbKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    component: "r" | "g" | "b"
+  ) => {
+    if (e.key === "Enter") {
+      handleRgbBlur(component);
     }
   };
 
@@ -454,28 +464,6 @@ export default function ColorPicker() {
       if (component === "s") setSError("Must be 0-100");
       if (component === "l") setLError("Must be 0-100");
       return;
-    }
-
-    // Only update the color if the value is valid
-    const newHsl = {
-      h: component === "h" ? numValue : Number.parseInt(hValue, 10) || 0,
-      s: component === "s" ? numValue : Number.parseInt(sValue, 10) || 0,
-      l: component === "l" ? numValue : Number.parseInt(lValue, 10) || 0,
-    };
-
-    // Only update if all values are valid
-    if (
-      !isNaN(newHsl.h) &&
-      !isNaN(newHsl.s) &&
-      !isNaN(newHsl.l) &&
-      newHsl.h >= 0 &&
-      newHsl.h <= 359 &&
-      newHsl.s >= 0 &&
-      newHsl.s <= 100 &&
-      newHsl.l >= 0 &&
-      newHsl.l <= 100
-    ) {
-      setColorFromHsl(newHsl.h, newHsl.s, newHsl.l);
     }
   };
 
@@ -538,15 +526,44 @@ export default function ColorPicker() {
         setLValue(numValue.toString());
         setLError("");
       }
+
+      // Only update the color if all values are valid
+      const h = component === "h" ? numValue : Number.parseInt(hValue, 10) || 0;
+      const s = component === "s" ? numValue : Number.parseInt(sValue, 10) || 0;
+      const l = component === "l" ? numValue : Number.parseInt(lValue, 10) || 0;
+
+      // Only update if all values are valid
+      if (
+        !isNaN(h) &&
+        !isNaN(s) &&
+        !isNaN(l) &&
+        h >= 0 &&
+        h <= 359 &&
+        s >= 0 &&
+        s <= 100 &&
+        l >= 0 &&
+        l <= 100
+      ) {
+        setColorFromHsl(h, s, l);
+      }
+    }
+  };
+
+  // Add a key handler to apply HSL values on Enter key
+  const handleHslKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    component: "h" | "s" | "l"
+  ) => {
+    if (e.key === "Enter") {
+      handleHslBlur(component);
     }
   };
 
   // Copy color to clipboard
-  const copyToClipboard = () => {
-    const colorString = getColorString();
-    navigator.clipboard.writeText(colorString);
+  const copyToClipboard = (value: string, format = "hex") => {
+    navigator.clipboard.writeText(value);
     toast("Copied!", {
-      description: `${colorString} has been copied to clipboard`,
+      description: `${value} has been copied to clipboard`,
       duration: 2000,
     });
   };
@@ -560,7 +577,7 @@ export default function ColorPicker() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       updateColorValues({ lightness: localLightness });
-    }, 100);
+    }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [localLightness, updateColorValues]);
@@ -574,7 +591,7 @@ export default function ColorPicker() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       updateColorValues({ alpha: localAlpha });
-    }, 100);
+    }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [localAlpha, updateColorValues]);
@@ -647,13 +664,44 @@ export default function ColorPicker() {
     );
   };
 
+  // Detail Item component for color values
+  const DetailItem = ({
+    label,
+    value,
+    onClick,
+  }: {
+    label: string;
+    value: string;
+    onClick?: () => void;
+  }) => {
+    return (
+      <div
+        className={`p-2 rounded-md bg-muted ${
+          onClick ? "cursor-pointer hover:bg-muted/80" : ""
+        }`}
+        onClick={onClick}
+      >
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className="font-mono text-sm truncate">{value}</div>
+        {onClick && (
+          <div className="text-xs text-muted-foreground mt-1 flex items-center">
+            <Copy className="h-3 w-3 mr-1" /> Click to copy
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Get the color name
+  const colorName = getColorName();
+
   return (
     <div className="w-full">
-      <div className="flex flex-wrap content-start gap-6">
-        {/* Left side: Color wheel */}
+      <div className="flex flex-col gap-4">
+        {/* Color wheel */}
         <div className="w-full flex flex-col items-center justify-center">
           <div
-            className="rounded-xl w-full aspect-square flex items-center justify-center p-4 relative transition-all duration-500"
+            className="rounded-xl w-full aspect-square flex items-center justify-center p-4 relative"
             style={{
               backgroundColor: currentColor,
             }}
@@ -669,7 +717,7 @@ export default function ColorPicker() {
                   hsl(120, 100%, 50%),
                   hsl(180, 100%, 50%),
                   hsl(240, 100%, 50%),
-                  hsl(100, 100%, 50%),
+                  hsl(300, 100%, 50%),
                   hsl(360, 100%, 50%)
                 )`,
               }}
@@ -693,7 +741,7 @@ export default function ColorPicker() {
 
               {/* Selection marker */}
               <div
-                className="absolute w-6 h-6 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-[background] duration-500"
+                className="absolute w-6 h-6 rounded-full border-2 border-white shadow-md transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
                 style={{
                   left: `${markerPosition.x}%`,
                   top: `${markerPosition.y}%`,
@@ -704,246 +752,249 @@ export default function ColorPicker() {
           </div>
         </div>
 
-        {/* Right side: Color values and inputs */}
-        <div className="w-full">
-          <Tabs
-            value={format}
-            onValueChange={(value) => setFormat(value as ColorFormat)}
-            className="w-full"
-          >
-            <TabsList className="w-full grid grid-cols-3">
-              <TabsTrigger value="hex">HEX</TabsTrigger>
-              <TabsTrigger value="rgb">RGB</TabsTrigger>
-              <TabsTrigger value="hsl">HSL</TabsTrigger>
-            </TabsList>
+        {/* Color Details Card */}
+        <Card className="p-4">
+          <div className="flex items-center mb-3">
+            <div
+              className="w-12 h-12 rounded-md mr-3"
+              style={{ backgroundColor: currentColor }}
+            ></div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-lg">{colorName}</h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={generateRandomColor}
+                  className="h-8 w-8"
+                  aria-label="Generate random color"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
+              <Badge variant="outline" className="mt-1">
+                {baseColor}
+              </Badge>
+            </div>
+          </div>
 
-            {/* HEX Format */}
-            <TabsContent value="hex" className="mt-4">
-              <div className="flex items-center space-x-2">
-                <div className="flex-1">
-                  <Label
-                    htmlFor="hex-input"
-                    className="text-sm font-medium mb-1 block"
-                  >
-                    Hex Value
-                  </Label>
-                  <Input
-                    id="hex-input"
-                    value={hexValue}
-                    onChange={handleHexChange}
-                    onBlur={handleHexBlur}
-                    onKeyDown={handleHexKeyDown}
-                    className={`font-mono uppercase ${
-                      hexError ? "border-destructive" : ""
-                    }`}
-                    maxLength={9}
-                    aria-label="Hex color value"
-                    aria-invalid={!!hexError}
-                    aria-describedby={hexError ? "hex-error" : undefined}
-                  />
-                  {renderErrorMessage(hexError)}
-                </div>
+          <div className="grid grid-cols-1 gap-3 mb-4">
+            {/* HEX Input */}
+            <div>
+              <Label
+                htmlFor="hex-input"
+                className="text-sm font-medium mb-1 block"
+              >
+                HEX Value
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="hex-input"
+                  value={hexValue}
+                  onChange={handleHexChange}
+                  onBlur={handleHexBlur}
+                  onKeyDown={handleHexKeyDown}
+                  className={`font-mono uppercase flex-1 ${
+                    hexError ? "border-destructive" : ""
+                  }`}
+                  maxLength={9}
+                  aria-label="Hex color value"
+                  aria-invalid={!!hexError}
+                  aria-describedby={hexError ? "hex-error" : undefined}
+                />
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={copyToClipboard}
+                  onClick={() => copyToClipboard(hexValue, "hex")}
                   aria-label="Copy hex value"
-                  className="mt-6"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-            </TabsContent>
+              {renderErrorMessage(hexError)}
+            </div>
+          </div>
 
-            {/* RGB Format */}
-            <TabsContent value="rgb" className="mt-4">
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <Label
-                    htmlFor="rgb-r"
-                    className="text-sm font-medium mb-1 block"
-                  >
-                    R (0-255)
-                  </Label>
-                  <Input
-                    id="rgb-r"
-                    type="text"
-                    inputMode="numeric"
-                    value={rValue}
-                    onChange={(e) => handleRgbChange("r", e.target.value)}
-                    onBlur={() => handleRgbBlur("r")}
-                    className={`font-mono ${
-                      rError ? "border-destructive" : ""
-                    }`}
-                    aria-invalid={!!rError}
-                    aria-describedby={rError ? "r-error" : undefined}
-                    min="0"
-                    max="255"
-                  />
-                  {renderErrorMessage(rError)}
-                </div>
-                <div>
-                  <Label
-                    htmlFor="rgb-g"
-                    className="text-sm font-medium mb-1 block"
-                  >
-                    G (0-255)
-                  </Label>
-                  <Input
-                    id="rgb-g"
-                    type="text"
-                    inputMode="numeric"
-                    value={gValue}
-                    onChange={(e) => handleRgbChange("g", e.target.value)}
-                    onBlur={() => handleRgbBlur("g")}
-                    className={`font-mono ${
-                      gError ? "border-destructive" : ""
-                    }`}
-                    aria-invalid={!!gError}
-                    aria-describedby={gError ? "g-error" : undefined}
-                    min="0"
-                    max="255"
-                  />
-                  {renderErrorMessage(gError)}
-                </div>
-                <div>
-                  <Label
-                    htmlFor="rgb-b"
-                    className="text-sm font-medium mb-1 block"
-                  >
-                    B (0-255)
-                  </Label>
-                  <Input
-                    id="rgb-b"
-                    type="text"
-                    inputMode="numeric"
-                    value={bValue}
-                    onChange={(e) => handleRgbChange("b", e.target.value)}
-                    onBlur={() => handleRgbBlur("b")}
-                    className={`font-mono ${
-                      bError ? "border-destructive" : ""
-                    }`}
-                    aria-invalid={!!bError}
-                    aria-describedby={bError ? "b-error" : undefined}
-                    min="0"
-                    max="255"
-                  />
-                  {renderErrorMessage(bError)}
-                </div>
-              </div>
-              <div className="flex items-center space-x-2 mt-3">
-                <div className="flex-1 p-2 bg-muted rounded-md font-mono text-sm overflow-x-auto">
-                  {getColorString()}
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={copyToClipboard}
-                  aria-label="Copy RGB value"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </TabsContent>
+          <div className="grid grid-cols-2 gap-2">
+            {/* Color format values for copying */}
+            <DetailItem
+              label="HEX"
+              value={baseColor}
+              onClick={() => copyToClipboard(baseColor, "hex")}
+            />
+            <DetailItem
+              label="RGB"
+              value={`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`}
+              onClick={() =>
+                copyToClipboard(`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`, "rgb")
+              }
+            />
+            <DetailItem
+              label="HSL"
+              value={`hsl(${hue}, ${saturation}%, ${lightness}%)`}
+              onClick={() =>
+                copyToClipboard(
+                  `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+                  "hsl"
+                )
+              }
+            />
+            <DetailItem
+              label="RGBA"
+              value={`rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(2)})`}
+              onClick={() =>
+                copyToClipboard(
+                  `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(2)})`,
+                  "rgba"
+                )
+              }
+            />
+          </div>
 
-            {/* HSL Format */}
-            <TabsContent value="hsl" className="mt-4">
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <Label
-                    htmlFor="hsl-h"
-                    className="text-sm font-medium mb-1 block"
-                  >
-                    H (0-359)
-                  </Label>
-                  <Input
-                    id="hsl-h"
-                    type="text"
-                    inputMode="numeric"
-                    value={hValue}
-                    onChange={(e) => handleHslChange("h", e.target.value)}
-                    onBlur={() => handleHslBlur("h")}
-                    className={`font-mono ${
-                      hError ? "border-destructive" : ""
-                    }`}
-                    aria-invalid={!!hError}
-                    aria-describedby={hError ? "h-error" : undefined}
-                    min="0"
-                    max="359"
-                  />
-                  {renderErrorMessage(hError)}
-                </div>
-                <div>
-                  <Label
-                    htmlFor="hsl-s"
-                    className="text-sm font-medium mb-1 block"
-                  >
-                    S (0-100)
-                  </Label>
-                  <Input
-                    id="hsl-s"
-                    type="text"
-                    inputMode="numeric"
-                    value={sValue}
-                    onChange={(e) => handleHslChange("s", e.target.value)}
-                    onBlur={() => handleHslBlur("s")}
-                    className={`font-mono ${
-                      sError ? "border-destructive" : ""
-                    }`}
-                    aria-invalid={!!sError}
-                    aria-describedby={sError ? "s-error" : undefined}
-                    min="0"
-                    max="100"
-                  />
-                  {renderErrorMessage(sError)}
-                </div>
-                <div>
-                  <Label
-                    htmlFor="hsl-l"
-                    className="text-sm font-medium mb-1 block"
-                  >
-                    L (0-100)
-                  </Label>
-                  <Input
-                    id="hsl-l"
-                    type="text"
-                    inputMode="numeric"
-                    value={lValue}
-                    onChange={(e) => handleHslChange("l", e.target.value)}
-                    onBlur={() => handleHslBlur("l")}
-                    className={`font-mono ${
-                      lError ? "border-destructive" : ""
-                    }`}
-                    aria-invalid={!!lError}
-                    aria-describedby={lError ? "l-error" : undefined}
-                    min="0"
-                    max="100"
-                  />
-                  {renderErrorMessage(lError)}
-                </div>
-              </div>
-              <div className="flex items-center space-x-2 mt-3">
-                <div className="flex-1 p-2 bg-muted rounded-md font-mono text-sm overflow-x-auto">
-                  {getColorString()}
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={copyToClipboard}
-                  aria-label="Copy HSL value"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            {/* RGB Inputs */}
+            <div>
+              <Label htmlFor="rgb-r" className="text-xs font-medium mb-1 block">
+                R (0-255)
+              </Label>
+              <Input
+                id="rgb-r"
+                type="text"
+                inputMode="numeric"
+                value={rValue}
+                onChange={(e) => handleRgbChange("r", e.target.value)}
+                onBlur={() => handleRgbBlur("r")}
+                onKeyDown={(e) => handleRgbKeyDown(e, "r")}
+                className={`font-mono text-sm h-8 ${
+                  rError ? "border-destructive" : ""
+                }`}
+                aria-invalid={!!rError}
+                aria-describedby={rError ? "r-error" : undefined}
+                min="0"
+                max="255"
+              />
+              {renderErrorMessage(rError)}
+            </div>
+            <div>
+              <Label htmlFor="rgb-g" className="text-xs font-medium mb-1 block">
+                G (0-255)
+              </Label>
+              <Input
+                id="rgb-g"
+                type="text"
+                inputMode="numeric"
+                value={gValue}
+                onChange={(e) => handleRgbChange("g", e.target.value)}
+                onBlur={() => handleRgbBlur("g")}
+                onKeyDown={(e) => handleRgbKeyDown(e, "g")}
+                className={`font-mono text-sm h-8 ${
+                  gError ? "border-destructive" : ""
+                }`}
+                aria-invalid={!!gError}
+                aria-describedby={gError ? "g-error" : undefined}
+                min="0"
+                max="255"
+              />
+              {renderErrorMessage(gError)}
+            </div>
+            <div>
+              <Label htmlFor="rgb-b" className="text-xs font-medium mb-1 block">
+                B (0-255)
+              </Label>
+              <Input
+                id="rgb-b"
+                type="text"
+                inputMode="numeric"
+                value={bValue}
+                onChange={(e) => handleRgbChange("b", e.target.value)}
+                onBlur={() => handleRgbBlur("b")}
+                onKeyDown={(e) => handleRgbKeyDown(e, "b")}
+                className={`font-mono text-sm h-8 ${
+                  bError ? "border-destructive" : ""
+                }`}
+                aria-invalid={!!bError}
+                aria-describedby={bError ? "b-error" : undefined}
+                min="0"
+                max="255"
+              />
+              {renderErrorMessage(bError)}
+            </div>
+
+            {/* HSL Inputs */}
+            <div>
+              <Label htmlFor="hsl-h" className="text-xs font-medium mb-1 block">
+                H (0-359)
+              </Label>
+              <Input
+                id="hsl-h"
+                type="text"
+                inputMode="numeric"
+                value={hValue}
+                onChange={(e) => handleHslChange("h", e.target.value)}
+                onBlur={() => handleHslBlur("h")}
+                onKeyDown={(e) => handleHslKeyDown(e, "h")}
+                className={`font-mono text-sm h-8 ${
+                  hError ? "border-destructive" : ""
+                }`}
+                aria-invalid={!!hError}
+                aria-describedby={hError ? "h-error" : undefined}
+                min="0"
+                max="359"
+              />
+              {renderErrorMessage(hError)}
+            </div>
+            <div>
+              <Label htmlFor="hsl-s" className="text-xs font-medium mb-1 block">
+                S (0-100)
+              </Label>
+              <Input
+                id="hsl-s"
+                type="text"
+                inputMode="numeric"
+                value={sValue}
+                onChange={(e) => handleHslChange("s", e.target.value)}
+                onBlur={() => handleHslBlur("s")}
+                onKeyDown={(e) => handleHslKeyDown(e, "s")}
+                className={`font-mono text-sm h-8 ${
+                  sError ? "border-destructive" : ""
+                }`}
+                aria-invalid={!!sError}
+                aria-describedby={sError ? "s-error" : undefined}
+                min="0"
+                max="100"
+              />
+              {renderErrorMessage(sError)}
+            </div>
+            <div>
+              <Label htmlFor="hsl-l" className="text-xs font-medium mb-1 block">
+                L (0-100)
+              </Label>
+              <Input
+                id="hsl-l"
+                type="text"
+                inputMode="numeric"
+                value={lValue}
+                onChange={(e) => handleHslChange("l", e.target.value)}
+                onBlur={() => handleHslBlur("l")}
+                onKeyDown={(e) => handleHslKeyDown(e, "l")}
+                className={`font-mono text-sm h-8 ${
+                  lError ? "border-destructive" : ""
+                }`}
+                aria-invalid={!!lError}
+                aria-describedby={lError ? "l-error" : undefined}
+                min="0"
+                max="100"
+              />
+              {renderErrorMessage(lError)}
+            </div>
+          </div>
 
           {/* Lightness and Alpha sliders */}
-          <div className="w-full mt-4 space-y-4">
+          <div className="w-full space-y-4 mt-4">
             {renderLightnessSlider()}
             {renderAlphaSlider()}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
