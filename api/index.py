@@ -308,6 +308,7 @@ def get_use_cases(name, attributes, contrast_level):
     return all_uses[:3]  # Return 3 random use cases
 
 def generate_color_advice(hex_color):
+    print(hex_color, '12')
     """Generate advice for a given hex color."""
     # Validate hex color
     if not re.match(r'^#[0-9A-Fa-f]{6}$', hex_color):
@@ -316,7 +317,7 @@ def generate_color_advice(hex_color):
     # Convert to RGB and HSL
     rgb = hex_to_rgb(hex_color)
     h, s, l = rgb_to_hsl(rgb)
-    
+    print(rgb, h, s, l, '121')
     # Get color name and attributes
     color_name, attributes = get_color_name(h, s, l)
     
@@ -391,6 +392,7 @@ class ColorResponse(BaseModel):
 
 @app.post("/api/py/color-advice", response_model=ColorResponse)
 async def color_advice(request: ColorRequest):
+    print(ColorRequest, 13)
     hex_color = request.color
     
     # Ensure the hex color is properly formatted
