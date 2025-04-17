@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { getColorAdvice } from "@/app/actions";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ColorProvider } from "@/provider";
@@ -14,8 +13,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const res = await getColorAdvice("#0066FF");
-  console.log(res, "?>?>?>1234");
   return (
     <html lang="en" suppressHydrationWarning>
       <body>

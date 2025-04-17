@@ -31,57 +31,13 @@ import {
 import { Check, ExternalLink, AlertCircle, Info, ImageOff } from "lucide-react";
 import Image from "next/image";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-// Function to detect and format color codes in text
-const formatTextWithColorCodes = (text: string): React.ReactNode[] => {
-  // Comprehensive regex to match various color formats - FIXED REGEX
-  const colorRegex =
-    /#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})\b|rgb$$\s*\d+\s*,\s*\d+\s*,\s*\d+\s*$$|rgba$$\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(?:0?\.\d+|1)\s*$$|hsl$$\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*$$|hsla$$\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*,\s*(?:0?\.\d+|1)\s*$$/g;
-
-  // If no color codes are found, return the original text
-  if (!text.match(colorRegex)) {
-    return [text];
-  }
-
-  // Split the text by color codes
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match;
-
-  // Find all color codes and replace them with ColorPreview components
-  while ((match = colorRegex.exec(text)) !== null) {
-    // Add text before the color code
-    if (match.index > lastIndex) {
-      parts.push(text.substring(lastIndex, match.index));
-    }
-
-    // Add the color preview component
-    const colorCode = match[0];
-    parts.push(
-      <ColorPreview key={`color-${match.index}`} colorCode={colorCode} />
-    );
-
-    lastIndex = match.index + colorCode.length;
-  }
-
-  // Add any remaining text
-  if (lastIndex < text.length) {
-    parts.push(text.substring(lastIndex));
-  }
-  console.log(parts, text, "?>?>?>?7777");
-
-  return parts;
-};
 
 // Custom component to render markdown with color code highlighting
 export function ColorHighlightMarkdown({ content }: { content: string }) {
   // Custom components for ReactMarkdown
   const components: Components = {
     // Headings
-    h1: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"h1"> & { node?: any }) => (
+    h1: ({ children, ...props }: React.ComponentPropsWithoutRef<"h1">) => (
       <h1
         className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-6"
         {...props}
@@ -89,11 +45,7 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
         {children}
       </h1>
     ),
-    h2: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"h2"> & { node?: any }) => (
+    h2: ({ children, ...props }: React.ComponentPropsWithoutRef<"h2">) => (
       <h2
         className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0 mt-10 mb-4"
         {...props}
@@ -101,11 +53,7 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
         {children}
       </h2>
     ),
-    h3: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"h3"> & { node?: any }) => (
+    h3: ({ children, ...props }: React.ComponentPropsWithoutRef<"h3">) => (
       <h3
         className="scroll-m-20 text-2xl font-semibold tracking-tight mt-8 mb-4"
         {...props}
@@ -113,11 +61,7 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
         {children}
       </h3>
     ),
-    h4: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"h4"> & { node?: any }) => (
+    h4: ({ children, ...props }: React.ComponentPropsWithoutRef<"h4">) => (
       <h4
         className="scroll-m-20 text-xl font-semibold tracking-tight mt-6 mb-3"
         {...props}
@@ -125,11 +69,7 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
         {children}
       </h4>
     ),
-    h5: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"h5"> & { node?: any }) => (
+    h5: ({ children, ...props }: React.ComponentPropsWithoutRef<"h5">) => (
       <h5
         className="scroll-m-20 text-lg font-semibold tracking-tight mt-6 mb-2"
         {...props}
@@ -137,11 +77,7 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
         {children}
       </h5>
     ),
-    h6: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"h6"> & { node?: any }) => (
+    h6: ({ children, ...props }: React.ComponentPropsWithoutRef<"h6">) => (
       <h6
         className="scroll-m-20 text-base font-semibold tracking-tight mt-6 mb-2"
         {...props}
@@ -151,58 +87,37 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
     ),
 
     // Paragraphs and text
-    p: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"p"> & { node?: any }) => (
+    p: ({ children, ...props }: React.ComponentPropsWithoutRef<"p">) => (
       <span className="leading-7 [&:not(:first-child)]:mt-6" {...props}>
         {children}
       </span>
     ),
     strong: ({
-      node,
       children,
       ...props
-    }: React.ComponentPropsWithoutRef<"strong"> & { node?: any }) => (
+    }: React.ComponentPropsWithoutRef<"strong">) => (
       <strong className="font-semibold" {...props}>
         {children}
       </strong>
     ),
-    em: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"em"> & { node?: any }) => (
+    em: ({ children, ...props }: React.ComponentPropsWithoutRef<"em">) => (
       <em className="italic" {...props}>
         {children}
       </em>
     ),
 
     // Lists
-    ul: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"ul"> & { node?: any }) => (
+    ul: ({ children, ...props }: React.ComponentPropsWithoutRef<"ul">) => (
       <ul className="my-6 ml-6 list-disc [&>li]:mt-2" {...props}>
         {children}
       </ul>
     ),
-    ol: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"ol"> & { node?: any }) => (
+    ol: ({ children, ...props }: React.ComponentPropsWithoutRef<"ol">) => (
       <ol className="my-6 ml-6 list-decimal [&>li]:mt-2" {...props}>
         {children}
       </ol>
     ),
-    li: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"li"> & { node?: any }) => (
+    li: ({ children, ...props }: React.ComponentPropsWithoutRef<"li">) => (
       <li className="mt-2" {...props}>
         {children}
       </li>
@@ -210,10 +125,8 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
 
     // Blockquotes - using Card component
     blockquote: ({
-      node,
       children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"blockquote"> & { node?: any }) => (
+    }: React.ComponentPropsWithoutRef<"blockquote">) => (
       <Card className="my-6 border-l-4 border-l-primary bg-background">
         <CardContent className="pt-6">
           <div className="italic text-muted-foreground">{children}</div>
@@ -222,12 +135,7 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
     ),
 
     // Links - using Next.js Link for internal links
-    a: ({
-      node,
-      href,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"a"> & { node?: any }) => {
+    a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
       const isInternalLink = href?.startsWith("/") || href?.startsWith("#");
 
       if (isInternalLink && href) {
@@ -265,75 +173,48 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
 
     // Tables - using shadcn/ui Table components
     table: ({
-      node,
       children,
       ...props
-    }: React.ComponentPropsWithoutRef<"table"> & { node?: any }) => (
+    }: React.ComponentPropsWithoutRef<"table">) => (
       <Card className="my-6 w-full overflow-y-auto bg-background">
         <Table {...props}>{children}</Table>
       </Card>
     ),
     thead: ({
-      node,
       children,
       ...props
-    }: React.ComponentPropsWithoutRef<"thead"> & { node?: any }) => (
+    }: React.ComponentPropsWithoutRef<"thead">) => (
       <TableHeader {...props}>{children}</TableHeader>
     ),
     tbody: ({
-      node,
       children,
       ...props
-    }: React.ComponentPropsWithoutRef<"tbody"> & { node?: any }) => (
+    }: React.ComponentPropsWithoutRef<"tbody">) => (
       <TableBody {...props}>{children}</TableBody>
     ),
-    tr: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"tr"> & { node?: any }) => (
+    tr: ({ children, ...props }: React.ComponentPropsWithoutRef<"tr">) => (
       <TableRow {...props}>{children}</TableRow>
     ),
-    th: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"th"> & { node?: any }) => (
+    th: ({ children, ...props }: React.ComponentPropsWithoutRef<"th">) => (
       <TableHead {...props}>{children}</TableHead>
     ),
-    td: ({
-      node,
-      children,
-      ...props
-    }: React.ComponentPropsWithoutRef<"td"> & { node?: any }) => (
+    td: ({ children, ...props }: React.ComponentPropsWithoutRef<"td">) => (
       <TableCell {...props}>{children}</TableCell>
     ),
 
     // Horizontal rule - using Separator
-    hr: ({
-      node,
-      ...props
-    }: React.ComponentPropsWithoutRef<"hr"> & { node?: any }) => (
+    hr: ({ ...props }: React.ComponentPropsWithoutRef<"hr">) => (
       <Separator className="my-6" {...props} />
     ),
 
     // Images - using Next.js Image component
-    img: ({
-      node,
-      src = "",
-      alt = "",
-      ...props
-    }: React.ComponentPropsWithoutRef<"img"> & {
-      node?: any;
-      src?: string;
-      alt?: string;
-    }) => {
+    img: ({ src, alt }: React.ImgHTMLAttributes<HTMLImageElement>) => {
       // For external images or if src is undefined
-      if (!src || src.startsWith("http")) {
+      if (!src || (typeof src === "string" && src.startsWith("http"))) {
         return (
           <Card className="flex flex-col items-center justify-center rounded-md border border-dashed border-muted-foreground/50 bg-background p-8 text-muted-foreground">
             <ImageOff className="h-10 w-10 mb-2 opacity-50" />
-            <span className="text-sm font-medium">{alt}</span>
+            <span className="text-sm font-medium">{alt || "Image"}</span>
             <span className="text-xs mt-1 max-w-xs text-center">
               This image is not available or is an external link. Click to view
               it.
@@ -350,7 +231,13 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
             style={{ maxHeight: "30rem" }}
           >
             <Image
-              src={src || "/placeholder.svg"}
+              src={
+                typeof src === "string"
+                  ? src
+                  : src
+                  ? URL.createObjectURL(src)
+                  : "/placeholder.svg"
+              }
               alt={alt || ""}
               width={800}
               height={600}
@@ -369,12 +256,9 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
 
     // Details/Summary - using Accordion
     details: ({
-      node,
       children,
       open,
-      ...props
     }: React.ComponentPropsWithoutRef<"details"> & {
-      node?: any;
       children?: React.ReactNode;
       open?: boolean;
     }) => {
@@ -388,8 +272,9 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
 
         // Now check if it's a summary element
         if (childElement.type === "summary") {
-          // Use any to make TypeScript happy
-          summary = (childElement.props as any).children;
+          // Use React.PropsWithChildren to type the props
+          const props = childElement.props as React.PropsWithChildren<object>;
+          summary = React.Children.toArray(props.children).join("");
         } else {
           content = childElement;
         }
@@ -412,20 +297,16 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
 
     // Custom components for callouts/admonitions
     div: ({
-      node,
       className,
       children,
       ...props
     }: React.ComponentPropsWithoutRef<"div"> & {
-      node?: any;
       className?: string;
       children?: React.ReactNode;
     }) => {
       // Check if this is a callout/admonition
       if (className?.includes("callout") || className?.includes("admonition")) {
         const isWarning = className?.includes("warning");
-        const isInfo = className?.includes("info");
-        const isNote = className?.includes("note");
         const isSuccess = className?.includes("success");
 
         let icon = <Info className="h-4 w-4" />;
@@ -459,7 +340,7 @@ export function ColorHighlightMarkdown({ content }: { content: string }) {
     },
 
     // Override the code renderer to handle color codes in inline code
-    code: ({ node, className, children, ...props }) => {
+    code: ({ className, children, ...props }) => {
       // Check if this is a code block with a language specified
       const match = /language-(\w+)/.exec(className || "");
       // If no language match is found, it's an inline code block
