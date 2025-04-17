@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { ColorHighlightMarkdown } from "./color-highlight-markdown";
 
 interface QueuedMarkdownProps {
@@ -19,78 +19,77 @@ export function QueuedMarkdown({
   // The content we're currently displaying
   const [displayedContent, setDisplayedContent] = useState("");
 
-  // Debug ref to track if we're updating
-  const isUpdatingRef = useRef(false);
+  // All characters in the content, we don't remove from this
+  const queueRef = useRef<string[]>([]);
 
-  // Reference to the timeout
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // How many characters we've displayed so far
+  const displayedCountRef = useRef(0);
 
-  // Simple approach: use a direct effect to update the displayed content
-  useEffect(() => {
-    // Clear any existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+  // Reference to the animation frame
+  const animationFrameRef = useRef<number | null>(null);
 
-    // If content is empty or we already have all the content displayed, do nothing
-    if (!content || content === displayedContent) {
-      return;
-    }
+  // Last time a character was released
+  const lastReleaseTimeRef = useRef(0);
 
-    // Log for debugging
-    console.log("Content changed, starting display", {
-      contentLength: content.length,
-      displayedLength: displayedContent.length,
-      isUpdating: isUpdatingRef.current,
-    });
+  // Start the rendering process using requestAnimationFrame
+  const startRendering = useCallback(() => {
+    const renderLoop = (timestamp: number) => {
+      // Check if enough time has passed since the last character release
+      if (timestamp - lastReleaseTimeRef.current >= releaseInterval) {
+        // If we haven't displayed all characters in the queue
+        if (displayedCountRef.current < queueRef.current.length) {
+          // Get the next character to display
+          const nextChar = queueRef.current[displayedCountRef.current];
 
-    // Mark that we're updating
-    isUpdatingRef.current = true;
+          // Update the displayed content
+          setDisplayedContent((prev) => prev + nextChar);
 
-    // Function to add one character at a time
-    const addNextChar = () => {
-      setDisplayedContent((prev) => {
-        // If we've displayed all content, stop
-        if (prev.length >= content.length) {
-          isUpdatingRef.current = false;
-          return prev;
+          // Increment our displayed count
+          displayedCountRef.current++;
+
+          // Update the last release time
+          lastReleaseTimeRef.current = timestamp;
+        } else {
+          // If we've displayed all characters, stop the animation
+          animationFrameRef.current = null;
+          return;
         }
+      }
 
-        // Add the next character
-        const nextChar = content[prev.length];
-        const newContent = prev + nextChar;
-
-        // Schedule the next character
-        timeoutRef.current = setTimeout(addNextChar, releaseInterval);
-
-        return newContent;
-      });
+      // Continue the animation loop
+      animationFrameRef.current = requestAnimationFrame(renderLoop);
     };
 
-    // Start adding characters
-    addNextChar();
+    // Start the animation loop
+    animationFrameRef.current = requestAnimationFrame(renderLoop);
+  }, [releaseInterval]);
+
+  // Update the queue when content changes
+  useEffect(() => {
+    // Convert the new content to an array
+    const contentArray = content.split("");
+
+    // If the new content is longer than what we have in the queue
+    if (contentArray.length > queueRef.current.length) {
+      // Get only the new characters that aren't in the queue yet
+      const newChars = contentArray.slice(queueRef.current.length);
+
+      // Update the queue to include the new characters
+      queueRef.current = [...queueRef.current, ...newChars];
+      // Start the rendering process if it's not already running
+      if (animationFrameRef.current === null) {
+        startRendering();
+      }
+    }
 
     // Cleanup on unmount
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     };
-  }, [content, releaseInterval]);
-
-  // Log for debugging
-  useEffect(() => {
-    console.log("dc7777", displayedContent);
-  }, [displayedContent]);
-
-  useEffect(() => {
-    console.log("content7777", content);
-  }, [content]);
-
-  // If content is empty, don't render anything
-  if (!content) {
-    return null;
-  }
+  }, [content, startRendering]);
 
   return <ColorHighlightMarkdown content={displayedContent} />;
 }
