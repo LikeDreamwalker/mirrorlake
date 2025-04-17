@@ -1,13 +1,12 @@
 "use client";
 
 import type React from "react";
-
 import { createContext, useContext, useRef, useState, useEffect } from "react";
 import { useChat, type Message } from "@ai-sdk/react";
 import { useStore } from "@/store";
 import { getColorAdvice } from "@/app/actions";
 
-// Define the context type
+// Context type definition
 interface ChatContextType {
   messages: Message[];
   input: string;
@@ -17,7 +16,7 @@ interface ChatContextType {
   isProcessingColor: boolean;
 }
 
-// Create the context with a default value
+// Create the context
 const ChatContext = createContext<ChatContextType>({
   messages: [],
   input: "",
@@ -32,9 +31,10 @@ export const useChatContext = () => useContext(ChatContext);
 
 // Provider component
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const { baseColor } = useStore();
+  const { baseColor, setBaseColor } = useStore();
   const [isProcessingColor, setIsProcessingColor] = useState(false);
   const lastProcessedColor = useRef<string | null>(null);
+  const hasInitialized = useRef(false);
 
   // Initialize chat with AI SDK
   const {
@@ -51,19 +51,46 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         id: "welcome",
         role: "assistant",
         content:
-          "Hi! I'm your color assistant. Select a color or ask me anything about colors and design.",
+          "Hi! I'm your color assistant. I'll recommend a color for you to start with.",
       },
     ],
   });
 
+  // Extract color codes from messages
+  const extractColorCode = (content: string) => {
+    const colorRegex = /`(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})`/g;
+    const matches = [...(content?.matchAll(colorRegex) || [])];
+    return matches.length > 0 ? matches[0][1] : null;
+  };
+
+  // Handle the initial DeepSeek response with random color
+  useEffect(() => {
+    if (messages.length === 2 && !hasInitialized.current) {
+      // This is the first response from DeepSeek (after welcome)
+      const assistantMessage = messages[1];
+      if (assistantMessage.role === "assistant") {
+        // Extract color code from the message
+        const colorCode = extractColorCode(assistantMessage.content);
+        if (colorCode) {
+          // Set this as the base color
+          setBaseColor(colorCode);
+          hasInitialized.current = true;
+        } else {
+          // Fallback to default color if no color found
+          setBaseColor("#0066ff");
+          hasInitialized.current = true;
+        }
+      }
+    }
+  }, [messages, setBaseColor]);
+
   // Process color changes
   useEffect(() => {
     const processColorChange = async () => {
-      // Only process if the color has changed and isn't being processed
       if (
         baseColor !== lastProcessedColor.current &&
         !isProcessingColor &&
-        baseColor // Make sure we have a color
+        baseColor
       ) {
         setIsProcessingColor(true);
         lastProcessedColor.current = baseColor;
@@ -71,11 +98,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         try {
           // Add user message about selecting the color
           const userMessage = `I just selected the color ${baseColor}.`;
-
-          // Create a new message ID
           const userMessageId = Date.now().toString();
 
-          // In AI SDK 4.x, we need to create a new messages array
+          // Create new messages array with user message
           const newMessages: Message[] = [
             ...messages,
             {
@@ -87,16 +112,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
           setMessages(newMessages);
 
-          // Get color advice from mock server action
+          // Get color advice from your Python part
           const response = await getColorAdvice(baseColor);
 
           if (response.error) {
             throw new Error(response.message);
           }
 
-          // Log the advice for debugging
-
-          // Add assistant response from mock API
+          // Add assistant response from Python part
           const assistantMessage: Message = {
             id: (Date.now() + 1).toString(),
             role: "assistant" as const,

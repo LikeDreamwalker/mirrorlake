@@ -70,7 +70,13 @@ const formatTextWithColorCodes = (text: string): React.ReactNode[] => {
 };
 
 // Base component implementation
-function ColorHighlightMarkdownBase({ content }: { content: string }) {
+function ColorHighlightMarkdownBase({
+  content,
+  reasoning,
+}: {
+  content: string;
+  reasoning?: string;
+}) {
   // Use useMemo to create components only when needed
   const components = useMemo<Components>(
     () => ({
@@ -355,9 +361,19 @@ function ColorHighlightMarkdownBase({ content }: { content: string }) {
   ); // Empty dependency array ensures components are created only once
 
   return (
-    <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
-      {content}
-    </ReactMarkdown>
+    <>
+      {reasoning && (
+        <div className="mb-2 p-2 bg-gray-100 rounded text-sm">
+          <details>
+            <summary className="cursor-pointer font-medium">Reasoning</summary>
+            <pre className="mt-2 whitespace-pre-wrap text-xs">{reasoning}</pre>
+          </details>
+        </div>
+      )}
+      <ReactMarkdown components={components} remarkPlugins={[remarkGfm]}>
+        {content}
+      </ReactMarkdown>
+    </>
   );
 }
 
