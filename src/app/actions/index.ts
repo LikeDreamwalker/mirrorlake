@@ -1,5 +1,14 @@
 "use server";
 
+// From https://github.com/digitros/nextjs-fastapi/issues/29
+const BASE_URL =
+  process.env.NEXT_PUBLIC_VERCEL_ENV == null ||
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "development"
+    ? "http://localhost:8000"
+    : process.env.NEXT_PUBLIC_VERCEL_ENV === "preview"
+    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+    : `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`;
+
 export interface ColorAdviceResponse {
   advice: string;
   error?: boolean;
@@ -32,11 +41,7 @@ export async function getColorAdvice(
 
     console.log(`Fetching color advice for ${hexColor}...`);
 
-    // Determine the API URL based on environment
-    const apiUrl =
-      process.env.NODE_ENV === "development"
-        ? "http://127.0.0.1:8000/api/py/color-advice"
-        : "/api/py/color-advice";
+    const apiUrl = `${BASE_URL}/api/py/color-advice`;
 
     const response = await fetch(apiUrl, {
       method: "POST",
