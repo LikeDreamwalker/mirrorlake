@@ -25,7 +25,6 @@ export async function getColorAdvice(
 ): Promise<ColorAdviceResponse> {
   try {
     // Normalize the hex color (ensure it has a # prefix)
-    console.log(hexColor, "1");
     if (!hexColor.startsWith("#")) {
       hexColor = `#${hexColor}`;
     }
@@ -40,10 +39,7 @@ export async function getColorAdvice(
       };
     }
 
-    console.log(`Fetching color advice for ${hexColor}...`);
-
     const apiUrl = `${BASE_URL}/api/py/color-advice`;
-    console.log(apiUrl, "2");
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
@@ -53,7 +49,6 @@ export async function getColorAdvice(
         color: hexColor,
       }),
     });
-    console.log(response, "3");
 
     if (!response.ok) {
       const errorText = await response.text();

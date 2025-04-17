@@ -65,7 +65,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         !isProcessingColor &&
         baseColor // Make sure we have a color
       ) {
-        console.log(`Processing color change: ${baseColor}`);
         setIsProcessingColor(true);
         lastProcessedColor.current = baseColor;
 
@@ -96,7 +95,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           }
 
           // Log the advice for debugging
-          console.log("Color advice received:", response.advice);
 
           // Add assistant response from mock API
           const assistantMessage: Message = {

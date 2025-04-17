@@ -2,7 +2,7 @@
 
 import type { Message } from "@ai-sdk/react";
 import { QueuedMarkdown } from "./queued-markdown";
-import { useEffect } from "react";
+import { useMemo } from "react";
 
 interface MessageBubbleProps {
   message: Message;
@@ -20,15 +20,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     return message.content;
   };
 
-  // Get the content once to avoid re-renders
-  const content = getMessageContent(message);
-
-  // Debug log
-  useEffect(() => {
-    if (message.role === "assistant") {
-      console.log("Message content:", content);
-    }
-  }, [message, content]);
+  // Use useMemo to stabilize the content value
+  const content = useMemo(() => getMessageContent(message), [message]);
 
   return (
     <div
@@ -37,9 +30,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       }`}
     >
       <div
-        className={`max-w-[95%] rounded-lg px-3 py-2 border border-border ${
+        className={`max-w-[95%] rounded-lg px-3 py-2 border border-dashed border-border ${
           message.role === "user"
-            ? "bg-primary text-primary-foreground "
+            ? "bg-primary text-primary-foreground"
             : "bg-secondary text-secondary-foreground"
         }`}
       >
