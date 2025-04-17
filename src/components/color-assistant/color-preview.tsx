@@ -80,7 +80,7 @@ export function ColorPreview({ colorCode }: ColorPreviewProps) {
         className="inline-block w-4 h-4 rounded-md border border-border shadow-sm"
         style={{ backgroundColor: normalizedColor }}
       />
-      <code className="text-xs font-mono">{normalizedColor}</code>
+      <code className="font-mono">{normalizedColor}</code>
     </span>
   );
 }

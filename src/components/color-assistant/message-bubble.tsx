@@ -37,10 +37,10 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       }`}
     >
       <div
-        className={`max-w-[80%] rounded-lg px-3 py-2 border border-dashed ${
+        className={`max-w-[95%] rounded-lg px-3 py-2 border border-border ${
           message.role === "user"
-            ? "bg-primary text-primary-foreground border-primary-foreground/30"
-            : "bg-muted border-border"
+            ? "bg-primary text-primary-foreground "
+            : "bg-secondary text-secondary-foreground"
         }`}
       >
         {message.role === "user" ? (
