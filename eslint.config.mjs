@@ -9,17 +9,9 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-// This is the correct format for flat config
 const eslintConfig = [
-  ...compat.config({
-    extends: ["next/core-web-vitals"],
-  }),
-  {
-    // Rules need to be in a rules object
-    rules: {
-      "@typescript-eslint/no-explicit-any": "warn",
-    },
-  },
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...{ "@typescript-eslint/no-explicit-any": "warn" },
 ];
 
 export default eslintConfig;
