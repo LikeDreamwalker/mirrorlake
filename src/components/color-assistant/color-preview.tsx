@@ -36,7 +36,7 @@ export function ColorPreview({ colorCode }: ColorPreviewProps) {
       // Extract the rgb values
       const rgbMatch = computedColor.match(/rgb$$(\d+),\s*(\d+),\s*(\d+)$$/);
       if (rgbMatch) {
-        const [_, r, g, b] = rgbMatch.map(Number);
+        const [r, g, b] = rgbMatch.map(Number);
         // Convert to hex
         return `#${r.toString(16).padStart(2, "0")}${g
           .toString(16)
