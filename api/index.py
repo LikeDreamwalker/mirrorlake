@@ -8,33 +8,24 @@ import re
 
 app = FastAPI(docs_url="/api/py/docs", openapi_url="/api/py/openapi.json")
 
-# # Add CORS middleware
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["http://localhost:3000"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
-# Color name mapping - a simplified version
+# Color name mapping with hex examples
 COLOR_NAMES = {
     # Reds
-    (355, 10): {"en": "red", "attributes": ["energetic", "passionate", "attention-grabbing", "bold", "exciting"]},
+    (355, 10): {"en": "red", "attributes": ["energetic", "passionate", "attention-grabbing", "bold", "exciting"], "example": "#FF0000"},
     # Oranges
-    (10, 45): {"en": "orange", "attributes": ["warm", "energetic", "friendly", "playful", "inviting"]},
+    (10, 45): {"en": "orange", "attributes": ["warm", "energetic", "friendly", "playful", "inviting"], "example": "#FFA500"},
     # Yellows
-    (45, 70): {"en": "yellow", "attributes": ["cheerful", "optimistic", "stimulating", "bright", "sunny"]},
+    (45, 70): {"en": "yellow", "attributes": ["cheerful", "optimistic", "stimulating", "bright", "sunny"], "example": "#FFFF00"},
     # Greens
-    (70, 170): {"en": "green", "attributes": ["natural", "fresh", "growth-oriented", "calming", "balanced"]},
+    (70, 170): {"en": "green", "attributes": ["natural", "fresh", "growth-oriented", "calming", "balanced"], "example": "#00FF00"},
     # Cyans
-    (170, 200): {"en": "cyan", "attributes": ["calm", "refreshing", "technological", "clean", "modern"]},
+    (170, 200): {"en": "cyan", "attributes": ["calm", "refreshing", "technological", "clean", "modern"], "example": "#00FFFF"},
     # Blues
-    (200, 260): {"en": "blue", "attributes": ["trustworthy", "calm", "professional", "reliable", "peaceful"]},
+    (200, 260): {"en": "blue", "attributes": ["trustworthy", "calm", "professional", "reliable", "peaceful"], "example": "#0000FF"},
     # Purples
-    (260, 290): {"en": "purple", "attributes": ["creative", "luxurious", "mysterious", "royal", "imaginative"]},
+    (260, 290): {"en": "purple", "attributes": ["creative", "luxurious", "mysterious", "royal", "imaginative"], "example": "#800080"},
     # Magentas
-    (290, 355): {"en": "magenta", "attributes": ["innovative", "energetic", "emotional", "romantic", "bold"]},
+    (290, 355): {"en": "magenta", "attributes": ["innovative", "energetic", "emotional", "romantic", "bold"], "example": "#FF00FF"},
 }
 
 # Lightness modifiers
@@ -55,74 +46,74 @@ SATURATION_MODIFIERS = {
     (90, 100): "intense"
 }
 
-# Conversational intros
+# More conversational intros
 INTROS = [
-    "Oh, I really like `{color}`! It's a {name} that feels {attr1} and {attr2}.",
-    "Nice choice with `{color}`! This {name} gives off a {attr1}, {attr2} vibe.",
-    "That's a beautiful `{color}`! As a {name}, it has a {attr1} quality with hints of {attr2}.",
-    "I see you've picked `{color}`. This {name} is quite {attr1} and {attr2}.",
-    "Interesting selection with `{color}`! This {name} tends to feel {attr1} with a touch of {attr2}.",
-    "Ah, `{color}`! I love this {name} - it's so {attr1} and {attr2}.",
-    "Great eye for color! `{color}` is a {name} that brings {attr1} and {attr2} feelings.",
-    "`{color}` is a wonderful choice. This {name} creates a {attr1} and {attr2} atmosphere.",
-    "I'm drawn to your choice of `{color}`. This {name} has a {attr1}, {attr2} character.",
-    "You've selected `{color}`, a {name} that's known for being {attr1} and {attr2}."
+    "I'm really digging `{color}`! It's a {name} that feels {attr1} and {attr2}.",
+    "That `{color}` is a great pick! This {name} gives off a {attr1}, {attr2} vibe.",
+    "Ooh, `{color}` is a nice one! As a {name}, it has a {attr1} quality with hints of {attr2}.",
+    "I see you're working with `{color}`. This {name} is quite {attr1} and {attr2}.",
+    "Interesting choice with `{color}`! This {name} tends to feel {attr1} with a touch of {attr2}.",
+    "I'm a fan of `{color}`! This {name} is so {attr1} and {attr2}.",
+    "Nice eye! `{color}` is a {name} that brings {attr1} and {attr2} feelings.",
+    "`{color}` works really well. This {name} creates a {attr1} and {attr2} atmosphere.",
+    "I like your choice of `{color}`. This {name} has a {attr1}, {attr2} character.",
+    "Good pick with `{color}`, a {name} that's known for being {attr1} and {attr2}."
 ]
 
-# Harmony intros
+# More casual harmony intros
 HARMONY_INTROS = [
-    "Here are some colors that would pair nicely with it:",
-    "If you're building a palette, consider these combinations:",
-    "For a balanced design, you might want to try these pairings:",
-    "These colors would complement your selection beautifully:",
-    "When designing with this color, these harmonies work well:",
-    "To create a cohesive look, try these color combinations:",
-    "For your design palette, consider these harmonious options:",
+    "Here are some colors that would go well with it:",
+    "If you're building a palette, try these combinations:",
+    "For a balanced design, these pairings could work nicely:",
+    "These colors would complement your selection:",
+    "When designing with this color, these harmonies look good:",
+    "To create a cohesive look, try these combinations:",
+    "For your design palette, these options work well together:",
     "These color pairings would enhance your selected shade:",
-    "To expand your color scheme, these combinations are worth exploring:",
-    "If you're looking for matching colors, these would work wonderfully:"
+    "To expand your color scheme, check out these combinations:",
+    "If you need matching colors, these would work well:"
 ]
 
-# Accessibility intros
+# More straightforward accessibility intros
 ACCESSIBILITY_INTROS = [
-    "From an accessibility standpoint:",
-    "When thinking about readability and accessibility:",
-    "For ensuring your design is accessible to everyone:",
-    "Regarding contrast and readability:",
-    "Looking at the accessibility aspects:",
-    "For inclusive design considerations:",
-    "Thinking about how everyone will experience this color:",
-    "From a universal design perspective:",
-    "For optimal visibility and accessibility:",
-    "When considering users with different visual abilities:"
+    "For accessibility:",
+    "About readability:",
+    "For making sure everyone can read your content:",
+    "Regarding contrast:",
+    "Looking at accessibility:",
+    "For inclusive design:",
+    "For users with different visual abilities:",
+    "From an accessibility perspective:",
+    "For optimal visibility:",
+    "For better readability:"
 ]
 
-# Usage suggestion intros
+# More casual usage suggestion intros
 USAGE_INTROS = [
-    "This color would work beautifully for:",
-    "I'd recommend using this color for:",
-    "This shade would be perfect for:",
-    "Some great applications for this color include:",
-    "You might consider using this color for:",
-    "This color would shine when used for:",
-    "Based on its properties, this color is ideal for:",
-    "This color would be most effective when used for:",
-    "Consider applying this color to:",
-    "This color would excel when used in:"
+    "This color would be great for:",
+    "I'd use this color for:",
+    "This shade works well for:",
+    "Some good uses for this color include:",
+    "You could use this color for:",
+    "This color would look good when used for:",
+    "Based on its properties, this color works for:",
+    "This color is effective when used for:",
+    "Consider using this color for:",
+    "This color would be perfect for:"
 ]
 
-# Closing questions
+# More conversational closing questions
 CLOSINGS = [
-    "Would you like me to suggest a complete palette based on this color?",
-    "Need any specific advice on how to use this in your design?",
-    "Anything specific you'd like to know about working with this color?",
-    "Would you like to explore more colors that would work with this one?",
-    "Is there a particular design challenge you're trying to solve with this color?",
-    "Would you like to see how this color might look in different lighting conditions?",
-    "Are you considering this for a specific project?",
-    "Would you like to see some design examples using this color?",
-    "Is there a specific mood you're trying to create with this color?",
-    "Would you like to explore similar colors in this family?"
+    "Want me to suggest a full palette based on this?",
+    "Need any specific tips on using this in your design?",
+    "Anything else you'd like to know about this color?",
+    "Want to see more colors that would work with this one?",
+    "Are you using this for a specific project?",
+    "Want to see how this might look in different lighting?",
+    "What are you planning to use this color for?",
+    "Would you like some design examples using this color?",
+    "Are you going for a specific mood with this color?",
+    "Want to explore similar colors?"
 ]
 
 def hex_to_rgb(hex_color):
@@ -140,15 +131,18 @@ def get_color_name(h, s, l):
     """Get the color name based on HSL values."""
     # Find the base color name from hue
     base_name = None
+    example_hex = None
     for (hue_min, hue_max), data in COLOR_NAMES.items():
         if hue_min <= h <= hue_max or (hue_min > hue_max and (h >= hue_min or h <= hue_max)):
             base_name = data["en"]
             attributes = data["attributes"]
+            example_hex = data["example"]
             break
     
     if not base_name:
         base_name = "neutral"
         attributes = ["balanced", "versatile", "calm", "sophisticated", "timeless"]
+        example_hex = "#808080"
     
     # Get lightness modifier
     lightness_mod = ""
@@ -167,14 +161,14 @@ def get_color_name(h, s, l):
     # Construct full color name
     if s < 10:  # Very low saturation = grayscale
         if l < 20:
-            return "near black", ["elegant", "sophisticated", "formal", "mysterious", "dramatic"]
+            return "near black", ["elegant", "sophisticated", "formal", "mysterious", "dramatic"], "#111111"
         elif l > 80:
-            return "near white", ["clean", "pure", "minimalist", "airy", "spacious"]
+            return "near white", ["clean", "pure", "minimalist", "airy", "spacious"], "#F5F5F5"
         else:
-            return f"{lightness_mod} gray", ["neutral", "balanced", "conservative", "timeless", "versatile"]
+            return f"{lightness_mod} gray", ["neutral", "balanced", "conservative", "timeless", "versatile"], "#808080"
     
     full_name = f"{lightness_mod} {saturation_mod} {base_name}"
-    return full_name.strip(), attributes
+    return full_name.strip(), attributes, example_hex
 
 def get_complementary(h, s, l):
     """Get the complementary color."""
@@ -219,10 +213,14 @@ def calculate_contrast(rgb1, rgb2):
 
 def get_accessibility_info(rgb):
     """Get accessibility information for a color."""
-    white_contrast = calculate_contrast(rgb, (255, 255, 255))
-    black_contrast = calculate_contrast(rgb, (0, 0, 0))
+    white_rgb = (255, 255, 255)
+    black_rgb = (0, 0, 0)
+    
+    white_contrast = calculate_contrast(rgb, white_rgb)
+    black_contrast = calculate_contrast(rgb, black_rgb)
     
     better_text = "white" if white_contrast > black_contrast else "black"
+    better_text_hex = "#FFFFFF" if better_text == "white" else "#000000"
     contrast_value = max(white_contrast, black_contrast)
     
     if contrast_value >= 7:
@@ -234,39 +232,39 @@ def get_accessibility_info(rgb):
     else:
         level = "poor"
     
-    return better_text, contrast_value, level
+    return better_text, better_text_hex, contrast_value, level
 
 def get_use_cases(name, attributes, contrast_level):
     """Generate use case suggestions based on color properties."""
     use_cases = []
     
     # Based on color attributes
-    if "energetic" in attributes or "attention-grabbing" in attributes or "bold" in attributes:
+    if any(attr in attributes for attr in ["energetic", "attention-grabbing", "bold"]):
         use_cases.append("call-to-action buttons")
         use_cases.append("promotional materials")
         use_cases.append("sale banners")
     
-    if "calm" in attributes or "trustworthy" in attributes or "reliable" in attributes:
+    if any(attr in attributes for attr in ["calm", "trustworthy", "reliable"]):
         use_cases.append("financial applications")
         use_cases.append("healthcare interfaces")
         use_cases.append("professional services")
     
-    if "professional" in attributes or "formal" in attributes or "sophisticated" in attributes:
+    if any(attr in attributes for attr in ["professional", "formal", "sophisticated"]):
         use_cases.append("business websites")
         use_cases.append("corporate branding")
         use_cases.append("formal documentation")
     
-    if "fresh" in attributes or "natural" in attributes or "balanced" in attributes:
+    if any(attr in attributes for attr in ["fresh", "natural", "balanced"]):
         use_cases.append("eco-friendly products")
         use_cases.append("wellness applications")
         use_cases.append("organic food branding")
     
-    if "creative" in attributes or "innovative" in attributes or "imaginative" in attributes:
+    if any(attr in attributes for attr in ["creative", "innovative", "imaginative"]):
         use_cases.append("art portfolios")
         use_cases.append("creative agency branding")
         use_cases.append("design tool interfaces")
     
-    if "playful" in attributes or "cheerful" in attributes or "sunny" in attributes:
+    if any(attr in attributes for attr in ["playful", "cheerful", "sunny"]):
         use_cases.append("children's products")
         use_cases.append("entertainment apps")
         use_cases.append("casual game interfaces")
@@ -281,7 +279,7 @@ def get_use_cases(name, attributes, contrast_level):
         use_cases.append("background accents")
         use_cases.append("subtle patterns")
     
-    # If we don't have enough specific use cases, add some generic ones
+    # Generic uses for variety
     generic_uses = [
         "secondary branding elements",
         "accent colors",
@@ -308,18 +306,17 @@ def get_use_cases(name, attributes, contrast_level):
     return all_uses[:3]  # Return 3 random use cases
 
 def generate_color_advice(hex_color):
-    print(hex_color, '12')
     """Generate advice for a given hex color."""
     # Validate hex color
     if not re.match(r'^#[0-9A-Fa-f]{6}$', hex_color):
-        return "I'm sorry, but that doesn't look like a valid hex color. Please provide a color in the format #RRGGBB, like #0066FF."
+        return "That doesn't look like a valid hex color. Can you provide a color in the format #RRGGBB, like #0066FF?"
     
     # Convert to RGB and HSL
     rgb = hex_to_rgb(hex_color)
     h, s, l = rgb_to_hsl(rgb)
-    print(rgb, h, s, l, '121')
+    
     # Get color name and attributes
-    color_name, attributes = get_color_name(h, s, l)
+    color_name, attributes, _ = get_color_name(h, s, l)
     
     # Get color harmonies
     comp_h, comp_s, comp_l = get_complementary(h, s, l)
@@ -332,7 +329,7 @@ def generate_color_advice(hex_color):
     triadic_hex = [hsl_to_hex(h, s, l) for h, s, l in triadic]
     
     # Get accessibility information
-    better_text, contrast_value, contrast_level = get_accessibility_info(rgb)
+    better_text, better_text_hex, contrast_value, contrast_level = get_accessibility_info(rgb)
     
     # Get use cases
     use_cases = get_use_cases(color_name, attributes, contrast_level)
@@ -350,7 +347,7 @@ def generate_color_advice(hex_color):
     usage_intro = random.choice(USAGE_INTROS)
     closing = random.choice(CLOSINGS)
     
-    # Generate a more conversational response with tables
+    # Generate a more conversational response with tables and color codes
     response = f"""{intro}
 
 {harmony_intro}
@@ -365,7 +362,7 @@ def generate_color_advice(hex_color):
 
 | Accessibility | Details |
 |--------------|---------|
-| Best text color | {better_text} |
+| Best text color | {better_text} (`{better_text_hex}`) |
 | Contrast ratio | {contrast_value:.1f}:1 ({contrast_level}) |
 | WCAG compliance | {
 "AA & AAA (all text)" if contrast_value >= 7 else 
@@ -377,6 +374,8 @@ def generate_color_advice(hex_color):
 - {use_cases[0]}
 - {use_cases[1]}
 - {use_cases[2]}
+
+I can also suggest some shades and tints of this color if you'd like to create a monochromatic palette. Or maybe you'd like to see how this color would look with different background colors?
 
 {closing}"""
 
@@ -392,7 +391,6 @@ class ColorResponse(BaseModel):
 
 @app.post("/api/py/color-advice", response_model=ColorResponse)
 async def color_advice(request: ColorRequest):
-    print(ColorRequest, 13)
     hex_color = request.color
     
     # Ensure the hex color is properly formatted
