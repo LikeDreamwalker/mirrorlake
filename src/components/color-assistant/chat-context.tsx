@@ -35,8 +35,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [isProcessingColor, setIsProcessingColor] = useState(false);
   const lastProcessedColor = useRef<string | null>(null);
   const hasInitialized = useRef(false);
+  const isFirstLoad = useRef(true); // Add this to track first load
 
-  // Initialize chat with AI SDK
+  // Initialize chat with AI SDK - start with empty messages
   const {
     messages,
     input,
@@ -46,14 +47,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setMessages,
   } = useChat({
     api: "/api/chat",
-    initialMessages: [
-      {
-        id: "welcome",
-        role: "assistant",
-        content:
-          "Hi! I'm your color assistant. I'll recommend a color for you to start with.",
-      },
-    ],
+    initialMessages: [], // Start with empty messages
+    onFinish: (message) => {
+      console.log("Chat finished with message:", message);
+    },
+    onError: (error) => {
+      console.error("Chat error:", error);
+    },
   });
 
   // Extract color codes from messages
@@ -63,39 +63,62 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     return matches.length > 0 ? matches[0][1] : null;
   };
 
-  // Handle the initial DeepSeek response with random color
+  // Initialize with default color and first user message
   useEffect(() => {
-    if (messages.length === 2 && !hasInitialized.current) {
-      // This is the first response from DeepSeek (after welcome)
-      const assistantMessage = messages[1];
-      if (assistantMessage.role === "assistant") {
-        // Extract color code from the message
-        const colorCode = extractColorCode(assistantMessage.content);
-        if (colorCode) {
-          // Set this as the base color
-          setBaseColor(colorCode);
-          hasInitialized.current = true;
-        } else {
-          // Fallback to default color if no color found
-          setBaseColor("#0066ff");
-          hasInitialized.current = true;
-        }
-      }
+    if (isFirstLoad.current && !hasInitialized.current) {
+      // Set default color
+      const defaultColor = "#0066ff";
+      setBaseColor(defaultColor);
+
+      // Create initial user message about selecting the color
+      setMessages([
+        {
+          id: "initial-color-selection",
+          role: "user",
+          content: `I just selected the color ${defaultColor}.`,
+        },
+      ]);
+
+      isFirstLoad.current = false;
+      hasInitialized.current = true;
     }
-  }, [messages, setBaseColor]);
+  }, [setBaseColor, setMessages]);
 
   // Process color changes
   useEffect(() => {
     const processColorChange = async () => {
-      if (
-        baseColor !== lastProcessedColor.current &&
-        !isProcessingColor &&
-        baseColor
-      ) {
+      // Skip if this is the first load or if we're already processing
+      if (isFirstLoad.current || isProcessingColor) {
+        return;
+      }
+
+      if (baseColor !== lastProcessedColor.current && baseColor) {
         setIsProcessingColor(true);
         lastProcessedColor.current = baseColor;
 
         try {
+          // Skip if this is the initial color and we already have messages
+          // This prevents duplicate messages during initialization
+          if (
+            baseColor === "#0066ff" &&
+            messages.length > 0 &&
+            messages[0]?.content?.includes("#0066ff")
+          ) {
+            setIsProcessingColor(false);
+            return;
+          }
+
+          // Check if the last message is from the user
+          // If so, we need to wait for an assistant response before adding another user message
+          const lastMessage = messages[messages.length - 1];
+          if (lastMessage && lastMessage.role === "user") {
+            console.log(
+              "Waiting for assistant response before adding new user message"
+            );
+            setIsProcessingColor(false);
+            return;
+          }
+
           // Add user message about selecting the color
           const userMessage = `I just selected the color ${baseColor}.`;
           const userMessageId = Date.now().toString();
