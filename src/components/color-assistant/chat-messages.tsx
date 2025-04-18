@@ -1,13 +1,12 @@
-// components/chat/chat-messages.tsx
 "use client";
 
 import { useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChatContext } from "./chat-context";
-import { ColorHighlightMarkdown } from "./color-highlight-markdown";
+import { QueuedMarkdown } from "./queued-markdown";
 
 export function ChatMessages() {
-  const { messages } = useChatContext();
+  const { messages, messageCompletionStatus } = useChatContext();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
@@ -35,9 +34,10 @@ export function ChatMessages() {
               {message.role === "user" ? (
                 <p>{message.content}</p>
               ) : (
-                <ColorHighlightMarkdown
+                <QueuedMarkdown
                   content={message.content}
-                  reasoning={message.reasoning} // Pass reasoning to component
+                  id={message.id}
+                  isComplete={messageCompletionStatus[message.id] === true}
                 />
               )}
             </div>

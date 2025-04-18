@@ -1,7 +1,14 @@
 "use client";
 
 import type React from "react";
-import { createContext, useContext, useRef, useState, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useRef,
+  useState,
+  useEffect,
+  useMemo,
+} from "react";
 import { useChat, type Message } from "@ai-sdk/react";
 import { useStore } from "@/store";
 import { getColorAdvice } from "@/app/actions";
@@ -13,7 +20,9 @@ interface ChatContextType {
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   isLoading: boolean;
+  status: "submitted" | "streaming" | "ready" | "error"; // Add status
   isProcessingColor: boolean;
+  messageCompletionStatus: Record<string, boolean>; // Add this for QueuedMarkdown
 }
 
 // Create the context
@@ -23,7 +32,9 @@ const ChatContext = createContext<ChatContextType>({
   handleInputChange: () => {},
   handleSubmit: () => {},
   isLoading: false,
+  status: "ready",
   isProcessingColor: false,
+  messageCompletionStatus: {},
 });
 
 // Hook to use the chat context
@@ -35,7 +46,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [isProcessingColor, setIsProcessingColor] = useState(false);
   const lastProcessedColor = useRef<string | null>(null);
   const hasInitialized = useRef(false);
-  const isFirstLoad = useRef(true); // Add this to track first load
+  const isFirstLoad = useRef(true);
+
+  // Track which messages are complete (for both SSE and non-SSE messages)
+  const [completedMessages, setCompletedMessages] = useState<
+    Record<string, boolean>
+  >({});
 
   // Initialize chat with AI SDK - start with empty messages
   const {
@@ -44,17 +60,52 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     handleInputChange,
     handleSubmit,
     isLoading,
+    status, // Get status from useChat
     setMessages,
   } = useChat({
     api: "/api/chat",
-    initialMessages: [], // Start with empty messages
+    initialMessages: [],
     onFinish: (message) => {
       console.log("Chat finished with message:", message);
+      // Mark the message as complete when it finishes
+      setCompletedMessages((prev) => ({
+        ...prev,
+        [message.id]: true,
+      }));
     },
     onError: (error) => {
       console.error("Chat error:", error);
     },
   });
+
+  // Create a map of message completion status that combines:
+  // 1. SSE messages (tracked by status)
+  // 2. Non-SSE messages (tracked by completedMessages)
+  const messageCompletionStatus = useMemo(() => {
+    const statusMap: Record<string, boolean> = {};
+
+    messages.forEach((message) => {
+      // For user messages, they're always complete
+      if (message.role === "user") {
+        statusMap[message.id] = true;
+      }
+      // For assistant messages from Python (with special ID format), use our completedMessages state
+      else if (
+        message.role === "assistant" &&
+        message.id.toString().startsWith("python-")
+      ) {
+        statusMap[message.id] = true; // Python messages are always complete when added
+      }
+      // For assistant messages from AI SDK, check if they're still streaming
+      else if (message.role === "assistant") {
+        // If status is 'streaming' and this is the last message, it's incomplete
+        const isLastMessage = message.id === messages[messages.length - 1]?.id;
+        statusMap[message.id] = !(isLastMessage && status === "streaming");
+      }
+    });
+
+    return statusMap;
+  }, [messages, status, completedMessages]);
 
   // Extract color codes from messages
   const extractColorCode = (content: string) => {
@@ -98,7 +149,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
         try {
           // Skip if this is the initial color and we already have messages
-          // This prevents duplicate messages during initialization
           if (
             baseColor === "#0066ff" &&
             messages.length > 0 &&
@@ -109,7 +159,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           }
 
           // Check if the last message is from the user
-          // If so, we need to wait for an assistant response before adding another user message
           const lastMessage = messages[messages.length - 1];
           if (lastMessage && lastMessage.role === "user") {
             console.log(
@@ -142,19 +191,27 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             throw new Error(response.message);
           }
 
-          // Add assistant response from Python part
+          // Add assistant response from Python part with a special ID format
+          const pythonMessageId = `python-${Date.now() + 1}`;
           const assistantMessage: Message = {
-            id: (Date.now() + 1).toString(),
+            id: pythonMessageId,
             role: "assistant" as const,
             content: response.advice,
           };
 
           // Set the messages with the new assistant response
           setMessages([...newMessages, assistantMessage]);
+
+          // Mark the Python message as complete
+          setCompletedMessages((prev) => ({
+            ...prev,
+            [pythonMessageId]: true,
+          }));
         } catch (error) {
           console.error("Error processing color:", error);
 
           // Add error message
+          const errorMessageId = `python-error-${Date.now() + 1}`;
           setMessages([
             ...messages,
             {
@@ -163,12 +220,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
               content: `I just selected the color ${baseColor}.`,
             } as Message,
             {
-              id: (Date.now() + 1).toString(),
+              id: errorMessageId,
               role: "assistant" as const,
               content:
                 "I'm sorry, I couldn't analyze that color right now. Please try again or ask me something else.",
             } as Message,
           ]);
+
+          // Mark the error message as complete
+          setCompletedMessages((prev) => ({
+            ...prev,
+            [errorMessageId]: true,
+          }));
         } finally {
           setIsProcessingColor(false);
         }
@@ -187,7 +250,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         handleInputChange,
         handleSubmit,
         isLoading,
+        status, // Add status
         isProcessingColor,
+        messageCompletionStatus, // Add this for QueuedMarkdown
       }}
     >
       {children}
