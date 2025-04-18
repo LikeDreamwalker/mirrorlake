@@ -1,16 +1,15 @@
-// app/api/chat/route.ts
 import { deepseek } from "@ai-sdk/deepseek";
-import { streamText } from "ai";
+import { streamText, experimental_createMCPClient } from "ai";
 import { colorExpertSystemPrompt } from "@/lib/prompt";
 
 export async function POST(req: Request) {
   try {
-    console.log("Chat API route called");
+    console.log("[CHAT] Chat API route called");
 
-    const { messages: originalMessages } = await req.json();
+    const { messages } = await req.json();
     console.log(
-      "Received messages:",
-      JSON.stringify(originalMessages).slice(0, 200) + "..."
+      "[CHAT] Received messages:",
+      JSON.stringify(messages.slice(-1))
     );
 
     // Check API key
@@ -18,72 +17,68 @@ export async function POST(req: Request) {
       throw new Error("DEEPSEEK_API_KEY is not set");
     }
 
-    console.log(
-      "Using DeepSeek API key:",
-      process.env.DEEPSEEK_API_KEY.substring(0, 5) + "..."
-    );
+    // Determine the base URL for the MCP server
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+    const mcpUrl = `${baseUrl}/api/mcp-sse`;
 
-    // Process messages to ensure they alternate between user and assistant
-    let messages = [...originalMessages];
-    const processedMessages = [];
+    console.log("[CHAT] Using MCP server URL:", mcpUrl);
 
-    // Ensure the first message is from the user
-    if (messages.length === 0 || messages[0].role !== "user") {
-      processedMessages.push({
-        role: "user",
-        content: "Hi, I need help with colors.",
-      });
-    } else {
-      processedMessages.push(messages[0]);
-    }
-
-    // Process the rest of the messages to ensure alternating roles
-    for (let i = 1; i < messages.length; i++) {
-      const prevRole = processedMessages[processedMessages.length - 1].role;
-      const currentRole = messages[i].role;
-
-      // Only add the message if it's from a different role than the previous one
-      if (currentRole !== prevRole) {
-        processedMessages.push(messages[i]);
-      } else {
-        console.log(
-          `Skipping message ${i} because it has the same role (${currentRole}) as the previous message`
-        );
-      }
-    }
-
-    console.log(
-      "Processed messages:",
-      JSON.stringify(processedMessages).slice(0, 200) + "..."
-    );
-
-    // Add more detailed error handling
-    try {
-      const result = streamText({
-        model: deepseek("deepseek-reasoner"),
-        messages: processedMessages,
-        system: colorExpertSystemPrompt, // Use the color expert system prompt
-        temperature: 0.7,
-      });
-
-      console.log("Stream created successfully");
-
-      return result.toDataStreamResponse({
-        // Forward the actual error message instead of masking it
-        getErrorMessage: (error) => {
-          console.error("DeepSeek error:", error);
-          return String(error);
+    // Create an MCP client that connects to our SSE endpoint
+    const mcpClient = await experimental_createMCPClient({
+      transport: {
+        type: "sse",
+        url: mcpUrl,
+        onerror: (error) => console.error("[CHAT] MCP transport error:", error),
+        onmessage: (message) =>
+          console.log("[CHAT] MCP transport message:", message),
+        headers: {
+          cache: "no-cache",
         },
-      });
-    } catch (deepseekError) {
-      console.error("DeepSeek API error:", deepseekError);
-      throw deepseekError;
-    }
-  } catch (error) {
-    console.error("Error in chat API route:", error);
-    return new Response(JSON.stringify({ error: String(error) }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
+        // onUncaughtError: (error) =>
+        //   console.error("[CHAT] MCP uncaught error:", error),
+      },
     });
+
+    console.log("[CHAT] MCP client created successfully");
+
+    // Get tools from the MCP server
+    const tools = await mcpClient.tools();
+    console.log("[CHAT] MCP tools retrieved successfully");
+
+    // Stream the response from the model
+    const result = streamText({
+      model: deepseek("deepseek-reasoner"),
+      messages,
+      system: colorExpertSystemPrompt,
+      temperature: 0.7,
+      tools,
+      // Close the client when the response is finished
+      onFinish: async () => {
+        try {
+          await mcpClient.close();
+          console.log("[CHAT] MCP client closed successfully");
+        } catch (error) {
+          console.error("[CHAT] Error closing MCP client:", error);
+        }
+      },
+    });
+
+    console.log("[CHAT] Stream created successfully");
+
+    // Return the streamed response
+    return result.toDataStreamResponse();
+  } catch (error) {
+    console.error("[CHAT] Error in chat API route:", error);
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : String(error),
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
