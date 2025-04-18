@@ -15,7 +15,7 @@ function QueuedMarkdownBase({
   content,
   id,
   isComplete,
-  releaseInterval = 10, // Default: release every 10ms
+  releaseInterval = 3, // Default: release every 3ms
 }: QueuedMarkdownProps) {
   // The content we're currently displaying
   const [displayedContent, setDisplayedContent] = useState("");

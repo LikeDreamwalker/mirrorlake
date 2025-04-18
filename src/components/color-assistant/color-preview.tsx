@@ -73,7 +73,7 @@ export function ColorPreview({ colorCode }: ColorPreviewProps) {
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-border bg-background/90 cursor-pointer hover:bg-background transition-colors"
+      className="inline-flex items-center gap-1.5 p-1 leading-tight rounded-md border border-border bg-background/90 cursor-pointer hover:bg-background transition-colors"
       onClick={handleClick}
     >
       <span

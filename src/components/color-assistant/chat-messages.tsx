@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChatContext } from "./chat-context";
 import { QueuedMarkdown } from "./queued-markdown";
+import { cn } from "@/lib/utils";
 
 export function ChatMessages() {
   const { messages, messageCompletionStatus } = useChatContext();
@@ -15,21 +16,28 @@ export function ChatMessages() {
   }, [messages]);
 
   return (
-    <ScrollArea className="h-full p-4">
-      <div className="space-y-4">
+    <div className="h-full w-full overflow-y-auto">
+      <div className="space-y-4 w-full">
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${
+            className={cn(
+              "flex w-full",
               message.role === "user" ? "justify-end" : "justify-start"
-            }`}
+            )}
           >
             <div
-              className={`max-w-[80%] rounded-lg p-3 ${
+              className={cn(
+                "max-w-[95%] rounded-xl p-3",
                 message.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted border border-dashed border-border"
-              }`}
+                  ? "bg-primary text-primary-foreground border border-border"
+                  : "bg-background text-foreground border border-border"
+              )}
+              // className={`max-w-[95%] rounded-lg p-3 ${
+              //   message.role === "user"
+              //     ? "bg-primary text-primary-foreground"
+              //     : "bg-muted border border-dashed border-border"
+              // }`}
             >
               {message.role === "user" ? (
                 <p>{message.content}</p>
@@ -45,6 +53,6 @@ export function ChatMessages() {
         ))}
         <div ref={messagesEndRef} />
       </div>
-    </ScrollArea>
+    </div>
   );
 }

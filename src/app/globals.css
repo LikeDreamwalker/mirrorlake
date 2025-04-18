@@ -127,6 +127,11 @@
   }
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--scrollbar-thumb)) hsl(var(--scrollbar-track));
+}
+
 /* Add this new section after your @layer base to transition all color-related CSS variables */
 /* :root,
 .dark {
