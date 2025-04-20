@@ -2,6 +2,14 @@ import { deepseek } from "@ai-sdk/deepseek";
 import { streamText, tool, StreamData } from "ai";
 import { colorExpertSystemPrompt } from "@/lib/prompt";
 import { z } from "zod";
+import * as colorTools from "@/lib/color-tools";
+
+// Define a type for client actions
+interface ClientAction {
+  type: "client-action";
+  action: string;
+  params: any;
+}
 
 export async function POST(req: Request) {
   try {
@@ -99,12 +107,115 @@ export async function POST(req: Request) {
             params,
           });
 
-          // Return a placeholder result - we don't wait for client execution
-          return {
-            success: true,
-            message: `Added ${params.colors.length} colors with theme "${params.themeName}"`,
-            colors: params.colors,
-          };
+          // Return the result from the handler
+          return colorTools.handleAddColorsToTheme(params);
+        },
+      }),
+
+      updateTheme: tool({
+        description: "Update existing colors in the theme or add new ones",
+        parameters: z.object({
+          themeName: z
+            .string()
+            .describe("A descriptive name for this updated theme"),
+          colors: z
+            .array(
+              z.object({
+                color: z
+                  .string()
+                  .describe("Color code in hex format (e.g., #3498DB)"),
+                name: z
+                  .string()
+                  .describe(
+                    "Descriptive name for this specific color (e.g., 'Deep Sea Blue')"
+                  ),
+              })
+            )
+            .describe("Array of colors to update or add to the theme"),
+        }),
+        execute: async (params) => {
+          console.log(
+            "Tool call: updateTheme",
+            JSON.stringify(params, null, 2)
+          );
+
+          // Send a client action through the data stream
+          data.append({
+            type: "client-action",
+            action: "updateTheme",
+            params,
+          });
+
+          // Return the result from the handler
+          return colorTools.handleUpdateTheme(params);
+        },
+      }),
+
+      resetTheme: tool({
+        description: "Reset the theme by removing all colors",
+        parameters: z.object({}),
+        execute: async () => {
+          console.log("Tool call: resetTheme");
+
+          // Send a client action through the data stream
+          data.append({
+            type: "client-action",
+            action: "resetTheme",
+            params: {},
+          });
+
+          // Return the result from the handler
+          return colorTools.handleResetTheme();
+        },
+      }),
+
+      removeColorsFromTheme: tool({
+        description: "Remove specific colors from the theme by name",
+        parameters: z.object({
+          colorNames: z
+            .array(z.string())
+            .describe("Array of color names to remove from the theme"),
+        }),
+        execute: async (params) => {
+          console.log(
+            "Tool call: removeColorsFromTheme",
+            JSON.stringify(params, null, 2)
+          );
+
+          // Send a client action through the data stream
+          data.append({
+            type: "client-action",
+            action: "removeColorsFromTheme",
+            params,
+          });
+
+          // Return the result from the handler
+          return colorTools.handleRemoveColorsFromTheme(params);
+        },
+      }),
+
+      markColorAsFavorite: tool({
+        description: "Mark a color as favorite by name",
+        parameters: z.object({
+          colorName: z
+            .string()
+            .describe("Name of the color to mark as favorite"),
+        }),
+        execute: async (params) => {
+          console.log(
+            "Tool call: markColorAsFavorite",
+            JSON.stringify(params, null, 2)
+          );
+
+          // Send a client action through the data stream
+          data.append({
+            type: "client-action",
+            action: "markColorAsFavorite",
+            params,
+          });
+
+          // Return the result from the handler
+          return colorTools.handleMarkColorAsFavorite(params);
         },
       }),
 
@@ -114,19 +225,8 @@ export async function POST(req: Request) {
         execute: async () => {
           console.log("Tool call: getCurrentColors");
 
-          // Return placeholder data
-          return {
-            currentColor: "#0066FF", // Default placeholder
-            savedColors: [
-              { id: "1", name: "Sky Blue", color: "#0066FF", favorite: true },
-              {
-                id: "2",
-                name: "Sunset Orange",
-                color: "#FF5733",
-                favorite: false,
-              },
-            ],
-          };
+          // Use the imported function from color-tools
+          return colorTools.handleGetCurrentColors();
         },
       }),
 
@@ -139,20 +239,46 @@ export async function POST(req: Request) {
           const { color } = params;
           console.log("Getting color info for:", color);
 
-          // For getColorInfo, we can execute it on the server since it doesn't need the store
-          try {
-            const result = await import("@/lib/color-tools").then((module) =>
-              module.handleGetColorInfo(params)
-            );
-            return result;
-          } catch (error) {
-            console.error("Error getting color info:", error);
-            return {
-              error: `Failed to get color info: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            };
-          }
+          // Use the imported function from color-tools
+          return colorTools.handleGetColorInfo(params);
+        },
+      }),
+
+      generateColorPalette: tool({
+        description: "Generate a color palette based on a base color",
+        parameters: z.object({
+          baseColor: z
+            .string()
+            .describe("Base color in hex format (e.g., #FF5733)"),
+          paletteType: z
+            .enum([
+              "analogous",
+              "complementary",
+              "triadic",
+              "tetradic",
+              "monochromatic",
+            ])
+            .describe("Type of color palette to generate"),
+          count: z
+            .number()
+            .optional()
+            .describe("Number of colors to generate (default: 5)"),
+        }),
+        execute: async (params) => {
+          console.log(
+            "Tool call: generateColorPalette",
+            JSON.stringify(params, null, 2)
+          );
+
+          // Send a client action through the data stream
+          data.append({
+            type: "client-action",
+            action: "generateColorPalette",
+            params,
+          });
+
+          // Return the result from the handler
+          return colorTools.handleGenerateColorPalette(params);
         },
       }),
     };

@@ -3,181 +3,16 @@
 import { create } from "zustand";
 import { useTheme } from "next-themes";
 import { useEffect } from "react";
-
-// Color utility functions
-export const hslToRgb = (
-  h: number,
-  s: number,
-  l: number
-): { r: number; g: number; b: number } => {
-  s /= 100;
-  l /= 100;
-
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l - c / 2;
-  let r = 0,
-    g = 0,
-    b = 0;
-
-  if (0 <= h && h < 60) {
-    r = c;
-    g = x;
-    b = 0;
-  } else if (60 <= h && h < 120) {
-    r = x;
-    g = c;
-    b = 0;
-  } else if (120 <= h && h < 180) {
-    r = 0;
-    g = c;
-    b = x;
-  } else if (180 <= h && h < 240) {
-    r = 0;
-    g = x;
-    b = c;
-  } else if (240 <= h && h < 300) {
-    r = x;
-    g = 0;
-    b = c;
-  } else if (300 <= h && h < 360) {
-    r = c;
-    g = 0;
-    b = x;
-  }
-
-  return {
-    r: Math.round((r + m) * 255),
-    g: Math.round((g + m) * 255),
-    b: Math.round((b + m) * 255),
-  };
-};
-
-export const rgbToHex = (r: number, g: number, b: number): string => {
-  return (
-    "#" +
-    [r, g, b].map((x) => Math.round(x).toString(16).padStart(2, "0")).join("")
-  );
-};
-
-export const hslToHex = (h: number, s: number, l: number): string => {
-  const rgb = hslToRgb(h, s, l);
-  return rgbToHex(rgb.r, rgb.g, rgb.b);
-};
-
-export const alphaToHex = (alpha: number): string => {
-  return Math.round(alpha * 255)
-    .toString(16)
-    .padStart(2, "0")
-    .toUpperCase();
-};
-
-export const hexToRgb = (
-  hex: string
-): { r: number; g: number; b: number; a?: number } => {
-  // Remove the # if present
-  hex = hex.replace(/^#/, "");
-
-  // Ensure we have at least 6 characters for a valid hex color
-  if (!/^[0-9A-Fa-f]{6,8}$/.test(hex)) {
-    return { r: 0, g: 0, b: 0 }; // Return black for invalid hex
-  }
-
-  // Parse the hex values
-  const r = Number.parseInt(hex.slice(0, 2), 16);
-  const g = Number.parseInt(hex.slice(2, 4), 16);
-  const b = Number.parseInt(hex.slice(4, 6), 16);
-
-  // Check if we have an alpha channel
-  let a: number | undefined = undefined;
-  if (hex.length >= 8) {
-    a = Number.parseInt(hex.slice(6, 8), 16) / 255;
-  }
-
-  return { r, g, b, a };
-};
-
-export const rgbToHsl = (
-  r: number,
-  g: number,
-  b: number
-): { h: number; s: number; l: number } => {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0;
-  let s = 0;
-  const l = (max + min) / 2;
-
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-
-    switch (max) {
-      case r:
-        h = (g - b) / d + (g < b ? 6 : 0);
-        break;
-      case g:
-        h = (b - r) / d + 2;
-        break;
-      case b:
-        h = (r - g) / d + 4;
-        break;
-    }
-
-    h /= 6;
-  }
-
-  return {
-    h: Math.round(h * 360),
-    s: Math.round(s * 100),
-    l: Math.round(l * 100),
-  };
-};
-
-export const hexToHsl = (
-  hex: string
-): { h: number; s: number; l: number; a?: number } => {
-  const rgb = hexToRgb(hex);
-  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-  return { ...hsl, a: rgb.a };
-};
-
-// Calculate luminance for WCAG contrast
-export const calculateLuminance = (r: number, g: number, b: number): number => {
-  // Convert RGB to linear values
-  const rsrgb = r / 255;
-  const gsrgb = g / 255;
-  const bsrgb = b / 255;
-
-  // Convert to linear RGB
-  const rlinear =
-    rsrgb <= 0.03928 ? rsrgb / 12.92 : Math.pow((rsrgb + 0.055) / 1.055, 2.4);
-  const glinear =
-    gsrgb <= 0.03928 ? gsrgb / 12.92 : Math.pow((gsrgb + 0.055) / 1.055, 2.4);
-  const blinear =
-    bsrgb <= 0.03928 ? bsrgb / 12.92 : Math.pow((bsrgb + 0.055) / 1.055, 2.4);
-
-  // Calculate luminance
-  return 0.2126 * rlinear + 0.7152 * glinear + 0.0722 * blinear;
-};
-
-export const getContrastColor = (hex: string): string => {
-  const rgb = hexToRgb(hex);
-  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
-  return luminance > 0.5 ? "#000000" : "#ffffff";
-};
-
-// Determine if a color is dark (for theme switching)
-export const isColorDark = (hex: string): boolean => {
-  const rgb = hexToRgb(hex);
-  const luminance = calculateLuminance(rgb.r, rgb.g, rgb.b);
-  // Using 0.5 as threshold - colors with luminance < 0.5 are considered dark
-  return luminance < 0.5;
-};
+import { toast } from "sonner";
+import {
+  alphaToHex,
+  hexToRgb,
+  isColorDark,
+  rgbToHsl,
+  rgbToHex,
+  hslToHex,
+  hslToRgb,
+} from "@/lib/color-tools";
 
 // Helper function to generate a color name based on HSL values
 export function generateColorName(h: number, s: number, l: number): string {
@@ -331,6 +166,29 @@ interface StoreActions {
   toggleFavorite: (colorId: string) => void;
   getColorById: (colorId: string) => ColorItem | null;
   getColorName: () => string;
+
+  // New theme management actions
+  addColorsToTheme: (params: {
+    themeName: string;
+    colors: Array<{ color: string; name: string }>;
+  }) => void;
+  updateTheme: (params: {
+    themeName: string;
+    colors: Array<{ color: string; name: string }>;
+  }) => void;
+  resetTheme: () => void;
+  removeColorsFromTheme: (params: { colorNames: string[] }) => void;
+  markColorAsFavorite: (params: { colorName: string }) => void;
+  generateColorPalette: (params: {
+    baseColor: string;
+    paletteType:
+      | "analogous"
+      | "complementary"
+      | "triadic"
+      | "tetradic"
+      | "monochromatic";
+    count?: number;
+  }) => void;
 }
 
 // Add this to the store implementation
@@ -636,9 +494,266 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   getColorById: (colorId: string) => {
     return get().colors.find((c) => c.id === colorId) || null;
   },
+
   getColorName: () => {
     const { hue, saturation, lightness } = get();
     return generateColorName(hue, saturation, lightness);
+  },
+
+  // New theme management actions moved from chat provider
+  addColorsToTheme: (params) => {
+    const { themeName, colors } = params;
+    console.log("Adding colors to theme:", themeName, colors);
+
+    // Add each color to the store
+    colors.forEach((colorItem) => {
+      get().addColor(colorItem.color, colorItem.name);
+    });
+
+    // Show a toast notification if available
+    if (typeof toast !== "undefined") {
+      toast.success(`Added ${colors.length} colors to "${themeName}" theme`);
+    }
+
+    return {
+      success: true,
+      message: `Added ${colors.length} colors with theme "${themeName}"`,
+      colors,
+    };
+  },
+
+  updateTheme: (params) => {
+    const { themeName, colors } = params;
+    console.log("Updating theme:", themeName, colors);
+    const store = get();
+
+    // Update each color in the store
+    colors.forEach((colorItem) => {
+      // Check if a color with this name already exists
+      const existingColors = store.colors.filter(
+        (c) => c.name === colorItem.name
+      );
+
+      // Remove existing colors with the same name
+      existingColors.forEach((color) => {
+        store.removeColor(color.id);
+      });
+
+      // Add the new color
+      store.addColor(colorItem.color, colorItem.name);
+    });
+
+    // Show a toast notification if available
+    if (typeof toast !== "undefined") {
+      toast.success(
+        `Updated "${themeName}" theme with ${colors.length} colors`
+      );
+    }
+
+    return {
+      success: true,
+      message: `Updated theme "${themeName}" with ${colors.length} colors`,
+      colors,
+    };
+  },
+
+  resetTheme: () => {
+    console.log("Resetting theme");
+    const store = get();
+
+    // Get all color IDs
+    const colorIds = store.colors.map((color) => color.id);
+
+    // Remove all colors
+    colorIds.forEach((id) => {
+      store.removeColor(id);
+    });
+
+    // Show a toast notification if available
+    if (typeof toast !== "undefined") {
+      toast.info("Theme has been reset");
+    }
+
+    return {
+      success: true,
+      message: "Theme has been reset. All colors have been removed.",
+    };
+  },
+
+  removeColorsFromTheme: (params) => {
+    const { colorNames } = params;
+    console.log("Removing colors from theme:", colorNames);
+    const store = get();
+
+    let removedCount = 0;
+
+    // Remove colors by name
+    colorNames.forEach((name) => {
+      const colorsToRemove = store.colors.filter(
+        (c) => c.name.toLowerCase() === name.toLowerCase()
+      );
+
+      colorsToRemove.forEach((color) => {
+        store.removeColor(color.id);
+        removedCount++;
+      });
+    });
+
+    // Show a toast notification if available
+    if (typeof toast !== "undefined") {
+      toast.info(`Removed ${removedCount} colors from the theme`);
+    }
+
+    return {
+      success: true,
+      message: `Removed ${removedCount} colors from the theme`,
+      removedColors: colorNames,
+    };
+  },
+
+  markColorAsFavorite: (params) => {
+    const { colorName } = params;
+    console.log("Marking color as favorite:", colorName);
+    const store = get();
+
+    // Find the color by name
+    const color = store.colors.find(
+      (c) => c.name.toLowerCase() === colorName.toLowerCase()
+    );
+
+    if (color) {
+      store.toggleFavorite(color.id);
+
+      // Show a toast notification if available
+      if (typeof toast !== "undefined") {
+        toast.success(`Marked "${colorName}" as favorite`);
+      }
+
+      return {
+        success: true,
+        message: `Marked "${colorName}" as favorite`,
+        color: color.color,
+      };
+    }
+
+    // Show a toast notification if available
+    if (typeof toast !== "undefined") {
+      toast.error(`Color "${colorName}" not found in the theme`);
+    }
+
+    return {
+      success: false,
+      message: `Color "${colorName}" not found in the theme`,
+    };
+  },
+
+  generateColorPalette: (params) => {
+    const { baseColor, paletteType, count = 5 } = params;
+    console.log(`Generating ${paletteType} palette based on ${baseColor}`);
+    const store = get();
+
+    const rgb = hexToRgb(baseColor);
+    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    let palette: Array<{ color: string; name: string }> = [];
+
+    switch (paletteType) {
+      case "analogous": {
+        // Generate analogous colors (adjacent on the color wheel)
+        const colors = [];
+        for (let i = -2; i <= 2; i++) {
+          if (i === 0) continue; // Skip the base color
+          const newHue = (hsl.h + i * 30 + 360) % 360;
+          const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
+          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
+          const name = generateColorName(newHue, hsl.s, hsl.l);
+          colors.push({ color: newHex, name });
+        }
+        palette = colors;
+        break;
+      }
+      case "complementary": {
+        // Generate complementary color (opposite on the color wheel)
+        const complementaryHue = (hsl.h + 180) % 360;
+        const complementaryRgb = hslToRgb(complementaryHue, hsl.s, hsl.l);
+        const complementaryHex = rgbToHex(
+          complementaryRgb.r,
+          complementaryRgb.g,
+          complementaryRgb.b
+        );
+        const name = generateColorName(complementaryHue, hsl.s, hsl.l);
+        palette = [{ color: complementaryHex, name }];
+        break;
+      }
+      case "triadic": {
+        // Generate triadic colors (evenly spaced around the color wheel)
+        const colors = [];
+        for (let i = 1; i <= 2; i++) {
+          const newHue = (hsl.h + i * 120) % 360;
+          const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
+          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
+          const name = generateColorName(newHue, hsl.s, hsl.l);
+          colors.push({ color: newHex, name });
+        }
+        palette = colors;
+        break;
+      }
+      case "tetradic": {
+        // Generate tetradic colors (rectangle on the color wheel)
+        const colors = [];
+        for (let i = 1; i <= 3; i++) {
+          const newHue = (hsl.h + i * 90) % 360;
+          const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
+          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
+          const name = generateColorName(newHue, hsl.s, hsl.l);
+          colors.push({ color: newHex, name });
+        }
+        palette = colors;
+        break;
+      }
+      case "monochromatic": {
+        // Generate monochromatic colors (same hue, different lightness/saturation)
+        const colors = [];
+        // Vary lightness
+        for (let i = 1; i <= Math.min(count, 4); i++) {
+          const newLightness = Math.max(
+            10,
+            Math.min(90, hsl.l + (i % 2 === 0 ? i * 10 : -i * 10))
+          );
+          const newRgb = hslToRgb(hsl.h, hsl.s, newLightness);
+          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
+          const name = generateColorName(hsl.h, hsl.s, newLightness);
+          colors.push({ color: newHex, name });
+        }
+        palette = colors;
+        break;
+      }
+    }
+
+    // Add the base color to the palette
+    const baseName = generateColorName(hsl.h, hsl.s, hsl.l);
+    palette.unshift({ color: baseColor, name: baseName });
+
+    // Limit to requested count
+    palette = palette.slice(0, count);
+
+    // Add the generated palette to the theme
+    palette.forEach((colorItem) => {
+      store.addColor(colorItem.color, colorItem.name);
+    });
+
+    // Show a toast notification if available
+    if (typeof toast !== "undefined") {
+      toast.success(
+        `Generated ${palette.length} colors for ${paletteType} palette`
+      );
+    }
+
+    return {
+      success: true,
+      baseColor,
+      paletteType,
+      palette,
+    };
   },
 }));
 

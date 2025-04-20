@@ -61,7 +61,17 @@ export const useChatContext = () => useContext(ChatContext);
 
 // Provider component
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const { baseColor, setBaseColor, addColor } = useStore();
+  const {
+    baseColor,
+    setBaseColor,
+    addColorsToTheme,
+    updateTheme,
+    resetTheme,
+    removeColorsFromTheme,
+    markColorAsFavorite,
+    generateColorPalette,
+  } = useStore();
+
   const [isProcessingColor, setIsProcessingColor] = useState(false);
   const lastProcessedColor = useRef<string | null>(null);
   const hasInitialized = useRef(false);
@@ -140,24 +150,40 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Execute the action on the client side
-        if (action === "addColorsToTheme") {
-          const { themeName, colors } = params;
+        // Execute the action on the client side using the store functions
+        switch (action) {
+          case "addColorsToTheme":
+            addColorsToTheme(params);
+            break;
 
-          // Add each color to the store
-          colors.forEach((colorItem: { color: string; name: string }) => {
-            addColor(colorItem.color, colorItem.name);
-          });
+          case "updateTheme":
+            updateTheme(params);
+            break;
 
-          // Show a toast notification
-          toast.success(
-            `Added ${colors.length} colors to "${themeName}" theme`
-          );
+          case "resetTheme":
+            resetTheme();
+            break;
 
-          // Mark this action as processed
-          processedActions.current.add(actionId);
-          console.log("Marked action as processed:", actionId);
+          case "removeColorsFromTheme":
+            removeColorsFromTheme(params);
+            break;
+
+          case "markColorAsFavorite":
+            markColorAsFavorite(params);
+            break;
+
+          case "generateColorPalette":
+            generateColorPalette(params);
+            break;
+
+          default:
+            console.warn(`Unknown client action: ${action}`);
+            return;
         }
+
+        // Mark this action as processed
+        processedActions.current.add(actionId);
+        console.log("Marked action as processed:", actionId);
       } catch (error) {
         console.error("Error executing client action:", error);
         toast.error(
@@ -166,7 +192,15 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         );
       }
     }
-  }, [data, addColor]);
+  }, [
+    data,
+    addColorsToTheme,
+    updateTheme,
+    resetTheme,
+    removeColorsFromTheme,
+    markColorAsFavorite,
+    generateColorPalette,
+  ]);
 
   // Create a map of message completion status
   const messageCompletionStatus = useMemo(() => {
@@ -315,7 +349,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     };
 
     processColorChange();
-  }, [baseColor, messages, setMessages, isProcessingColor]);
+  }, [
+    baseColor,
+    messages,
+    setMessages,
+    isProcessingColor,
+    addColorsToTheme,
+    updateTheme,
+    resetTheme,
+    removeColorsFromTheme,
+    markColorAsFavorite,
+    generateColorPalette,
+  ]);
 
   // Provide the chat context to children
   return (
