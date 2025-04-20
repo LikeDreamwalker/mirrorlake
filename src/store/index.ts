@@ -179,8 +179,6 @@ export const isColorDark = (hex: string): boolean => {
   return luminance < 0.5;
 };
 
-// Add this function after the existing utility functions, before the store definition
-
 // Helper function to generate a color name based on HSL values
 export function generateColorName(h: number, s: number, l: number): string {
   // Determine hue name
@@ -265,32 +263,6 @@ const createColorItem = (color: string, name = "", info = ""): ColorItem => {
     favorite: false,
   };
 };
-
-// Helper function to generate a simple color name based on HSL values
-// function generateColorName(h: number, s: number, l: number): string {
-//   // Determine hue name
-//   let hueName = ""
-//   if (h >= 0 && h < 30) hueName = "Red"
-//   else if (h >= 30 && h < 60) hueName = "Orange"
-//   else if (h >= 60 && h < 90) hueName = "Yellow"
-//   else if (h >= 90 && h < 150) hueName = "Green"
-//   else if (h >= 150 && h < 210) hueName = "Cyan"
-//   else if (h >= 210 && h < 270) hueName = "Blue"
-//   else if (h >= 270 && h < 330) hueName = "Purple"
-//   else hueName = "Pink"
-
-//   // Determine saturation modifier
-//   let satModifier = ""
-//   if (s < 30) satModifier = "Grayish "
-//   else if (s > 80) satModifier = "Vibrant "
-
-//   // Determine lightness modifier
-//   let lightModifier = ""
-//   if (l < 30) lightModifier = "Dark "
-//   else if (l > 70) lightModifier = "Light "
-
-//   return `${lightModifier}${satModifier}${hueName}`
-// }
 
 // Calculate the correct values for #0066FF
 const defaultColor = "#0066FF";
@@ -690,4 +662,73 @@ export function useColorThemeSwitcher(initialColor = "#0066FF") {
   }, [isDark, autoSwitchTheme, setTheme]);
 
   return null;
+}
+
+// Export additional color harmony functions
+export function calculateComplementary(hexColor: string): string {
+  const rgb = hexToRgb(hexColor);
+  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+  // Complementary color is 180 degrees away on the color wheel
+  const complementaryHue = (hsl.h + 180) % 360;
+
+  // Convert back to RGB and then to hex
+  const complementaryRgb = hslToRgb(complementaryHue, hsl.s, hsl.l);
+  return rgbToHex(complementaryRgb.r, complementaryRgb.g, complementaryRgb.b);
+}
+
+export function calculateAnalogous(
+  hexColor: string,
+  hsl?: { h: number; s: number; l: number }
+): string[] {
+  // If HSL is not provided, calculate it from the hex color
+  if (!hsl) {
+    const rgb = hexToRgb(hexColor);
+    hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  }
+
+  // Analogous colors are 30 degrees away on either side
+  const hue1 = (hsl.h + 30) % 360;
+  const hue2 = (hsl.h + 330) % 360; // equivalent to (hsl.h - 30 + 360) % 360
+
+  // Convert to RGB and then to hex
+  const rgb1 = hslToRgb(hue1, hsl.s, hsl.l);
+  const rgb2 = hslToRgb(hue2, hsl.s, hsl.l);
+
+  return [rgbToHex(rgb1.r, rgb1.g, rgb1.b), rgbToHex(rgb2.r, rgb2.g, rgb2.b)];
+}
+
+// Export additional color scheme functions
+export function calculateTriadic(hexColor: string): string[] {
+  const rgb = hexToRgb(hexColor);
+  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+  // Triadic colors are 120 degrees apart
+  const hue1 = (hsl.h + 120) % 360;
+  const hue2 = (hsl.h + 240) % 360;
+
+  const rgb1 = hslToRgb(hue1, hsl.s, hsl.l);
+  const rgb2 = hslToRgb(hue2, hsl.s, hsl.l);
+
+  return [rgbToHex(rgb1.r, rgb1.g, rgb1.b), rgbToHex(rgb2.r, rgb2.g, rgb2.b)];
+}
+
+export function calculateTetradic(hexColor: string): string[] {
+  const rgb = hexToRgb(hexColor);
+  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+
+  // Tetradic colors are in a rectangle on the color wheel
+  const hue1 = (hsl.h + 90) % 360;
+  const hue2 = (hsl.h + 180) % 360;
+  const hue3 = (hsl.h + 270) % 360;
+
+  const rgb1 = hslToRgb(hue1, hsl.s, hsl.l);
+  const rgb2 = hslToRgb(hue2, hsl.s, hsl.l);
+  const rgb3 = hslToRgb(hue3, hsl.s, hsl.l);
+
+  return [
+    rgbToHex(rgb1.r, rgb1.g, rgb1.b),
+    rgbToHex(rgb2.r, rgb2.g, rgb2.b),
+    rgbToHex(rgb3.r, rgb3.g, rgb3.b),
+  ];
 }
