@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChatContext } from "./chat-context";
 import { QueuedMarkdown } from "./queued-markdown";
 import { cn } from "@/lib/utils";
+import { ColorHighlightMarkdown } from "./color-highlight-markdown";
 
 export function ChatMessages() {
   const { messages, messageCompletionStatus } = useChatContext();
@@ -42,11 +43,12 @@ export function ChatMessages() {
               {message.role === "user" ? (
                 <p>{message.content}</p>
               ) : (
-                <QueuedMarkdown
-                  content={message.content}
-                  id={message.id}
-                  isComplete={messageCompletionStatus[message.id] === true}
-                />
+                // <QueuedMarkdown
+                //   content={message.content}
+                //   id={message.id}
+                //   isComplete={messageCompletionStatus[message.id] === true}
+                // />
+                <ColorHighlightMarkdown content={message.content} />
               )}
             </div>
           </div>
