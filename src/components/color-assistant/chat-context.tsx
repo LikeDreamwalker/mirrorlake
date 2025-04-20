@@ -12,6 +12,25 @@ import {
 import { useChat, type Message } from "@ai-sdk/react";
 import { useStore } from "@/store";
 import { getColorAdvice } from "@/app/actions";
+import { toast } from "sonner";
+
+// Define a type for client actions
+interface ClientAction {
+  type: "client-action";
+  action: string;
+  params: any;
+}
+
+// Type guard to check if an object is a client action
+function isClientAction(obj: any): obj is ClientAction {
+  return (
+    obj &&
+    typeof obj === "object" &&
+    obj.type === "client-action" &&
+    typeof obj.action === "string" &&
+    obj.params !== undefined
+  );
+}
 
 // Context type definition
 interface ChatContextType {
@@ -20,9 +39,9 @@ interface ChatContextType {
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   isLoading: boolean;
-  status: "submitted" | "streaming" | "ready" | "error"; // Add status
+  status: "submitted" | "streaming" | "ready" | "error";
   isProcessingColor: boolean;
-  messageCompletionStatus: Record<string, boolean>; // Add this for QueuedMarkdown
+  messageCompletionStatus: Record<string, boolean>;
 }
 
 // Create the context
@@ -42,32 +61,35 @@ export const useChatContext = () => useContext(ChatContext);
 
 // Provider component
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const { baseColor, setBaseColor } = useStore();
+  const { baseColor, setBaseColor, addColor } = useStore();
   const [isProcessingColor, setIsProcessingColor] = useState(false);
   const lastProcessedColor = useRef<string | null>(null);
   const hasInitialized = useRef(false);
   const isFirstLoad = useRef(true);
 
-  // Track which messages are complete (for both SSE and non-SSE messages)
+  // Track which client actions have been processed to prevent duplicates
+  const processedActions = useRef<Set<string>>(new Set());
+
+  // Track which messages are complete
   const [completedMessages, setCompletedMessages] = useState<
     Record<string, boolean>
   >({});
 
-  // Initialize chat with AI SDK - start with empty messages
+  // Initialize chat with AI SDK
   const {
     messages,
     input,
     handleInputChange,
     handleSubmit,
     isLoading,
-    status, // Get status from useChat
+    status,
     setMessages,
+    data, // This contains the custom data sent from the server
   } = useChat({
     api: "/api/chat",
     initialMessages: [],
     onFinish: (message) => {
       console.log("Chat finished with message:", message);
-      // Mark the message as complete when it finishes
       setCompletedMessages((prev) => ({
         ...prev,
         [message.id]: true,
@@ -75,30 +97,90 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     },
     onError: (error) => {
       console.error("Chat error:", error);
+      toast.error("Error in chat: " + error.message);
     },
   });
 
-  // Create a map of message completion status that combines:
-  // 1. SSE messages (tracked by status)
-  // 2. Non-SSE messages (tracked by completedMessages)
+  // Reset processed actions when a new user message is added
+  useEffect(() => {
+    const userMessageCount = messages.filter((m) => m.role === "user").length;
+    if (
+      userMessageCount > 0 &&
+      userMessageCount !== lastUserMessageCount.current
+    ) {
+      console.log("New user message detected, resetting processed actions");
+      processedActions.current = new Set();
+      lastUserMessageCount.current = userMessageCount;
+    }
+  }, [messages]);
+
+  // Keep track of the last user message count
+  const lastUserMessageCount = useRef<number>(0);
+
+  // Process client actions from the data stream
+  useEffect(() => {
+    if (!data || data.length === 0) return;
+
+    // Process the latest data item
+    const latestData = data[data.length - 1];
+
+    // Use the type guard to check if it's a client action
+    if (isClientAction(latestData)) {
+      console.log("Received client action:", latestData);
+
+      try {
+        const { action, params } = latestData;
+
+        // Create a unique ID for this action to prevent duplicate execution
+        const actionId = `${action}-${JSON.stringify(params)}`;
+
+        // Skip if we've already processed this action
+        if (processedActions.current.has(actionId)) {
+          console.log("Skipping already processed action:", actionId);
+          return;
+        }
+
+        // Execute the action on the client side
+        if (action === "addColorsToTheme") {
+          const { themeName, colors } = params;
+
+          // Add each color to the store
+          colors.forEach((colorItem: { color: string; name: string }) => {
+            addColor(colorItem.color, colorItem.name);
+          });
+
+          // Show a toast notification
+          toast.success(
+            `Added ${colors.length} colors to "${themeName}" theme`
+          );
+
+          // Mark this action as processed
+          processedActions.current.add(actionId);
+          console.log("Marked action as processed:", actionId);
+        }
+      } catch (error) {
+        console.error("Error executing client action:", error);
+        toast.error(
+          "Error executing action: " +
+            (error instanceof Error ? error.message : String(error))
+        );
+      }
+    }
+  }, [data, addColor]);
+
+  // Create a map of message completion status
   const messageCompletionStatus = useMemo(() => {
     const statusMap: Record<string, boolean> = {};
 
     messages.forEach((message) => {
-      // For user messages, they're always complete
       if (message.role === "user") {
         statusMap[message.id] = true;
-      }
-      // For assistant messages from Python (with special ID format), use our completedMessages state
-      else if (
+      } else if (
         message.role === "assistant" &&
         message.id.toString().startsWith("python-")
       ) {
-        statusMap[message.id] = true; // Python messages are always complete when added
-      }
-      // For assistant messages from AI SDK, check if they're still streaming
-      else if (message.role === "assistant") {
-        // If status is 'streaming' and this is the last message, it's incomplete
+        statusMap[message.id] = true;
+      } else if (message.role === "assistant") {
         const isLastMessage = message.id === messages[messages.length - 1]?.id;
         statusMap[message.id] = !(isLastMessage && status === "streaming");
       }
@@ -107,21 +189,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     return statusMap;
   }, [messages, status, completedMessages]);
 
-  // Extract color codes from messages
-  const extractColorCode = (content: string) => {
-    const colorRegex = /`(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})`/g;
-    const matches = [...(content?.matchAll(colorRegex) || [])];
-    return matches.length > 0 ? matches[0][1] : null;
-  };
-
   // Initialize with default color and first user message
   useEffect(() => {
     if (isFirstLoad.current && !hasInitialized.current) {
-      // Set default color
       const defaultColor = "#0066ff";
       setBaseColor(defaultColor);
 
-      // Create initial user message about selecting the color
       setMessages([
         {
           id: "initial-color-selection",
@@ -232,6 +305,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             ...prev,
             [errorMessageId]: true,
           }));
+          toast.error(
+            "I'm sorry, I couldn't analyze that color right now. Please try again or ask me something else."
+          );
         } finally {
           setIsProcessingColor(false);
         }
@@ -250,9 +326,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         handleInputChange,
         handleSubmit,
         isLoading,
-        status, // Add status
+        status,
         isProcessingColor,
-        messageCompletionStatus, // Add this for QueuedMarkdown
+        messageCompletionStatus,
       }}
     >
       {children}

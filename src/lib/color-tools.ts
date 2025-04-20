@@ -1,92 +1,67 @@
-// lib/color-tools.ts
 import { useStore } from "@/store";
-// Import utility functions directly
 import {
   hexToRgb,
   rgbToHsl,
   calculateLuminance,
   getContrastColor,
   generateColorName,
-} from "@/store"; // Adjust the import path as needed
+} from "@/store";
 
-export const colorTools = [
-  {
-    type: "function",
-    function: {
-      name: "addColorsToTheme",
-      description: "Add a group of related colors to the user's current theme",
-      parameters: {
-        type: "object",
-        properties: {
-          themeName: {
-            type: "string",
-            description:
-              "A descriptive name for this color theme (e.g., 'Ocean Breeze', 'Autumn Sunset')",
-          },
-          colors: {
-            type: "array",
-            description: "Array of colors that belong to this theme",
-            items: {
-              type: "object",
-              properties: {
-                color: {
-                  type: "string",
-                  description: "Color code in hex format (e.g., #3498DB)",
-                },
-                name: {
-                  type: "string",
-                  description:
-                    "Descriptive name for this specific color (e.g., 'Deep Sea Blue')",
-                },
-              },
-              required: ["color", "name"],
-            },
-          },
-        },
-        required: ["themeName", "colors"],
+// Create a store instance that can be used outside of React components
+// This is needed because we can't use hooks in server-side code
+let storeInstance: ReturnType<typeof useStore.getState> | null = null;
+
+// Function to safely get the store state
+const getStore = () => {
+  // If we're in a browser environment, we can use the store directly
+  if (typeof window !== "undefined") {
+    return useStore.getState();
+  }
+
+  // If we already have a store instance, use it
+  if (storeInstance) {
+    return storeInstance;
+  }
+
+  // Otherwise, create a new instance
+  try {
+    storeInstance = useStore.getState();
+    return storeInstance;
+  } catch (error) {
+    console.error("Error accessing store state:", error);
+    // Return a minimal mock implementation to prevent crashes
+    return {
+      baseColor: "#0066FF",
+      colors: [],
+      addColor: (color: string, name: string) => {
+        console.warn("Mock addColor called - store not properly initialized");
       },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "getCurrentColors",
-      description: "Get the user's current colors",
-      parameters: {
-        type: "object",
-        properties: {},
+      removeColor: (id: string) => {
+        console.warn(
+          "Mock removeColor called - store not properly initialized"
+        );
       },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "getColorInfo",
-      description: "Get technical information about a specific color",
-      parameters: {
-        type: "object",
-        properties: {
-          color: {
-            type: "string",
-            description: "Color in hex format (e.g., #FF5733)",
-          },
-        },
-        required: ["color"],
+      toggleFavorite: (id: string) => {
+        console.warn(
+          "Mock toggleFavorite called - store not properly initialized"
+        );
       },
-    },
-  },
-];
+    };
+  }
+};
 
 // Tool implementations
 export function handleAddColorsToTheme(params: {
   themeName: string;
   colors: Array<{ color: string; name: string }>;
 }) {
-  const { addColor } = useStore.getState();
+  const store = getStore();
+
+  console.log("Adding colors to theme:", params.themeName, params.colors);
 
   // Add each color to the store
   params.colors.forEach((colorItem) => {
-    addColor(colorItem.color, colorItem.name);
+    store.addColor(colorItem.color, colorItem.name);
   });
 
   return {
@@ -97,11 +72,13 @@ export function handleAddColorsToTheme(params: {
 }
 
 export function handleGetCurrentColors() {
-  const { colors, baseColor } = useStore.getState();
+  const store = getStore();
+
+  console.log("Getting current colors");
 
   return {
-    currentColor: baseColor,
-    savedColors: colors.map((color) => ({
+    currentColor: store.baseColor,
+    savedColors: store.colors.map((color) => ({
       id: color.id,
       name: color.name,
       color: color.color,
@@ -113,12 +90,13 @@ export function handleGetCurrentColors() {
 export function handleGetColorInfo(params: { color: string }) {
   const { color } = params;
 
+  console.log("Getting color info for:", color);
+
   // Use the imported utility functions directly
   const rgb = hexToRgb(color);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
   // Calculate luminance using the imported function
-  // If calculateLuminance expects separate r,g,b parameters
   const luminance = calculateLuminance(rgb.r, rgb.g, rgb.b);
 
   // Get contrast color using the imported function
@@ -182,7 +160,6 @@ function hslToRgb(
   s: number,
   l: number
 ): { r: number; g: number; b: number } {
-  // If these functions are already imported from your store, you can remove this implementation
   s /= 100;
   l /= 100;
 
@@ -227,9 +204,14 @@ function hslToRgb(
 }
 
 function rgbToHex(r: number, g: number, b: number): string {
-  // If this function is already imported from your store, you can remove this implementation
   return (
     "#" +
     [r, g, b].map((x) => Math.round(x).toString(16).padStart(2, "0")).join("")
   );
 }
+
+export const colorToolRegistry = {
+  addColorsToTheme: handleAddColorsToTheme,
+  getCurrentColors: handleGetCurrentColors,
+  getColorInfo: handleGetColorInfo,
+};
