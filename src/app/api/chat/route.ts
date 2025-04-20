@@ -2,7 +2,16 @@ import { deepseek } from "@ai-sdk/deepseek";
 import { streamText, tool, StreamData } from "ai";
 import { colorExpertSystemPrompt } from "@/lib/prompt";
 import { z } from "zod";
-import * as colorTools from "@/lib/color-tools";
+import {
+  handleAddColorsToTheme,
+  handleUpdateTheme,
+  handleResetTheme,
+  handleRemoveColorsFromTheme,
+  handleMarkColorAsFavorite,
+  handleGetCurrentColors,
+  handleGetColorInfo,
+  handleGenerateColorPalette,
+} from "@/lib/color-tools";
 
 // Define a type for client actions
 interface ClientAction {
@@ -108,7 +117,7 @@ export async function POST(req: Request) {
           });
 
           // Return the result from the handler
-          return colorTools.handleAddColorsToTheme(params);
+          return handleAddColorsToTheme(params);
         },
       }),
 
@@ -147,7 +156,7 @@ export async function POST(req: Request) {
           });
 
           // Return the result from the handler
-          return colorTools.handleUpdateTheme(params);
+          return handleUpdateTheme(params);
         },
       }),
 
@@ -165,7 +174,7 @@ export async function POST(req: Request) {
           });
 
           // Return the result from the handler
-          return colorTools.handleResetTheme();
+          return handleResetTheme();
         },
       }),
 
@@ -190,7 +199,7 @@ export async function POST(req: Request) {
           });
 
           // Return the result from the handler
-          return colorTools.handleRemoveColorsFromTheme(params);
+          return handleRemoveColorsFromTheme(params);
         },
       }),
 
@@ -215,7 +224,7 @@ export async function POST(req: Request) {
           });
 
           // Return the result from the handler
-          return colorTools.handleMarkColorAsFavorite(params);
+          return handleMarkColorAsFavorite(params);
         },
       }),
 
@@ -226,7 +235,7 @@ export async function POST(req: Request) {
           console.log("Tool call: getCurrentColors");
 
           // Use the imported function from color-tools
-          return colorTools.handleGetCurrentColors();
+          return handleGetCurrentColors();
         },
       }),
 
@@ -239,8 +248,8 @@ export async function POST(req: Request) {
           const { color } = params;
           console.log("Getting color info for:", color);
 
-          // Use the imported function from color-tools
-          return colorTools.handleGetColorInfo(params);
+          // Use the imported function from color-tools and await the result
+          return await handleGetColorInfo(params);
         },
       }),
 
@@ -277,8 +286,8 @@ export async function POST(req: Request) {
             params,
           });
 
-          // Return the result from the handler
-          return colorTools.handleGenerateColorPalette(params);
+          // Return the result from the handler and await the result
+          return await handleGenerateColorPalette(params);
         },
       }),
     };

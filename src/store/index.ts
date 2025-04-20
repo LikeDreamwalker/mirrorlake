@@ -13,39 +13,7 @@ import {
   hslToHex,
   hslToRgb,
 } from "@/lib/color-tools";
-
-// Helper function to generate a color name based on HSL values
-export function generateColorName(h: number, s: number, l: number): string {
-  // Determine hue name
-  let hueName = "";
-  if ((h >= 0 && h < 15) || (h >= 345 && h <= 360)) hueName = "Red";
-  else if (h >= 15 && h < 45) hueName = "Orange";
-  else if (h >= 45 && h < 75) hueName = "Yellow";
-  else if (h >= 75 && h < 105) hueName = "Yellow-Green";
-  else if (h >= 105 && h < 135) hueName = "Green";
-  else if (h >= 135 && h < 165) hueName = "Mint";
-  else if (h >= 165 && h < 195) hueName = "Cyan";
-  else if (h >= 195 && h < 225) hueName = "Sky Blue";
-  else if (h >= 225 && h < 255) hueName = "Blue";
-  else if (h >= 255 && h < 285) hueName = "Purple";
-  else if (h >= 285 && h < 315) hueName = "Magenta";
-  else if (h >= 315 && h < 345) hueName = "Pink";
-
-  // Determine saturation modifier
-  let satModifier = "";
-  if (s < 10) satModifier = "Gray ";
-  else if (s < 30) satModifier = "Muted ";
-  else if (s > 85) satModifier = "Vibrant ";
-
-  // Determine lightness modifier
-  let lightModifier = "";
-  if (l < 20) lightModifier = "Dark ";
-  else if (l < 40) lightModifier = "Deep ";
-  else if (l > 80) lightModifier = "Pale ";
-  else if (l > 60) lightModifier = "Light ";
-
-  return `${lightModifier}${satModifier}${hueName}`;
-}
+import { colorToName } from "@/app/actions/color";
 
 export type ColorFormat = "hex" | "rgb" | "hsl";
 
@@ -123,6 +91,9 @@ interface StoreState {
   // Theme state
   colors: ColorItem[];
   recentColors: string[];
+
+  // Pending color names (for async operations)
+  pendingColorNames: Map<string, string>;
 }
 
 // Add a new interface for the combined update method parameters
@@ -157,7 +128,7 @@ interface StoreActions {
   updateColorValues: (params: ColorUpdateParams) => void;
 
   // Theme actions
-  addColor: (color: string, name?: string, info?: string) => void;
+  addColor: (color: string, name?: string, info?: string) => Promise<void>;
   removeColor: (colorId: string) => void;
   updateColor: (
     colorId: string,
@@ -165,7 +136,11 @@ interface StoreActions {
   ) => void;
   toggleFavorite: (colorId: string) => void;
   getColorById: (colorId: string) => ColorItem | null;
-  getColorName: () => string;
+  getColorName: (color: string) => Promise<string>;
+
+  // New async color name methods
+  fetchAndUpdateColorName: (color: string, id: string) => Promise<void>;
+  fetchColorName: (color: string) => Promise<string>;
 
   // New theme management actions
   addColorsToTheme: (params: {
@@ -188,7 +163,12 @@ interface StoreActions {
       | "tetradic"
       | "monochromatic";
     count?: number;
-  }) => void;
+  }) => Promise<{
+    success: boolean;
+    baseColor: string;
+    paletteType: string;
+    palette: Array<{ color: string; name: string }>;
+  }>;
 }
 
 // Add this to the store implementation
@@ -209,6 +189,9 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   // Initial theme state
   colors: [createColorItem(defaultColor, "Blue", "Default blue color")],
   recentColors: [defaultColor],
+
+  // For managing async color name operations
+  pendingColorNames: new Map(),
 
   // Color picker actions
   setBaseColor: (color: string) => {
@@ -431,15 +414,43 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     }
   },
 
+  // New method to fetch and update a color name
+  fetchAndUpdateColorName: async (color: string, id: string) => {
+    try {
+      const name = await colorToName(color);
+      if (name) {
+        // Update the color with the new name
+        get().updateColor(id, { name });
+      }
+    } catch (error) {
+      console.error("Error fetching color name:", error);
+    }
+  },
+
+  // New method to fetch a color name
+  fetchColorName: async (color: string): Promise<string> => {
+    try {
+      return await colorToName(color);
+    } catch (error) {
+      console.error("Error fetching color name:", error);
+      return "";
+    }
+  },
+
   // Theme actions
-  addColor: (color: string, name = "", info = "") => {
-    // If no name is provided, generate one based on HSL values
-    if (!name) {
-      const { hue, saturation, lightness } = get();
-      name = generateColorName(hue, saturation, lightness);
+  addColor: async (color: string, name = "", info = "") => {
+    // If no name is provided, get one from the server action
+    let colorName = name;
+    if (!colorName) {
+      try {
+        colorName = await colorToName(color);
+      } catch (error) {
+        console.error("Error getting color name:", error);
+        colorName = `Color ${color.toUpperCase()}`;
+      }
     }
 
-    const newColor = createColorItem(color, name, info);
+    const newColor = createColorItem(color, colorName, info);
 
     // Check if this color already exists to avoid duplicates
     const existingColorIndex = get().colors.findIndex(
@@ -495,9 +506,19 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     return get().colors.find((c) => c.id === colorId) || null;
   },
 
-  getColorName: () => {
-    const { hue, saturation, lightness } = get();
-    return generateColorName(hue, saturation, lightness);
+  // getColorName: () => {
+  //   const { hue, saturation, lightness } = get();
+  //   return generateColorName(hue, saturation, lightness);
+
+  getColorName: async (color: string) => {
+    try {
+      const { hue, saturation, lightness } = get();
+      const finalColor = color || hslToHex(hue, saturation, lightness);
+      return await colorToName(finalColor);
+    } catch (error) {
+      console.error("Error getting color name:", error);
+      return "";
+    }
   },
 
   // New theme management actions moved from chat provider
@@ -647,7 +668,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     };
   },
 
-  generateColorPalette: (params) => {
+  generateColorPalette: async (params) => {
     const { baseColor, paletteType, count = 5 } = params;
     console.log(`Generating ${paletteType} palette based on ${baseColor}`);
     const store = get();
@@ -665,8 +686,9 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           const newHue = (hsl.h + i * 30 + 360) % 360;
           const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
           const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
-          const name = generateColorName(newHue, hsl.s, hsl.l);
-          colors.push({ color: newHex, name });
+          // Use the server action to get a better color name
+          const name = await colorToName(newHex);
+          colors.push({ color: newHex, name: name || `Color ${newHex}` });
         }
         palette = colors;
         break;
@@ -680,8 +702,14 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           complementaryRgb.g,
           complementaryRgb.b
         );
-        const name = generateColorName(complementaryHue, hsl.s, hsl.l);
-        palette = [{ color: complementaryHex, name }];
+        // Use the server action to get a better color name
+        const name = await colorToName(complementaryHex);
+        palette = [
+          {
+            color: complementaryHex,
+            name: name || `Color ${complementaryHex}`,
+          },
+        ];
         break;
       }
       case "triadic": {
@@ -691,8 +719,9 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           const newHue = (hsl.h + i * 120) % 360;
           const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
           const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
-          const name = generateColorName(newHue, hsl.s, hsl.l);
-          colors.push({ color: newHex, name });
+          // Use the server action to get a better color name
+          const name = await colorToName(newHex);
+          colors.push({ color: newHex, name: name || `Color ${newHex}` });
         }
         palette = colors;
         break;
@@ -704,8 +733,9 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           const newHue = (hsl.h + i * 90) % 360;
           const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
           const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
-          const name = generateColorName(newHue, hsl.s, hsl.l);
-          colors.push({ color: newHex, name });
+          // Use the server action to get a better color name
+          const name = await colorToName(newHex);
+          colors.push({ color: newHex, name: name || `Color ${newHex}` });
         }
         palette = colors;
         break;
@@ -721,8 +751,9 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           );
           const newRgb = hslToRgb(hsl.h, hsl.s, newLightness);
           const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
-          const name = generateColorName(hsl.h, hsl.s, newLightness);
-          colors.push({ color: newHex, name });
+          // Use the server action to get a better color name
+          const name = await colorToName(newHex);
+          colors.push({ color: newHex, name: name || `Color ${newHex}` });
         }
         palette = colors;
         break;
@@ -730,16 +761,20 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     }
 
     // Add the base color to the palette
-    const baseName = generateColorName(hsl.h, hsl.s, hsl.l);
-    palette.unshift({ color: baseColor, name: baseName });
+    // Use the server action to get a better name for the base color
+    const baseName = await colorToName(baseColor);
+    palette.unshift({
+      color: baseColor,
+      name: baseName || `Color ${baseColor}`,
+    });
 
     // Limit to requested count
     palette = palette.slice(0, count);
 
     // Add the generated palette to the theme
-    palette.forEach((colorItem) => {
-      store.addColor(colorItem.color, colorItem.name);
-    });
+    for (const colorItem of palette) {
+      await store.addColor(colorItem.color, colorItem.name);
+    }
 
     // Show a toast notification if available
     if (typeof toast !== "undefined") {
@@ -779,8 +814,10 @@ export function useColorThemeSwitcher(initialColor = "#0066FF") {
   return null;
 }
 
-// Export additional color harmony functions
-export function calculateComplementary(hexColor: string): string {
+// Export additional color harmony functions - now async
+export async function calculateComplementary(
+  hexColor: string
+): Promise<string> {
   const rgb = hexToRgb(hexColor);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
@@ -792,10 +829,10 @@ export function calculateComplementary(hexColor: string): string {
   return rgbToHex(complementaryRgb.r, complementaryRgb.g, complementaryRgb.b);
 }
 
-export function calculateAnalogous(
+export async function calculateAnalogous(
   hexColor: string,
   hsl?: { h: number; s: number; l: number }
-): string[] {
+): Promise<string[]> {
   // If HSL is not provided, calculate it from the hex color
   if (!hsl) {
     const rgb = hexToRgb(hexColor);
@@ -813,8 +850,8 @@ export function calculateAnalogous(
   return [rgbToHex(rgb1.r, rgb1.g, rgb1.b), rgbToHex(rgb2.r, rgb2.g, rgb2.b)];
 }
 
-// Export additional color scheme functions
-export function calculateTriadic(hexColor: string): string[] {
+// Export additional color scheme functions - now async
+export async function calculateTriadic(hexColor: string): Promise<string[]> {
   const rgb = hexToRgb(hexColor);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
@@ -828,7 +865,7 @@ export function calculateTriadic(hexColor: string): string[] {
   return [rgbToHex(rgb1.r, rgb1.g, rgb1.b), rgbToHex(rgb2.r, rgb2.g, rgb2.b)];
 }
 
-export function calculateTetradic(hexColor: string): string[] {
+export async function calculateTetradic(hexColor: string): Promise<string[]> {
   const rgb = hexToRgb(hexColor);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 

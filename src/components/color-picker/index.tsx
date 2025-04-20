@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { Copy, AlertCircle, RefreshCw, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useStore } from "@/store";
 import { debounce } from "@/lib/utils";
+import { colorToName } from "@/app/actions/color";
 
 // Debounce timeout in milliseconds
 const DEBOUNCE_TIMEOUT = 50;
@@ -25,11 +26,6 @@ export default function ColorPicker() {
     lightness,
     alpha,
     rgb,
-    format,
-    setHue,
-    setSaturation,
-    setLightness,
-    setAlpha,
     getFullColor,
     generateRandomColor,
     setColorFromHex,
@@ -40,6 +36,7 @@ export default function ColorPicker() {
     getColorName,
     colors,
     removeColor,
+    addColor,
   } = useStore();
 
   // For immediate UI feedback, we'll use local state
@@ -77,6 +74,8 @@ export default function ColorPicker() {
   const [hError, setHError] = useState("");
   const [sError, setSError] = useState("");
   const [lError, setLError] = useState("");
+
+  const [colorName, setColorName] = useState("");
 
   // Update local state when color changes from outside
   useEffect(() => {
@@ -651,8 +650,13 @@ export default function ColorPicker() {
     );
   };
 
-  // Get the color name
-  const colorName = getColorName();
+  useEffect(() => {
+    const fetchColorName = async () => {
+      const name = await colorToName(currentColor);
+      setColorName(name);
+    };
+    fetchColorName();
+  }, [currentColor]);
 
   // Find if this color exists in the current theme
   const currentColorInTheme = colors.find(
@@ -675,7 +679,8 @@ export default function ColorPicker() {
     // Only add if it doesn't already exist in the theme
     if (!currentColorInTheme) {
       // Use the store's addColor function
-      useStore.getState().addColor(baseColor, colorName);
+      // useStore.getState().addColor(baseColor, colorName);
+      addColor(baseColor, colorName);
       toast("Color added", {
         description: `${baseColor} has been added to your theme`,
         duration: 2000,
