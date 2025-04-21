@@ -9,6 +9,28 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          "Oxygen",
+          "Cantarell",
+          "Fira Sans",
+          "Liberation Sans",
+          "PingFang SC",
+          "HarmonyOS Sans SC",
+          "MiSans",
+          "Hiragino Sans GB",
+          "WenQuanYi Micro Hei",
+          "NotoSansSC",
+          "Microsoft YaHei",
+          "Helvetica Neue",
+          "Helvetica",
+          "Arial",
+          "sans-serif",
+          "Apple Color Emoji",
+          "Segoe UI Emoji",
+          "Segoe UI Symbol",
+        ],
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
