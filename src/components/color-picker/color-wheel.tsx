@@ -184,6 +184,11 @@ export function ColorWheel() {
         className="rounded-xl w-full aspect-square flex items-center justify-center p-4 relative"
         style={{
           backgroundColor: currentColor,
+          transitionBehavior: "background-color",
+          transitionDuration: "0.3s",
+          transitionProperty: "background-color",
+          willChange: "background-color",
+          transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
         <div
@@ -226,6 +231,11 @@ export function ColorWheel() {
               left: `${markerPosition.x}%`,
               top: `${markerPosition.y}%`,
               backgroundColor: color,
+              transitionBehavior: "background-color",
+              transitionDuration: "0.3s",
+              transitionProperty: "background-color",
+              willChange: "background-color",
+              transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           ></div>
         </div>

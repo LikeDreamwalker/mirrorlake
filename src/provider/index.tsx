@@ -21,9 +21,14 @@ export function ColorProvider({
   // Return the wrapper div with the background color
   return (
     <div
-      className="size-full transition-all duration-500"
+      className="size-full"
       style={{
         backgroundColor: currentColor,
+        transitionBehavior: "background-color",
+        transitionDuration: "0.3s",
+        transitionProperty: "background-color",
+        willChange: "background-color",
+        transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
       {children}
