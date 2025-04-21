@@ -1,48 +1,28 @@
 import { deepseek } from "@ai-sdk/deepseek";
-import { streamText, tool, StreamData } from "ai";
+import { streamText, tool, createDataStreamResponse } from "ai";
 import { colorExpertSystemPrompt } from "@/lib/prompt";
 import { z } from "zod";
-import {
-  handleAddColorsToTheme,
-  handleUpdateTheme,
-  handleResetTheme,
-  handleRemoveColorsFromTheme,
-  handleMarkColorAsFavorite,
-  handleGetCurrentColors,
-  handleGetColorInfo,
-  handleGenerateColorPalette,
-} from "@/lib/color-tools";
+import { CoreMessage } from "ai";
 
 // Define a type for client actions
-interface ClientAction {
+interface ClientAction<T = any> {
   type: "client-action";
   action: string;
-  params: any;
+  params: T;
 }
 
 export async function POST(req: Request) {
   try {
-    console.log("Chat API route called");
-
     const { messages: originalMessages } = await req.json();
-    console.log(
-      "Received messages:",
-      JSON.stringify(originalMessages).slice(0, 200) + "..."
-    );
 
     // Check API key
     if (!process.env.DEEPSEEK_API_KEY) {
       throw new Error("DEEPSEEK_API_KEY is not set");
     }
 
-    console.log(
-      "Using DeepSeek API key:",
-      process.env.DEEPSEEK_API_KEY.substring(0, 5) + "..."
-    );
-
     // Process messages to ensure they alternate between user and assistant
     const messages = [...originalMessages];
-    const processedMessages = [];
+    const processedMessages: CoreMessage[] = [];
 
     // Ensure the first message is from the user
     if (messages.length === 0 || messages[0].role !== "user") {
@@ -69,267 +49,245 @@ export async function POST(req: Request) {
       }
     }
 
-    console.log(
-      "Processed messages:",
-      JSON.stringify(processedMessages).slice(0, 200) + "..."
-    );
+    // Use createDataStreamResponse instead of StreamData
+    return createDataStreamResponse({
+      status: 200,
+      statusText: "OK",
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+      onError: (error) => {
+        console.error("Data stream error:", error);
+        return String(error);
+      },
+      execute: async (dataStream) => {
+        // Define tools using the tool helper function from the AI SDK
+        const tools = {
+          addColorsToTheme: tool({
+            description:
+              "Add a group of related colors to the user's current theme",
+            parameters: z.object({
+              themeName: z
+                .string()
+                .describe(
+                  "A descriptive name for this color theme (e.g., 'Ocean Breeze', 'Autumn Sunset')"
+                ),
+              colors: z
+                .array(
+                  z.object({
+                    color: z
+                      .string()
+                      .describe("Color code in hex format (e.g., #3498DB)"),
+                    name: z
+                      .string()
+                      .describe(
+                        "Descriptive name for this specific color (e.g., 'Deep Sea Blue')"
+                      ),
+                  })
+                )
+                .describe("Array of colors that belong to this theme"),
+            }),
+            execute: async (params) => {
+              // Send a client action through the data stream
+              dataStream.writeData({
+                type: "client-action",
+                action: "addColorsToTheme",
+                params,
+              });
 
-    // Create a StreamData instance for custom annotations
-    const data = new StreamData();
+              // Return a status object instead of calling the handler
+              return {
+                success: true,
+                message: `Added ${params.colors.length} colors to theme "${params.themeName}"`,
+                themeUpdated: true,
+              };
+            },
+          }),
 
-    // Define tools using the tool helper function from the AI SDK
-    const tools = {
-      addColorsToTheme: tool({
-        description:
-          "Add a group of related colors to the user's current theme",
-        parameters: z.object({
-          themeName: z
-            .string()
-            .describe(
-              "A descriptive name for this color theme (e.g., 'Ocean Breeze', 'Autumn Sunset')"
-            ),
-          colors: z
-            .array(
-              z.object({
-                color: z
-                  .string()
-                  .describe("Color code in hex format (e.g., #3498DB)"),
-                name: z
-                  .string()
-                  .describe(
-                    "Descriptive name for this specific color (e.g., 'Deep Sea Blue')"
-                  ),
-              })
-            )
-            .describe("Array of colors that belong to this theme"),
-        }),
-        execute: async (params) => {
-          console.log(
-            "Tool call: addColorsToTheme",
-            JSON.stringify(params, null, 2)
-          );
+          updateTheme: tool({
+            description: "Update existing colors in the theme or add new ones",
+            parameters: z.object({
+              themeName: z
+                .string()
+                .describe("A descriptive name for this updated theme"),
+              colors: z
+                .array(
+                  z.object({
+                    color: z
+                      .string()
+                      .describe("Color code in hex format (e.g., #3498DB)"),
+                    name: z
+                      .string()
+                      .describe(
+                        "Descriptive name for this specific color (e.g., 'Deep Sea Blue')"
+                      ),
+                  })
+                )
+                .describe("Array of colors to update or add to the theme"),
+            }),
+            execute: async (params) => {
+              // Send a client action through the data stream
+              dataStream.writeData({
+                type: "client-action",
+                action: "updateTheme",
+                params,
+              });
 
-          // Send a client action through the data stream
-          data.append({
-            type: "client-action",
-            action: "addColorsToTheme",
-            params,
+              // Return a status object instead of calling the handler
+              return {
+                success: true,
+                message: `Updated theme "${params.themeName}" with ${params.colors.length} colors`,
+                themeUpdated: true,
+              };
+            },
+          }),
+
+          resetTheme: tool({
+            description: "Reset the theme by removing all colors",
+            parameters: z.object({}),
+            execute: async () => {
+              // Send a client action through the data stream
+              dataStream.writeData({
+                type: "client-action",
+                action: "resetTheme",
+                params: {},
+              });
+
+              // Return a status object instead of calling the handler
+              return {
+                success: true,
+                message: "Theme has been reset successfully",
+                themeReset: true,
+              };
+            },
+          }),
+
+          removeColorsFromTheme: tool({
+            description: "Remove specific colors from the theme by name",
+            parameters: z.object({
+              colorNames: z
+                .array(z.string())
+                .describe("Array of color names to remove from the theme"),
+            }),
+            execute: async (params) => {
+              // Send a client action through the data stream
+              dataStream.writeData({
+                type: "client-action",
+                action: "removeColorsFromTheme",
+                params,
+              });
+
+              // Return a status object instead of calling the handler
+              return {
+                success: true,
+                message: `Removed ${params.colorNames.length} colors from the theme`,
+                colorsRemoved: params.colorNames,
+              };
+            },
+          }),
+
+          markColorAsFavorite: tool({
+            description: "Mark a color as favorite by name",
+            parameters: z.object({
+              colorName: z
+                .string()
+                .describe("Name of the color to mark as favorite"),
+            }),
+            execute: async (params) => {
+              // Send a client action through the data stream
+              dataStream.writeData({
+                type: "client-action",
+                action: "markColorAsFavorite",
+                params,
+              });
+
+              // Return a status object instead of calling the handler
+              return {
+                success: true,
+                message: `Marked color "${params.colorName}" as favorite`,
+                colorMarked: params.colorName,
+              };
+            },
+          }),
+          generateColorPalette: tool({
+            description: "Generate a color palette based on a base color",
+            parameters: z.object({
+              baseColor: z
+                .string()
+                .describe("Base color in hex format (e.g., #FF5733)"),
+              paletteType: z
+                .enum([
+                  "analogous",
+                  "complementary",
+                  "triadic",
+                  "tetradic",
+                  "monochromatic",
+                ])
+                .describe("Type of color palette to generate"),
+              count: z
+                .number()
+                .optional()
+                .describe("Number of colors to generate (default: 5)"),
+            }),
+            execute: async (params) => {
+              // Send a client action through the data stream
+              dataStream.writeData({
+                type: "client-action",
+                action: "generateColorPalette",
+                params,
+              });
+
+              // Return a status object instead of calling the handler
+              return {
+                success: true,
+                message: `Generated ${params.paletteType} color palette based on ${params.baseColor}`,
+                baseColor: params.baseColor,
+                paletteType: params.paletteType,
+                count: params.count || 5,
+              };
+            },
+          }),
+        };
+
+        try {
+          const result = streamText({
+            model: deepseek("deepseek-chat"),
+            messages: processedMessages,
+            system: colorExpertSystemPrompt,
+            temperature: 0.7,
+            tools,
+            maxSteps: 5, // Allow up to 3 steps for multi-step tool calling
+            onStepFinish: ({ text, toolCalls, toolResults, finishReason }) => {
+              console.log(`Step finished with reason: ${finishReason}`);
+              if (toolCalls.length > 0) {
+                console.log(
+                  `Tool calls in this step: ${toolCalls
+                    .map((tc) => tc.toolName)
+                    .join(", ")}`
+                );
+              }
+            },
           });
 
-          // Return the result from the handler
-          return handleAddColorsToTheme(params);
-        },
-      }),
-
-      updateTheme: tool({
-        description: "Update existing colors in the theme or add new ones",
-        parameters: z.object({
-          themeName: z
-            .string()
-            .describe("A descriptive name for this updated theme"),
-          colors: z
-            .array(
-              z.object({
-                color: z
-                  .string()
-                  .describe("Color code in hex format (e.g., #3498DB)"),
-                name: z
-                  .string()
-                  .describe(
-                    "Descriptive name for this specific color (e.g., 'Deep Sea Blue')"
-                  ),
-              })
-            )
-            .describe("Array of colors to update or add to the theme"),
-        }),
-        execute: async (params) => {
-          console.log(
-            "Tool call: updateTheme",
-            JSON.stringify(params, null, 2)
-          );
-
-          // Send a client action through the data stream
-          data.append({
-            type: "client-action",
-            action: "updateTheme",
-            params,
+          // Merge the streamText result into our data stream
+          result.mergeIntoDataStream(dataStream, {
+            sendUsage: true,
+            sendReasoning: false,
+            sendSources: false,
+            experimental_sendFinish: true,
+            experimental_sendStart: true,
           });
-
-          // Return the result from the handler
-          return handleUpdateTheme(params);
-        },
-      }),
-
-      resetTheme: tool({
-        description: "Reset the theme by removing all colors",
-        parameters: z.object({}),
-        execute: async () => {
-          console.log("Tool call: resetTheme");
-
-          // Send a client action through the data stream
-          data.append({
-            type: "client-action",
-            action: "resetTheme",
-            params: {},
+        } catch (error) {
+          console.error("Error in execute function:", error);
+          dataStream.writeData({
+            type: "error",
+            error: String(error),
           });
-
-          // Return the result from the handler
-          return handleResetTheme();
-        },
-      }),
-
-      removeColorsFromTheme: tool({
-        description: "Remove specific colors from the theme by name",
-        parameters: z.object({
-          colorNames: z
-            .array(z.string())
-            .describe("Array of color names to remove from the theme"),
-        }),
-        execute: async (params) => {
-          console.log(
-            "Tool call: removeColorsFromTheme",
-            JSON.stringify(params, null, 2)
-          );
-
-          // Send a client action through the data stream
-          data.append({
-            type: "client-action",
-            action: "removeColorsFromTheme",
-            params,
-          });
-
-          // Return the result from the handler
-          return handleRemoveColorsFromTheme(params);
-        },
-      }),
-
-      markColorAsFavorite: tool({
-        description: "Mark a color as favorite by name",
-        parameters: z.object({
-          colorName: z
-            .string()
-            .describe("Name of the color to mark as favorite"),
-        }),
-        execute: async (params) => {
-          console.log(
-            "Tool call: markColorAsFavorite",
-            JSON.stringify(params, null, 2)
-          );
-
-          // Send a client action through the data stream
-          data.append({
-            type: "client-action",
-            action: "markColorAsFavorite",
-            params,
-          });
-
-          // Return the result from the handler
-          return handleMarkColorAsFavorite(params);
-        },
-      }),
-
-      getCurrentColors: tool({
-        description: "Get the user's current colors",
-        parameters: z.object({}),
-        execute: async () => {
-          console.log("Tool call: getCurrentColors");
-
-          // Use the imported function from color-tools
-          return handleGetCurrentColors();
-        },
-      }),
-
-      getColorInfo: tool({
-        description: "Get technical information about a specific color",
-        parameters: z.object({
-          color: z.string().describe("Color in hex format (e.g., #FF5733)"),
-        }),
-        execute: async (params) => {
-          const { color } = params;
-          console.log("Getting color info for:", color);
-
-          // Use the imported function from color-tools and await the result
-          return await handleGetColorInfo(params);
-        },
-      }),
-
-      generateColorPalette: tool({
-        description: "Generate a color palette based on a base color",
-        parameters: z.object({
-          baseColor: z
-            .string()
-            .describe("Base color in hex format (e.g., #FF5733)"),
-          paletteType: z
-            .enum([
-              "analogous",
-              "complementary",
-              "triadic",
-              "tetradic",
-              "monochromatic",
-            ])
-            .describe("Type of color palette to generate"),
-          count: z
-            .number()
-            .optional()
-            .describe("Number of colors to generate (default: 5)"),
-        }),
-        execute: async (params) => {
-          console.log(
-            "Tool call: generateColorPalette",
-            JSON.stringify(params, null, 2)
-          );
-
-          // Send a client action through the data stream
-          data.append({
-            type: "client-action",
-            action: "generateColorPalette",
-            params,
-          });
-
-          // Return the result from the handler and await the result
-          return await handleGenerateColorPalette(params);
-        },
-      }),
-    };
-
-    try {
-      const result = streamText({
-        model: deepseek("deepseek-chat"),
-        messages: processedMessages,
-        system: colorExpertSystemPrompt,
-        temperature: 0.7,
-        tools,
-        maxSteps: 3, // Allow up to 3 steps for multi-step tool calling
-        onStepFinish: ({ text, toolCalls, toolResults, finishReason }) => {
-          console.log(`Step finished with reason: ${finishReason}`);
-          if (toolCalls.length > 0) {
-            console.log(
-              `Tool calls in this step: ${toolCalls
-                .map((tc) => tc.toolName)
-                .join(", ")}`
-            );
-          }
-        },
-        onFinish: () => {
-          // Close the stream data when the response is complete
-          data.close();
-        },
-      });
-
-      console.log("Stream created successfully");
-
-      return result.toDataStreamResponse({
-        data,
-        getErrorMessage: (error) => {
-          console.error("DeepSeek error:", error);
-          return String(error);
-        },
-      });
-    } catch (deepseekError) {
-      console.error("DeepSeek API error:", deepseekError);
-      data.close();
-      throw deepseekError;
-    }
+        }
+      },
+    });
   } catch (error) {
     console.error("Error in chat API route:", error);
     return new Response(JSON.stringify({ error: String(error) }), {
