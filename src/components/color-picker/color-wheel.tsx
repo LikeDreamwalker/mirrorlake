@@ -3,10 +3,6 @@
 import type React from "react";
 import { useRef, useCallback, useEffect, useMemo } from "react";
 import { useColorPicker } from "./context";
-import { debounce } from "@/lib/utils";
-
-// Debounce timeout in milliseconds
-const DEBOUNCE_TIMEOUT = 50;
 
 export function ColorWheel() {
   const {
@@ -27,23 +23,7 @@ export function ColorWheel() {
   const wheelRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  // Create debounced update function
-  const debouncedUpdateColor = useCallback(
-    debounce(
-      (updates: {
-        hue?: number;
-        saturation?: number;
-        lightness?: number;
-        alpha?: number;
-      }) => {
-        updateColorValues(updates);
-      },
-      DEBOUNCE_TIMEOUT
-    ),
-    [updateColorValues]
-  );
-
-  // Update the wheel position function to update color immediately for better responsiveness
+  // Update the wheel position function to update local state only, not the actual color
   const updateWheelPosition = useCallback(
     (clientX: number, clientY: number) => {
       if (!wheelRef.current) return;
@@ -79,16 +59,10 @@ export function ColorWheel() {
         setLocalHue(newHue);
         setLocalSaturation(newSaturation);
 
-        // Update the color while dragging for immediate feedback
-        if (isDragging) {
-          debouncedUpdateColor({
-            hue: newHue,
-            saturation: newSaturation,
-          });
-        }
+        // Removed the debounced update during dragging
       });
     },
-    [isDragging, debouncedUpdateColor, setLocalHue, setLocalSaturation]
+    [setLocalHue, setLocalSaturation]
   );
 
   // Handle mouse down event
@@ -109,20 +83,34 @@ export function ColorWheel() {
     }
   };
 
-  // Common end handler for both mouse and touch
-  const handleEnd = useCallback(() => {
-    setIsDragging(false);
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
+  // Handle click on the wheel (for single click color selection)
+  const handleWheelClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    updateWheelPosition(e.clientX, e.clientY);
 
-    // Ensure the final position is applied
+    // Update the actual color on click
     updateColorValues({
       hue: localHue,
       saturation: localSaturation,
     });
-  }, [localHue, localSaturation, updateColorValues, setIsDragging]);
+  };
+
+  // Common end handler for both mouse and touch
+  const handleEnd = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+
+      // Only update the actual color when dragging ends
+      updateColorValues({
+        hue: localHue,
+        saturation: localSaturation,
+      });
+    }
+  }, [localHue, localSaturation, updateColorValues, setIsDragging, isDragging]);
 
   // Handle mouse/touch move and end events
   useEffect(() => {
@@ -207,6 +195,7 @@ export function ColorWheel() {
             )`,
           }}
           onMouseDown={handleWheelMouseDown}
+          onClick={handleWheelClick}
           onTouchStart={handleWheelTouchStart}
           aria-label="Color wheel selector"
           role="slider"
@@ -230,7 +219,9 @@ export function ColorWheel() {
             style={{
               left: `${markerPosition.x}%`,
               top: `${markerPosition.y}%`,
-              backgroundColor: color,
+              backgroundColor: isDragging
+                ? `hsl(${localHue}, ${localSaturation}%, 50%)`
+                : color,
               transitionBehavior: "background-color",
               transitionDuration: "0.3s",
               transitionProperty: "background-color",
