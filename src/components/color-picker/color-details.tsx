@@ -1,6 +1,7 @@
 "use client";
 
 import type React from "react";
+import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,13 +22,8 @@ export function ColorDetails() {
   } = useColorPicker();
 
   const {
-    baseColor,
+    currentColorInfo,
     currentColor,
-    rgb,
-    hue,
-    saturation,
-    lightness,
-    alpha,
     getFullColor,
     setColorFromHex,
     generateRandomColor,
@@ -35,6 +31,12 @@ export function ColorDetails() {
     removeColor,
     addColor,
   } = storeValues;
+
+  // Memoize values from currentColorInfo to avoid unnecessary re-renders
+  const color = useMemo(() => currentColorInfo.color, [currentColorInfo.color]);
+  const rgb = useMemo(() => currentColorInfo.rgb, [currentColorInfo.rgb]);
+  const hsl = useMemo(() => currentColorInfo.hsl, [currentColorInfo.hsl]);
+  const alpha = useMemo(() => currentColorInfo.alpha, [currentColorInfo.alpha]);
 
   // Handle hex input change
   const handleHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,7 +102,7 @@ export function ColorDetails() {
 
   // Find if this color exists in the current theme
   const currentColorInTheme = colors.find(
-    (c) => c.color.toLowerCase() === baseColor.toLowerCase()
+    (c) => c.color.toLowerCase() === color.toLowerCase()
   );
 
   // Handle removing the current color from the theme
@@ -108,7 +110,7 @@ export function ColorDetails() {
     if (currentColorInTheme) {
       removeColor(currentColorInTheme.id);
       toast("Color removed", {
-        description: `${baseColor} has been removed from your theme`,
+        description: `${color} has been removed from your theme`,
         duration: 2000,
       });
     }
@@ -118,9 +120,9 @@ export function ColorDetails() {
   const handleAddToTheme = () => {
     // Only add if it doesn't already exist in the theme
     if (!currentColorInTheme) {
-      addColor(baseColor, colorName);
+      addColor(color, colorName);
       toast("Color added", {
-        description: `${baseColor} has been added to your theme`,
+        description: `${color} has been added to your theme`,
         duration: 2000,
       });
     }
@@ -170,7 +172,7 @@ export function ColorDetails() {
             </div>
           </div>
           <Badge variant="outline" className="mt-1">
-            {baseColor}
+            {color}
           </Badge>
         </div>
       </div>
@@ -213,8 +215,8 @@ export function ColorDetails() {
         {/* Color format values for copying */}
         <DetailItem
           label="HEX"
-          value={baseColor}
-          onClick={() => copyToClipboard(baseColor)}
+          value={color}
+          onClick={() => copyToClipboard(color)}
         />
         <DetailItem
           label="RGB"
@@ -223,10 +225,8 @@ export function ColorDetails() {
         />
         <DetailItem
           label="HSL"
-          value={`hsl(${hue}, ${saturation}%, ${lightness}%)`}
-          onClick={() =>
-            copyToClipboard(`hsl(${hue}, ${saturation}%, ${lightness}%)`)
-          }
+          value={`hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`}
+          onClick={() => copyToClipboard(`hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`)}
         />
         <DetailItem
           label="RGBA"

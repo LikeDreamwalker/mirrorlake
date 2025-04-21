@@ -1,8 +1,7 @@
 "use client";
 
 import type React from "react";
-
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useMemo } from "react";
 import { useColorPicker } from "./context";
 import { debounce } from "@/lib/utils";
 
@@ -20,7 +19,10 @@ export function ColorWheel() {
     storeValues,
   } = useColorPicker();
 
-  const { baseColor, currentColor, updateColorValues } = storeValues;
+  const { currentColorInfo, currentColor, updateColorValues } = storeValues;
+
+  // Memoize the color value to avoid unnecessary re-renders
+  const color = useMemo(() => currentColorInfo.color, [currentColorInfo.color]);
 
   const wheelRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -223,7 +225,7 @@ export function ColorWheel() {
             style={{
               left: `${markerPosition.x}%`,
               top: `${markerPosition.y}%`,
-              backgroundColor: baseColor,
+              backgroundColor: color,
             }}
           ></div>
         </div>

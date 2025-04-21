@@ -1,8 +1,7 @@
 "use client";
 
 import type React from "react";
-
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -47,14 +46,15 @@ export function ColorSliders() {
   } = useColorPicker();
 
   const {
-    rgb,
-    hue,
-    saturation,
-    lightness,
+    currentColorInfo,
     updateColorValues,
     setColorFromRgb,
     setColorFromHsl,
   } = storeValues;
+
+  // Memoize values from currentColorInfo to avoid unnecessary re-renders
+  const rgb = useMemo(() => currentColorInfo.rgb, [currentColorInfo.rgb]);
+  const hsl = useMemo(() => currentColorInfo.hsl, [currentColorInfo.hsl]);
 
   // Create debounced update function
   const debouncedUpdateColor = useCallback(
@@ -274,15 +274,15 @@ export function ColorSliders() {
     // Handle empty input
     if (value === "") {
       if (component === "h") {
-        setHValue(hue.toString());
+        setHValue(hsl.h.toString());
         setHError("");
       }
       if (component === "s") {
-        setSValue(saturation.toString());
+        setSValue(hsl.s.toString());
         setSError("");
       }
       if (component === "l") {
-        setLValue(lightness.toString());
+        setLValue(hsl.l.toString());
         setLError("");
       }
       return;
@@ -298,15 +298,15 @@ export function ColorSliders() {
         (numValue < 0 || numValue > 100))
     ) {
       if (component === "h") {
-        setHValue(hue.toString());
+        setHValue(hsl.h.toString());
         setHError("");
       }
       if (component === "s") {
-        setSValue(saturation.toString());
+        setSValue(hsl.s.toString());
         setSError("");
       }
       if (component === "l") {
-        setLValue(lightness.toString());
+        setLValue(hsl.l.toString());
         setLError("");
       }
     } else {

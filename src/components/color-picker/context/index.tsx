@@ -3,16 +3,12 @@
 import type React from "react";
 import { createContext, useContext, useState, useEffect } from "react";
 import { useStore } from "@/store";
+import type { ColorItem } from "@/store";
 
 // Define the store type based on what's returned from useStore
 type StoreValues = {
-  baseColor: string;
+  currentColorInfo: ColorItem;
   currentColor: string;
-  hue: number;
-  saturation: number;
-  lightness: number;
-  alpha: number;
-  rgb: { r: number; g: number; b: number };
   getFullColor: () => string;
   generateRandomColor: () => void;
   setColorFromHex: (hex: string) => void;
@@ -23,11 +19,13 @@ type StoreValues = {
     saturation?: number;
     lightness?: number;
     alpha?: number;
+    baseColor?: string;
   }) => void;
-  getColorName: (color: string) => Promise<string>;
-  colors: Array<{ id: string; color: string; name: string }>;
+  getColorName: (params: { color?: string }) => Promise<string>;
+  colors: ColorItem[];
   removeColor: (id: string) => void;
-  addColor: (color: string, name: string) => void;
+  addColor: (color: string, name: string, info?: string) => Promise<void>;
+  setCurrentColorFromItem: (colorItem: ColorItem) => void;
 };
 
 // Update the ColorPickerContextType to use the StoreValues type
@@ -98,12 +96,13 @@ export function ColorPickerProvider({
   children: React.ReactNode;
 }) {
   const storeValues = useStore();
-  const { hue, saturation, lightness, alpha, rgb, getFullColor } = storeValues;
+  const { currentColorInfo, getFullColor } = storeValues;
+  const { hsl, rgb, alpha } = currentColorInfo;
 
   // Local state for immediate UI feedback
-  const [localHue, setLocalHue] = useState(hue);
-  const [localSaturation, setLocalSaturation] = useState(saturation);
-  const [localLightness, setLocalLightness] = useState(lightness);
+  const [localHue, setLocalHue] = useState(hsl.h);
+  const [localSaturation, setLocalSaturation] = useState(hsl.s);
+  const [localLightness, setLocalLightness] = useState(hsl.l);
   const [localAlpha, setLocalAlpha] = useState(alpha);
 
   // Input values
@@ -111,9 +110,9 @@ export function ColorPickerProvider({
   const [rValue, setRValue] = useState(rgb.r.toString());
   const [gValue, setGValue] = useState(rgb.g.toString());
   const [bValue, setBValue] = useState(rgb.b.toString());
-  const [hValue, setHValue] = useState(hue.toString());
-  const [sValue, setSValue] = useState(saturation.toString());
-  const [lValue, setLValue] = useState(lightness.toString());
+  const [hValue, setHValue] = useState(hsl.h.toString());
+  const [sValue, setSValue] = useState(hsl.s.toString());
+  const [lValue, setLValue] = useState(hsl.l.toString());
 
   // Error states
   const [hexError, setHexError] = useState("");
@@ -125,18 +124,18 @@ export function ColorPickerProvider({
   const [lError, setLError] = useState("");
 
   // Color name
-  const [colorName, setColorName] = useState("");
+  const [colorName, setColorName] = useState(currentColorInfo.name || "");
 
   // Wheel interaction state
   const [isDragging, setIsDragging] = useState(false);
 
   // Update local state when store values change
   useEffect(() => {
-    setLocalHue(hue);
-    setLocalSaturation(saturation);
-    setLocalLightness(lightness);
+    setLocalHue(hsl.h);
+    setLocalSaturation(hsl.s);
+    setLocalLightness(hsl.l);
     setLocalAlpha(alpha);
-  }, [hue, saturation, lightness, alpha]);
+  }, [hsl.h, hsl.s, hsl.l, alpha]);
 
   // Update input values when color changes from outside
   useEffect(() => {
@@ -144,9 +143,12 @@ export function ColorPickerProvider({
     setRValue(rgb.r.toString());
     setGValue(rgb.g.toString());
     setBValue(rgb.b.toString());
-    setHValue(hue.toString());
-    setSValue(saturation.toString());
-    setLValue(lightness.toString());
+    setHValue(hsl.h.toString());
+    setSValue(hsl.s.toString());
+    setLValue(hsl.l.toString());
+
+    // Update color name
+    setColorName(currentColorInfo.name || "");
 
     // Clear all errors when color changes
     setHexError("");
@@ -156,7 +158,16 @@ export function ColorPickerProvider({
     setHError("");
     setSError("");
     setLError("");
-  }, [getFullColor, rgb.r, rgb.g, rgb.b, hue, saturation, lightness]);
+  }, [
+    getFullColor,
+    rgb.r,
+    rgb.g,
+    rgb.b,
+    hsl.h,
+    hsl.s,
+    hsl.l,
+    currentColorInfo.name,
+  ]);
 
   const contextValue: ColorPickerContextType = {
     localHue,

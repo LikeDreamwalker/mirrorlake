@@ -15,42 +15,66 @@ import {
 } from "@/lib/color-tools";
 import { colorToName } from "@/app/actions/color";
 
+/**
+ * Supported color format types
+ */
 export type ColorFormat = "hex" | "rgb" | "hsl";
 
-// Define the color item type for the theme
+/**
+ * Color item interface representing a color in the theme
+ */
 export interface ColorItem {
+  /** Unique identifier for the color */
   id: string;
+  /** Human-readable name of the color */
   name: string;
+  /** Additional information about the color */
   info?: string;
-  color: string; // HEX
+  /** HEX representation of the color */
+  color: string;
+  /** RGB representation of the color */
   rgb: {
     r: number;
     g: number;
     b: number;
   };
+  /** HSL representation of the color */
   hsl: {
     h: number;
     s: number;
     l: number;
   };
+  /** Alpha/opacity value (0-1) */
   alpha: number;
+  /** When the color was created */
   createdAt: Date;
+  /** Whether the color is marked as favorite */
   favorite?: boolean;
 }
 
-// Generate a unique ID
+/**
+ * Generates a unique ID for color items
+ */
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
-// Create a function to generate a color item from a hex color
+/**
+ * Creates a new color item from a hex color
+ *
+ * @param color - HEX color string
+ * @param name - Optional name for the color
+ * @param info - Optional additional information
+ * @returns A complete ColorItem object
+ */
 const createColorItem = (color: string, name = "", info = ""): ColorItem => {
-  const rgb = hexToRgb(color);
+  const normalizedColor = color.toUpperCase();
+  const rgb = hexToRgb(normalizedColor);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
   return {
     id: generateId(),
-    name: name || `Color ${color.toUpperCase()}`,
+    name: name || `Color ${normalizedColor}`,
     info,
-    color: color.toUpperCase(),
+    color: normalizedColor,
     rgb: {
       r: rgb.r,
       g: rgb.g,
@@ -67,93 +91,153 @@ const createColorItem = (color: string, name = "", info = ""): ColorItem => {
   };
 };
 
-// Calculate the correct values for #0066FF
+// Default color values
 const defaultColor = "#0066FF";
 const defaultRgb = hexToRgb(defaultColor);
 const defaultHsl = rgbToHsl(defaultRgb.r, defaultRgb.g, defaultRgb.b);
 const defaultIsDark = isColorDark(defaultColor);
+const defaultColorItem = createColorItem(
+  defaultColor,
+  "Blue",
+  "Default blue color"
+);
 
-// Define the store state
+/**
+ * Main store state interface
+ */
 interface StoreState {
   // Color picker state
-  baseColor: string;
+  /** Current color information as a ColorItem */
+  currentColorInfo: ColorItem;
+  /** Current color in HEX format (derived from currentColorInfo) */
   currentColor: string;
-  hue: number;
-  saturation: number;
-  lightness: number;
-  alpha: number;
-  rgb: { r: number; g: number; b: number };
+  /** Format to display the color */
   format: ColorFormat;
+  /** Whether the current color is considered dark */
   isDark: boolean;
+  /** Flag indicating HSL values have changed */
   hslChanged: boolean;
+  /** Whether to automatically switch theme based on color */
   autoSwitchTheme: boolean;
 
   // Theme state
+  /** Collection of saved colors */
   colors: ColorItem[];
+  /** Recently used colors */
   recentColors: string[];
-
-  // Pending color names (for async operations)
-  pendingColorNames: Map<string, string>;
 }
 
-// Add a new interface for the combined update method parameters
+/**
+ * Parameters for updating color values
+ */
 interface ColorUpdateParams {
+  /** New hue value */
   hue?: number;
+  /** New saturation value */
   saturation?: number;
+  /** New lightness value */
   lightness?: number;
+  /** New alpha value */
   alpha?: number;
+  /** New base color in HEX */
   baseColor?: string;
 }
 
-// Add this to the StoreActions interface
+/**
+ * Parameters for color conversion
+ */
+interface ColorConversionParams {
+  /** HEX color to convert */
+  hex?: string;
+  /** RGB color to convert */
+  rgb?: { r: number; g: number; b: number };
+  /** HSL color to convert */
+  hsl?: { h: number; s: number; l: number };
+}
+
+/**
+ * Store actions interface
+ */
 interface StoreActions {
   // Color picker actions
+  /** Sets the base color from a HEX string */
   setBaseColor: (color: string) => void;
+  /** Sets the hue component (0-360) */
   setHue: (hue: number) => void;
+  /** Sets the saturation component (0-100) */
   setSaturation: (saturation: number) => void;
+  /** Sets the lightness component (0-100) */
   setLightness: (lightness: number) => void;
+  /** Sets the alpha/opacity (0-1) */
   setAlpha: (alpha: number) => void;
+  /** Sets the display format */
   setFormat: (format: ColorFormat) => void;
+  /** Sets whether to auto-switch theme based on color */
   setAutoSwitchTheme: (autoSwitch: boolean) => void;
+  /** Gets the full color with alpha in HEX */
   getFullColor: () => string;
+  /** Gets the color string in the current format */
   getColorString: () => string;
+  /** Gets the background color with alpha support */
   getBackgroundColor: () => string;
+  /** Generates a random color */
   generateRandomColor: () => void;
+  /** Sets the color from a HEX string */
   setColorFromHex: (hex: string) => void;
+  /** Sets the color from RGB values */
   setColorFromRgb: (r: number, g: number, b: number) => void;
+  /** Sets the color from HSL values */
   setColorFromHsl: (h: number, s: number, l: number) => void;
+  /** Updates the current color based on state */
   updateCurrentColor: () => void;
-
-  // Add this new method
+  /** Converts between color formats */
+  convertColor: (params: ColorConversionParams) => {
+    hex: string;
+    rgb: { r: number; g: number; b: number };
+    hsl: { h: number; s: number; l: number };
+  } | null;
+  /** Updates multiple color values at once */
   updateColorValues: (params: ColorUpdateParams) => void;
+  /** Updates the current color info */
+  updateCurrentColorInfo: (updates: Partial<ColorItem>) => void;
 
   // Theme actions
+  /** Adds a color to the theme */
   addColor: (color: string, name?: string, info?: string) => Promise<void>;
+  /** Removes a color from the theme */
   removeColor: (colorId: string) => void;
+  /** Updates a color in the theme */
   updateColor: (
     colorId: string,
     updates: Partial<Omit<ColorItem, "id">>
   ) => void;
+  /** Toggles favorite status of a color */
   toggleFavorite: (colorId: string) => void;
+  /** Gets a color by its ID */
   getColorById: (colorId: string) => ColorItem | null;
-  getColorName: (color: string) => Promise<string>;
+  /** Gets a name for a color */
+  getColorName: (params: { color?: string }) => Promise<string>;
+  /** Sets the current color from a ColorItem */
+  setCurrentColorFromItem: (colorItem: ColorItem) => void;
 
-  // New async color name methods
-  fetchAndUpdateColorName: (color: string, id: string) => Promise<void>;
-  fetchColorName: (color: string) => Promise<string>;
-
-  // New theme management actions
+  // Theme management actions
+  /** Adds multiple colors to the theme */
   addColorsToTheme: (params: {
     themeName: string;
     colors: Array<{ color: string; name: string }>;
   }) => void;
+  /** Updates colors in the theme */
   updateTheme: (params: {
     themeName: string;
     colors: Array<{ color: string; name: string }>;
   }) => void;
+  /** Resets the theme by removing all colors */
   resetTheme: () => void;
+  /** Removes specific colors from the theme */
   removeColorsFromTheme: (params: { colorNames: string[] }) => void;
+  /** Marks a color as favorite */
   markColorAsFavorite: (params: { colorName: string }) => void;
+  /** Generates a color palette based on a base color */
   generateColorPalette: (params: {
     baseColor: string;
     paletteType:
@@ -171,91 +255,240 @@ interface StoreActions {
   }>;
 }
 
-// Add this to the store implementation
+/**
+ * Main Zustand store implementation
+ */
 export const useStore = create<StoreState & StoreActions>((set, get) => ({
   // Initial color picker state
-  baseColor: defaultColor,
+  currentColorInfo: defaultColorItem,
   currentColor: defaultColor,
-  hue: defaultHsl.h,
-  saturation: defaultHsl.s,
-  lightness: defaultHsl.l,
-  alpha: 1,
-  rgb: { r: defaultRgb.r, g: defaultRgb.g, b: defaultRgb.b },
   format: "hex" as ColorFormat,
   isDark: defaultIsDark,
   hslChanged: false,
   autoSwitchTheme: true,
 
   // Initial theme state
-  colors: [createColorItem(defaultColor, "Blue", "Default blue color")],
+  colors: [defaultColorItem],
   recentColors: [defaultColor],
 
-  // For managing async color name operations
-  pendingColorNames: new Map(),
+  /**
+   * Converts between color formats
+   * Supports conversion from HEX, RGB, or HSL to all other formats
+   */
+  convertColor: (params: ColorConversionParams) => {
+    if (params.hex) {
+      const normalizedHex = params.hex.toUpperCase();
+      const rgb = hexToRgb(normalizedHex);
+      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+      return { hex: normalizedHex, rgb, hsl };
+    } else if (params.rgb) {
+      const { r, g, b } = params.rgb;
+      const hex = rgbToHex(r, g, b).toUpperCase();
+      const hsl = rgbToHsl(r, g, b);
+      return { hex, rgb: params.rgb, hsl };
+    } else if (params.hsl) {
+      const { h, s, l } = params.hsl;
+      const rgb = hslToRgb(h, s, l);
+      const hex = rgbToHex(rgb.r, rgb.g, rgb.b).toUpperCase();
+      return { hex, rgb, hsl: params.hsl };
+    }
+    return null;
+  },
 
-  // Color picker actions
+  /**
+   * Updates the current color info with partial updates
+   * Also updates the color name when color changes
+   */
+  updateCurrentColorInfo: (updates: Partial<ColorItem>) => {
+    // First apply the updates
+    set((state) => ({
+      currentColorInfo: {
+        ...state.currentColorInfo,
+        ...updates,
+      },
+      // Always keep currentColor in sync with currentColorInfo.color
+      ...(updates.color ? { currentColor: updates.color } : {}),
+    }));
+
+    // Update isDark if the color changed
+    if (updates.color) {
+      set({ isDark: isColorDark(updates.color) });
+
+      // Get and update the color name when color changes
+      // We do this outside the set function to avoid nested state updates
+      get()
+        .getColorName({ color: updates.color })
+        .then((name) => {
+          if (name) {
+            // Only update the name, not the color again
+            set((state) => ({
+              currentColorInfo: {
+                ...state.currentColorInfo,
+                name,
+              },
+            }));
+          }
+        })
+        .catch((error) => {
+          console.error("Error getting color name:", error);
+        });
+    }
+  },
+
+  /**
+   * Updates multiple color values at once
+   * This is a unified method to update color properties and trigger appropriate updates
+   */
+  updateColorValues: (params: ColorUpdateParams) => {
+    const { currentColorInfo } = get();
+    const updates: Partial<ColorItem> = {};
+    let hslChanged = false;
+
+    if (params.baseColor !== undefined) {
+      const normalizedColor = params.baseColor.toUpperCase();
+      updates.color = normalizedColor;
+
+      // Update RGB when color changes
+      const rgb = hexToRgb(normalizedColor);
+      updates.rgb = rgb;
+
+      // Update HSL when color changes
+      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+      updates.hsl = hsl;
+    }
+
+    if (
+      params.hue !== undefined ||
+      params.saturation !== undefined ||
+      params.lightness !== undefined
+    ) {
+      const newHsl = {
+        h: params.hue !== undefined ? params.hue : currentColorInfo.hsl.h,
+        s:
+          params.saturation !== undefined
+            ? params.saturation
+            : currentColorInfo.hsl.s,
+        l:
+          params.lightness !== undefined
+            ? params.lightness
+            : currentColorInfo.hsl.l,
+      };
+
+      updates.hsl = newHsl;
+      hslChanged = true;
+
+      // Update RGB and color when HSL changes
+      const rgb = hslToRgb(newHsl.h, newHsl.s, newHsl.l);
+      updates.rgb = rgb;
+      updates.color = rgbToHex(rgb.r, rgb.g, rgb.b).toUpperCase();
+    }
+
+    if (params.alpha !== undefined) {
+      updates.alpha = params.alpha;
+    }
+
+    // Only update state if we have changes
+    if (Object.keys(updates).length > 0) {
+      set({ hslChanged });
+      get().updateCurrentColorInfo(updates);
+      get().updateCurrentColor();
+    }
+  },
+
+  /**
+   * Sets the base color from a HEX string
+   */
   setBaseColor: (color: string) => {
-    set({ baseColor: color });
-    // Don't call updateCurrentColor here
+    get().updateColorValues({ baseColor: color });
   },
 
+  /**
+   * Sets the hue component (0-360)
+   */
   setHue: (hue: number) => {
-    set({ hue, hslChanged: true });
-    // Don't call updateCurrentColor here
+    get().updateColorValues({ hue });
   },
 
+  /**
+   * Sets the saturation component (0-100)
+   */
   setSaturation: (saturation: number) => {
-    set({ saturation, hslChanged: true });
-    // Don't call updateCurrentColor here
+    get().updateColorValues({ saturation });
   },
 
+  /**
+   * Sets the lightness component (0-100)
+   */
   setLightness: (lightness: number) => {
-    set({ lightness, hslChanged: true });
-    // Don't call updateCurrentColor here
+    get().updateColorValues({ lightness });
   },
 
+  /**
+   * Sets the alpha/opacity (0-1)
+   */
   setAlpha: (alpha: number) => {
-    set({ alpha });
-    // Don't call updateCurrentColor here
+    get().updateColorValues({ alpha });
   },
 
+  /**
+   * Sets the display format
+   */
   setFormat: (format: ColorFormat) => set({ format }),
 
+  /**
+   * Sets whether to auto-switch theme based on color
+   */
   setAutoSwitchTheme: (autoSwitchTheme: boolean) => set({ autoSwitchTheme }),
 
+  /**
+   * Gets the full color with alpha in HEX
+   */
   getFullColor: () => {
-    const { baseColor, alpha } = get();
-    return alpha < 1 ? `${baseColor}${alphaToHex(alpha)}` : baseColor;
+    const { currentColorInfo } = get();
+    return currentColorInfo.alpha < 1
+      ? `${currentColorInfo.color}${alphaToHex(currentColorInfo.alpha)}`
+      : currentColorInfo.color;
   },
 
+  /**
+   * Gets the color string in the current format
+   */
   getColorString: () => {
-    const { format, currentColor, rgb, alpha, hue, saturation, lightness } =
-      get();
+    const { format, currentColorInfo } = get();
+    const { color, rgb, alpha, hsl } = currentColorInfo;
 
     switch (format) {
       case "hex":
-        return currentColor;
+        return color;
       case "rgb":
         return alpha < 1
           ? `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`
           : `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
       case "hsl":
         return alpha < 1
-          ? `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`
-          : `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+          ? `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${alpha})`
+          : `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
       default:
-        return currentColor;
+        return color;
     }
   },
 
+  /**
+   * Gets the background color with alpha support
+   */
   getBackgroundColor: () => {
-    const { rgb, alpha, currentColor } = get();
+    const { currentColorInfo } = get();
+    const { rgb, alpha, color } = currentColorInfo;
+
     if (alpha < 1) {
       return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
     }
-    return currentColor;
+    return color;
   },
 
+  /**
+   * Generates a random color
+   */
   generateRandomColor: () => {
     const randomHex = `#${Math.floor(Math.random() * 16777215)
       .toString(16)
@@ -263,6 +496,10 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     get().setColorFromHex(randomHex);
   },
 
+  /**
+   * Sets the color from a HEX string
+   * Handles validation and updates all color representations
+   */
   setColorFromHex: (hex: string) => {
     // Basic validation for hex format
     if (/^#?[0-9A-Fa-f]{0,8}$/i.test(hex)) {
@@ -275,186 +512,160 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       if (hex.length >= 7) {
         const baseHex = hex.substring(0, 7).toUpperCase();
 
-        // Update HSL values without triggering another update
+        // Update color info
         try {
-          const rgb = hexToRgb(baseHex);
-          const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+          const colorData = get().convertColor({ hex: baseHex });
+          if (colorData) {
+            // If we have alpha in the hex
+            let alphaValue = 1;
+            if (hex.length === 9) {
+              const alphaHex = hex.substring(7, 9);
+              alphaValue = Number.parseInt(alphaHex, 16) / 255;
+            }
 
-          // If we have alpha in the hex
-          let alphaValue = 1;
-          if (hex.length === 9) {
-            const alphaHex = hex.substring(7, 9);
-            alphaValue = Number.parseInt(alphaHex, 16) / 255;
+            get().updateCurrentColorInfo({
+              color: colorData.hex,
+              rgb: colorData.rgb,
+              hsl: colorData.hsl,
+              alpha: alphaValue,
+            });
+
+            set({ hslChanged: false });
+            get().updateCurrentColor();
           }
-
-          set({
-            baseColor: baseHex,
-            hue: hsl.h,
-            saturation: hsl.s,
-            lightness: hsl.l,
-            alpha: alphaValue,
-            hslChanged: false,
-            rgb: { r: rgb.r, g: rgb.g, b: rgb.b },
-          });
-
-          get().updateCurrentColor();
         } catch (error) {
-          console.log("Invalid hex value:", hex, error);
+          console.error("Invalid hex value:", hex, error);
         }
       }
     }
   },
 
-  // Modify the setColorFromRgb function to preserve exact RGB values
+  /**
+   * Sets the color from RGB values
+   */
   setColorFromRgb: (r: number, g: number, b: number) => {
-    // Convert RGB directly to hex and update the source of truth
-    const hex = rgbToHex(r, g, b);
-    const hsl = rgbToHsl(r, g, b);
+    const colorData = get().convertColor({ rgb: { r, g, b } });
+    if (colorData) {
+      get().updateCurrentColorInfo({
+        color: colorData.hex,
+        rgb: { r, g, b }, // Store the exact RGB values provided by the user
+        hsl: colorData.hsl,
+      });
 
-    set({
-      baseColor: hex,
-      hue: hsl.h,
-      saturation: hsl.s,
-      lightness: hsl.l,
-      hslChanged: false,
-      rgb: { r, g, b }, // Store the exact RGB values provided by the user
-    });
-
-    get().updateCurrentColor();
-  },
-
-  setColorFromHsl: (h: number, s: number, l: number) => {
-    set({
-      hue: h,
-      saturation: s,
-      lightness: l,
-      hslChanged: true,
-    });
-
-    get().updateCurrentColor();
-  },
-
-  updateCurrentColor: () => {
-    const {
-      baseColor,
-      alpha,
-      hue,
-      saturation,
-      lightness,
-      hslChanged,
-      recentColors,
-      autoSwitchTheme,
-    } = get();
-
-    // When HSL values change, update the baseColor
-    let newBaseColor = baseColor;
-    if (hslChanged) {
-      newBaseColor = hslToHex(hue, saturation, lightness);
-      set({ baseColor: newBaseColor, hslChanged: false });
-    }
-
-    // Update RGB values
-    const rgb = hslToRgb(hue, saturation, lightness);
-
-    // Update currentColor from baseColor and alpha
-    const newCurrentColor =
-      alpha < 1 ? `${newBaseColor}${alphaToHex(alpha)}` : newBaseColor;
-
-    // Check if the color is dark
-    const dark = isColorDark(newBaseColor);
-
-    // Update recent colors if this is a new color
-    let updatedRecentColors = recentColors;
-    if (!recentColors.includes(newCurrentColor)) {
-      updatedRecentColors = [newCurrentColor, ...recentColors.slice(0, 7)];
-    }
-
-    set({
-      currentColor: newCurrentColor,
-      rgb,
-      isDark: dark,
-      recentColors: updatedRecentColors,
-    });
-
-    // REMOVE THIS LINE - Don't automatically add to color history
-    // get().addColor(newBaseColor)
-  },
-
-  // Add this after the existing setter methods
-  updateColorValues: (params: ColorUpdateParams) => {
-    const updates: any = {};
-
-    if (params.baseColor !== undefined) {
-      updates.baseColor = params.baseColor;
-    }
-
-    if (params.hue !== undefined) {
-      updates.hue = params.hue;
-      updates.hslChanged = true;
-    }
-
-    if (params.saturation !== undefined) {
-      updates.saturation = params.saturation;
-      updates.hslChanged = true;
-    }
-
-    if (params.lightness !== undefined) {
-      updates.lightness = params.lightness;
-      updates.hslChanged = true;
-    }
-
-    if (params.alpha !== undefined) {
-      updates.alpha = params.alpha;
-    }
-
-    // Only update state if we have changes
-    if (Object.keys(updates).length > 0) {
-      set(updates);
+      set({ hslChanged: false });
       get().updateCurrentColor();
     }
   },
 
-  // New method to fetch and update a color name
-  fetchAndUpdateColorName: async (color: string, id: string) => {
-    try {
-      const name = await colorToName(color);
-      if (name) {
-        // Update the color with the new name
-        get().updateColor(id, { name });
-      }
-    } catch (error) {
-      console.error("Error fetching color name:", error);
+  /**
+   * Sets the color from HSL values
+   * Optimized to avoid redundant calculations
+   */
+  setColorFromHsl: (h: number, s: number, l: number) => {
+    const colorData = get().convertColor({ hsl: { h, s, l } });
+    if (colorData) {
+      get().updateCurrentColorInfo({
+        color: colorData.hex,
+        rgb: colorData.rgb,
+        hsl: { h, s, l },
+      });
+
+      set({ hslChanged: false });
+      get().updateCurrentColor();
     }
   },
 
-  // New method to fetch a color name
-  fetchColorName: async (color: string): Promise<string> => {
+  /**
+   * Sets the current color from a ColorItem
+   * This is a new method to directly set the current color from a saved color
+   */
+  setCurrentColorFromItem: (colorItem: ColorItem) => {
+    get().updateCurrentColorInfo({
+      ...colorItem,
+      id: get().currentColorInfo.id, // Keep the same ID for the current color
+      createdAt: get().currentColorInfo.createdAt, // Keep the same creation date
+    });
+
+    set({ hslChanged: false });
+    get().updateCurrentColor();
+  },
+
+  /**
+   * Updates the current color based on state
+   * Now uses currentColorInfo as the source of truth
+   */
+  updateCurrentColor: () => {
+    const { currentColorInfo, recentColors, hslChanged } = get();
+
+    // If HSL values changed, we need to update the color and RGB values
+    if (hslChanged) {
+      const { hsl } = currentColorInfo;
+      const newHex = hslToHex(hsl.h, hsl.s, hsl.l).toUpperCase();
+      const newRgb = hslToRgb(hsl.h, hsl.s, hsl.l);
+
+      get().updateCurrentColorInfo({
+        color: newHex,
+        rgb: newRgb,
+      });
+
+      set({ hslChanged: false });
+    }
+
+    // Get the full color with alpha
+    const fullColor = get().getFullColor();
+
+    // Update current color (should match currentColorInfo.color)
+    set({ currentColor: fullColor });
+
+    // Update isDark
+    set({ isDark: isColorDark(currentColorInfo.color) });
+
+    // Update recent colors if this is a new color
+    if (!recentColors.includes(fullColor)) {
+      set({
+        recentColors: [fullColor, ...recentColors.slice(0, 7)],
+      });
+    }
+  },
+
+  /**
+   * Gets a name for a color using the server action
+   * Simplified to remove unnecessary parameters
+   */
+  getColorName: async (params: { color?: string }) => {
     try {
-      return await colorToName(color);
+      const { color } = params;
+      const { currentColorInfo } = get();
+      const finalColor = color || currentColorInfo.color;
+      return await colorToName(finalColor);
     } catch (error) {
-      console.error("Error fetching color name:", error);
+      console.error("Error getting color name:", error);
       return "";
     }
   },
 
-  // Theme actions
+  /**
+   * Adds a color to the theme
+   * Optimized with normalized color comparisons
+   */
   addColor: async (color: string, name = "", info = "") => {
+    // Normalize color to uppercase immediately
+    const normalizedColor = color.toUpperCase();
+
     // If no name is provided, get one from the server action
     let colorName = name;
     if (!colorName) {
-      try {
-        colorName = await colorToName(color);
-      } catch (error) {
-        console.error("Error getting color name:", error);
-        colorName = `Color ${color.toUpperCase()}`;
+      colorName = await get().getColorName({ color: normalizedColor });
+      if (!colorName) {
+        colorName = `Color ${normalizedColor}`;
       }
     }
 
-    const newColor = createColorItem(color, colorName, info);
+    const newColor = createColorItem(normalizedColor, colorName, info);
 
-    // Check if this color already exists to avoid duplicates
+    // Check if this color already exists to avoid duplicates - using normalized comparison
     const existingColorIndex = get().colors.findIndex(
-      (c) => c.color.toLowerCase() === color.toLowerCase()
+      (c) => c.color === normalizedColor
     );
 
     if (existingColorIndex !== -1) {
@@ -474,23 +685,51 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     }
   },
 
+  /**
+   * Removes a color from the theme
+   */
   removeColor: (colorId: string) => {
     set((state) => ({
       colors: state.colors.filter((c) => c.id !== colorId),
     }));
   },
 
+  /**
+   * Updates a color in the theme
+   */
   updateColor: (colorId: string, updates: Partial<Omit<ColorItem, "id">>) => {
     set((state) => ({
       colors: state.colors.map((c) => {
         if (c.id === colorId) {
-          return { ...c, ...updates };
+          // Ensure color is normalized if it's being updated
+          if (updates.color) {
+            updates.color = updates.color.toUpperCase();
+          }
+
+          // If we're updating the color, we should also update RGB and HSL
+          const updatedColor = { ...c, ...updates };
+
+          // If color was updated but RGB wasn't, update RGB
+          if (updates.color && !updates.rgb) {
+            updatedColor.rgb = hexToRgb(updates.color);
+          }
+
+          // If color or RGB was updated but HSL wasn't, update HSL
+          if ((updates.color || updates.rgb) && !updates.hsl) {
+            const rgb = updatedColor.rgb;
+            updatedColor.hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+          }
+
+          return updatedColor;
         }
         return c;
       }),
     }));
   },
 
+  /**
+   * Toggles favorite status of a color
+   */
   toggleFavorite: (colorId: string) => {
     set((state) => ({
       colors: state.colors.map((c) => {
@@ -502,29 +741,18 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     }));
   },
 
+  /**
+   * Gets a color by its ID
+   */
   getColorById: (colorId: string) => {
     return get().colors.find((c) => c.id === colorId) || null;
   },
 
-  // getColorName: () => {
-  //   const { hue, saturation, lightness } = get();
-  //   return generateColorName(hue, saturation, lightness);
-
-  getColorName: async (color: string) => {
-    try {
-      const { hue, saturation, lightness } = get();
-      const finalColor = color || hslToHex(hue, saturation, lightness);
-      return await colorToName(finalColor);
-    } catch (error) {
-      console.error("Error getting color name:", error);
-      return "";
-    }
-  },
-
-  // New theme management actions moved from chat provider
+  /**
+   * Adds multiple colors to the theme
+   */
   addColorsToTheme: (params) => {
     const { themeName, colors } = params;
-    console.log("Adding colors to theme:", themeName, colors);
 
     // Add each color to the store
     colors.forEach((colorItem) => {
@@ -543,9 +771,11 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     };
   },
 
+  /**
+   * Updates colors in the theme
+   */
   updateTheme: (params) => {
     const { themeName, colors } = params;
-    console.log("Updating theme:", themeName, colors);
     const store = get();
 
     // Update each color in the store
@@ -578,8 +808,10 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     };
   },
 
+  /**
+   * Resets the theme by removing all colors
+   */
   resetTheme: () => {
-    console.log("Resetting theme");
     const store = get();
 
     // Get all color IDs
@@ -601,9 +833,11 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     };
   },
 
+  /**
+   * Removes specific colors from the theme
+   */
   removeColorsFromTheme: (params) => {
     const { colorNames } = params;
-    console.log("Removing colors from theme:", colorNames);
     const store = get();
 
     let removedCount = 0;
@@ -632,9 +866,11 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     };
   },
 
+  /**
+   * Marks a color as favorite
+   */
   markColorAsFavorite: (params) => {
     const { colorName } = params;
-    console.log("Marking color as favorite:", colorName);
     const store = get();
 
     // Find the color by name
@@ -668,12 +904,16 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
     };
   },
 
+  /**
+   * Generates a color palette based on a base color
+   * Supports various palette types: analogous, complementary, triadic, tetradic, monochromatic
+   */
   generateColorPalette: async (params) => {
     const { baseColor, paletteType, count = 5 } = params;
-    console.log(`Generating ${paletteType} palette based on ${baseColor}`);
     const store = get();
+    const normalizedBaseColor = baseColor.toUpperCase();
 
-    const rgb = hexToRgb(baseColor);
+    const rgb = hexToRgb(normalizedBaseColor);
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
     let palette: Array<{ color: string; name: string }> = [];
 
@@ -685,7 +925,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           if (i === 0) continue; // Skip the base color
           const newHue = (hsl.h + i * 30 + 360) % 360;
           const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
-          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
+          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b).toUpperCase();
           // Use the server action to get a better color name
           const name = await colorToName(newHex);
           colors.push({ color: newHex, name: name || `Color ${newHex}` });
@@ -701,7 +941,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
           complementaryRgb.r,
           complementaryRgb.g,
           complementaryRgb.b
-        );
+        ).toUpperCase();
         // Use the server action to get a better color name
         const name = await colorToName(complementaryHex);
         palette = [
@@ -718,7 +958,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         for (let i = 1; i <= 2; i++) {
           const newHue = (hsl.h + i * 120) % 360;
           const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
-          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
+          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b).toUpperCase();
           // Use the server action to get a better color name
           const name = await colorToName(newHex);
           colors.push({ color: newHex, name: name || `Color ${newHex}` });
@@ -732,7 +972,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
         for (let i = 1; i <= 3; i++) {
           const newHue = (hsl.h + i * 90) % 360;
           const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
-          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
+          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b).toUpperCase();
           // Use the server action to get a better color name
           const name = await colorToName(newHex);
           colors.push({ color: newHex, name: name || `Color ${newHex}` });
@@ -750,7 +990,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
             Math.min(90, hsl.l + (i % 2 === 0 ? i * 10 : -i * 10))
           );
           const newRgb = hslToRgb(hsl.h, hsl.s, newLightness);
-          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
+          const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b).toUpperCase();
           // Use the server action to get a better color name
           const name = await colorToName(newHex);
           colors.push({ color: newHex, name: name || `Color ${newHex}` });
@@ -762,10 +1002,10 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
 
     // Add the base color to the palette
     // Use the server action to get a better name for the base color
-    const baseName = await colorToName(baseColor);
+    const baseName = await colorToName(normalizedBaseColor);
     palette.unshift({
-      color: baseColor,
-      name: baseName || `Color ${baseColor}`,
+      color: normalizedBaseColor,
+      name: baseName || `Color ${normalizedBaseColor}`,
     });
 
     // Limit to requested count
@@ -785,14 +1025,17 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
 
     return {
       success: true,
-      baseColor,
+      baseColor: normalizedBaseColor,
       paletteType,
       palette,
     };
   },
 }));
 
-// Create a hook to handle theme switching
+/**
+ * Hook to handle theme switching based on color
+ * @param initialColor - Initial color to set
+ */
 export function useColorThemeSwitcher(initialColor = "#0066FF") {
   const { setTheme } = useTheme();
   const { isDark, setColorFromHex, autoSwitchTheme } = useStore();
@@ -814,11 +1057,14 @@ export function useColorThemeSwitcher(initialColor = "#0066FF") {
   return null;
 }
 
-// Export additional color harmony functions - now async
-export async function calculateComplementary(
-  hexColor: string
-): Promise<string> {
-  const rgb = hexToRgb(hexColor);
+/**
+ * Calculates the complementary color (opposite on the color wheel)
+ * @param hexColor - HEX color to find complement for
+ * @returns Complementary color in HEX format
+ */
+export function calculateComplementary(hexColor: string): string {
+  const normalizedColor = hexColor.toUpperCase();
+  const rgb = hexToRgb(normalizedColor);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
   // Complementary color is 180 degrees away on the color wheel
@@ -826,16 +1072,28 @@ export async function calculateComplementary(
 
   // Convert back to RGB and then to hex
   const complementaryRgb = hslToRgb(complementaryHue, hsl.s, hsl.l);
-  return rgbToHex(complementaryRgb.r, complementaryRgb.g, complementaryRgb.b);
+  return rgbToHex(
+    complementaryRgb.r,
+    complementaryRgb.g,
+    complementaryRgb.b
+  ).toUpperCase();
 }
 
-export async function calculateAnalogous(
+/**
+ * Calculates analogous colors (adjacent on the color wheel)
+ * @param hexColor - HEX color to find analogous colors for
+ * @param hsl - Optional HSL values if already calculated
+ * @returns Array of analogous colors in HEX format
+ */
+export function calculateAnalogous(
   hexColor: string,
   hsl?: { h: number; s: number; l: number }
-): Promise<string[]> {
+): string[] {
+  const normalizedColor = hexColor.toUpperCase();
+
   // If HSL is not provided, calculate it from the hex color
   if (!hsl) {
-    const rgb = hexToRgb(hexColor);
+    const rgb = hexToRgb(normalizedColor);
     hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
   }
 
@@ -847,12 +1105,20 @@ export async function calculateAnalogous(
   const rgb1 = hslToRgb(hue1, hsl.s, hsl.l);
   const rgb2 = hslToRgb(hue2, hsl.s, hsl.l);
 
-  return [rgbToHex(rgb1.r, rgb1.g, rgb1.b), rgbToHex(rgb2.r, rgb2.g, rgb2.b)];
+  return [
+    rgbToHex(rgb1.r, rgb1.g, rgb1.b).toUpperCase(),
+    rgbToHex(rgb2.r, rgb2.g, rgb2.b).toUpperCase(),
+  ];
 }
 
-// Export additional color scheme functions - now async
-export async function calculateTriadic(hexColor: string): Promise<string[]> {
-  const rgb = hexToRgb(hexColor);
+/**
+ * Calculates triadic colors (evenly spaced around the color wheel)
+ * @param hexColor - HEX color to find triadic colors for
+ * @returns Array of triadic colors in HEX format
+ */
+export function calculateTriadic(hexColor: string): string[] {
+  const normalizedColor = hexColor.toUpperCase();
+  const rgb = hexToRgb(normalizedColor);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
   // Triadic colors are 120 degrees apart
@@ -862,11 +1128,20 @@ export async function calculateTriadic(hexColor: string): Promise<string[]> {
   const rgb1 = hslToRgb(hue1, hsl.s, hsl.l);
   const rgb2 = hslToRgb(hue2, hsl.s, hsl.l);
 
-  return [rgbToHex(rgb1.r, rgb1.g, rgb1.b), rgbToHex(rgb2.r, rgb2.g, rgb2.b)];
+  return [
+    rgbToHex(rgb1.r, rgb1.g, rgb1.b).toUpperCase(),
+    rgbToHex(rgb2.r, rgb2.g, rgb2.b).toUpperCase(),
+  ];
 }
 
-export async function calculateTetradic(hexColor: string): Promise<string[]> {
-  const rgb = hexToRgb(hexColor);
+/**
+ * Calculates tetradic colors (rectangle on the color wheel)
+ * @param hexColor - HEX color to find tetradic colors for
+ * @returns Array of tetradic colors in HEX format
+ */
+export function calculateTetradic(hexColor: string): string[] {
+  const normalizedColor = hexColor.toUpperCase();
+  const rgb = hexToRgb(normalizedColor);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
   // Tetradic colors are in a rectangle on the color wheel
@@ -879,8 +1154,8 @@ export async function calculateTetradic(hexColor: string): Promise<string[]> {
   const rgb3 = hslToRgb(hue3, hsl.s, hsl.l);
 
   return [
-    rgbToHex(rgb1.r, rgb1.g, rgb1.b),
-    rgbToHex(rgb2.r, rgb2.g, rgb2.b),
-    rgbToHex(rgb3.r, rgb3.g, rgb3.b),
+    rgbToHex(rgb1.r, rgb1.g, rgb1.b).toUpperCase(),
+    rgbToHex(rgb2.r, rgb2.g, rgb2.b).toUpperCase(),
+    rgbToHex(rgb3.r, rgb3.g, rgb3.b).toUpperCase(),
   ];
 }
