@@ -338,15 +338,18 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
   /**
    * Updates multiple color values at once
    * This is a unified method to update color properties and trigger appropriate updates
+   * FIXED: Properly handles alpha updates
    */
   updateColorValues: (params: ColorUpdateParams) => {
     const { currentColorInfo } = get();
     const updates: Partial<ColorItem> = {};
     let hslChanged = false;
+    let hasUpdates = false;
 
     if (params.baseColor !== undefined) {
       const normalizedColor = params.baseColor.toUpperCase();
       updates.color = normalizedColor;
+      hasUpdates = true;
 
       // Update RGB when color changes
       const rgb = hexToRgb(normalizedColor);
@@ -376,6 +379,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
 
       updates.hsl = newHsl;
       hslChanged = true;
+      hasUpdates = true;
 
       // Update RGB and color when HSL changes
       const rgb = hslToRgb(newHsl.h, newHsl.s, newHsl.l);
@@ -383,12 +387,14 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       updates.color = rgbToHex(rgb.r, rgb.g, rgb.b).toUpperCase();
     }
 
+    // Handle alpha separately to ensure it's always applied
     if (params.alpha !== undefined) {
       updates.alpha = params.alpha;
+      hasUpdates = true;
     }
 
     // Only update state if we have changes
-    if (Object.keys(updates).length > 0) {
+    if (hasUpdates) {
       set({ hslChanged });
       get().updateCurrentColorInfo(updates);
       get().updateCurrentColor();
@@ -427,7 +433,9 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
    * Sets the alpha/opacity (0-1)
    */
   setAlpha: (alpha: number) => {
-    get().updateColorValues({ alpha });
+    // Ensure alpha is within valid range
+    const validAlpha = Math.max(0, Math.min(1, alpha));
+    get().updateColorValues({ alpha: validAlpha });
   },
 
   /**
@@ -609,6 +617,7 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
       });
 
       set({ hslChanged: false });
+      get().updateCurrentColor();
     }
 
     // Get the full color with alpha

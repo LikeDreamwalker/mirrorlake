@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { useStore } from "@/store";
 import type { ColorItem } from "@/store";
 
@@ -169,54 +169,80 @@ export function ColorPickerProvider({
     currentColorInfo.name,
   ]);
 
-  const contextValue: ColorPickerContextType = {
-    localHue,
-    localSaturation,
-    localLightness,
-    localAlpha,
-    setLocalHue,
-    setLocalSaturation,
-    setLocalLightness,
-    setLocalAlpha,
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo<ColorPickerContextType>(
+    () => ({
+      localHue,
+      localSaturation,
+      localLightness,
+      localAlpha,
+      setLocalHue,
+      setLocalSaturation,
+      setLocalLightness,
+      setLocalAlpha,
 
-    hexValue,
-    rValue,
-    gValue,
-    bValue,
-    hValue,
-    sValue,
-    lValue,
-    setHexValue,
-    setRValue,
-    setGValue,
-    setBValue,
-    setHValue,
-    setSValue,
-    setLValue,
+      hexValue,
+      rValue,
+      gValue,
+      bValue,
+      hValue,
+      sValue,
+      lValue,
+      setHexValue,
+      setRValue,
+      setGValue,
+      setBValue,
+      setHValue,
+      setSValue,
+      setLValue,
 
-    hexError,
-    rError,
-    gError,
-    bError,
-    hError,
-    sError,
-    lError,
-    setHexError,
-    setRError,
-    setGError,
-    setBError,
-    setHError,
-    setSError,
-    setLError,
+      hexError,
+      rError,
+      gError,
+      bError,
+      hError,
+      sError,
+      lError,
+      setHexError,
+      setRError,
+      setGError,
+      setBError,
+      setHError,
+      setSError,
+      setLError,
 
-    colorName,
-    setColorName,
+      colorName,
+      setColorName,
 
-    isDragging,
-    setIsDragging,
+      isDragging,
+      setIsDragging,
 
-    storeValues,
-  };
+      storeValues,
+    }),
+    [
+      localHue,
+      localSaturation,
+      localLightness,
+      localAlpha,
+      hexValue,
+      rValue,
+      gValue,
+      bValue,
+      hValue,
+      sValue,
+      lValue,
+      hexError,
+      rError,
+      gError,
+      bError,
+      hError,
+      sError,
+      lError,
+      colorName,
+      isDragging,
+      storeValues,
+    ]
+  );
 
   return (
     <ColorPickerContext.Provider value={contextValue}>
