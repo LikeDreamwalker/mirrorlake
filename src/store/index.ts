@@ -98,7 +98,7 @@ const defaultHsl = rgbToHsl(defaultRgb.r, defaultRgb.g, defaultRgb.b);
 const defaultIsDark = isColorDark(defaultColor);
 const defaultColorItem = createColorItem(
   defaultColor,
-  "Blue",
+  "Blue Ribbon",
   "Default blue color"
 );
 
