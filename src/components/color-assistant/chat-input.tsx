@@ -25,6 +25,7 @@ export function ChatInput() {
       <Button
         type="submit"
         size="icon"
+        aria-label="Send message"
         disabled={isLoading || isProcessingColor || !input.trim()}
       >
         {isLoading ? (
@@ -32,7 +33,6 @@ export function ChatInput() {
         ) : (
           <Send className="h-4 w-4" />
         )}
-        <span className="sr-only">Send message</span>
       </Button>
     </form>
   );

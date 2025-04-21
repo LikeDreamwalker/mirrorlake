@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Palette,
   MessageSquare,
@@ -10,6 +9,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export default function NavigationControls() {
   const [activeCard, setActiveCard] = useState(0);
@@ -86,11 +87,13 @@ export default function NavigationControls() {
   };
 
   return (
-    <div className="fixed bottom-6 left-0 right-0 flex justify-center z-10">
-      <div className="bg-white rounded-full shadow-md px-4 py-2 flex items-center space-x-3">
+    <div className="flex justify-center w-full h-full">
+      <Card className="bg-card rounded-full shadow-md px-4 py-2 flex items-center space-x-3 border">
         {/* Left arrow */}
-        <button
-          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="p-1 rounded-full h-auto w-auto"
           onClick={() => scrollToCard(Math.max(0, activeCard - 1))}
           disabled={activeCard === 0}
           aria-label="Previous card"
@@ -98,28 +101,35 @@ export default function NavigationControls() {
           <ChevronLeft
             className={cn(
               "h-5 w-5",
-              activeCard === 0 ? "text-gray-300" : "text-gray-700"
+              activeCard === 0
+                ? "text-muted-foreground/40"
+                : "text-muted-foreground"
             )}
           />
-        </button>
+        </Button>
 
         {/* Navigation dots/icons */}
         <div className="flex items-center space-x-4">
           {cards.map((card, index) => (
-            <button
+            <Button
               key={index}
+              variant="ghost"
+              size="sm"
               onClick={() => scrollToCard(index)}
               className={cn(
-                "flex items-center rounded-full transition-all p-1.5",
-                activeCard === index ? "bg-blue-100" : "hover:bg-gray-100"
+                "flex items-center rounded-full transition-all p-1.5 h-auto",
+                activeCard === index ? "bg-primary/10" : "hover:bg-muted"
               )}
               aria-label={`Go to ${card.title}`}
+              aria-current={activeCard === index ? "page" : undefined}
             >
               {/* Clone the icon element with the appropriate classes */}
               {React.cloneElement(card.icon, {
                 className: cn(
                   "h-5 w-5",
-                  activeCard === index ? "text-blue-500" : "text-gray-500"
+                  activeCard === index
+                    ? "text-primary"
+                    : "text-muted-foreground"
                 ),
               })}
 
@@ -128,19 +138,21 @@ export default function NavigationControls() {
                 className={cn(
                   "ml-1.5 text-sm hidden md:inline-block",
                   activeCard === index
-                    ? "text-blue-500 font-medium"
-                    : "text-gray-500"
+                    ? "text-primary font-medium"
+                    : "text-muted-foreground"
                 )}
               >
                 {card.title}
               </span>
-            </button>
+            </Button>
           ))}
         </div>
 
         {/* Right arrow */}
-        <button
-          className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="p-1 rounded-full h-auto w-auto"
           onClick={() =>
             scrollToCard(Math.min(cards.length - 1, activeCard + 1))
           }
@@ -151,12 +163,12 @@ export default function NavigationControls() {
             className={cn(
               "h-5 w-5",
               activeCard === cards.length - 1
-                ? "text-gray-300"
-                : "text-gray-700"
+                ? "text-muted-foreground/40"
+                : "text-muted-foreground"
             )}
           />
-        </button>
-      </div>
+        </Button>
+      </Card>
     </div>
   );
 }

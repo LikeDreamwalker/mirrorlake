@@ -21,7 +21,6 @@ export function ColorProvider({
   // Return the wrapper div with the background color
   return (
     <div
-      className="size-full"
       style={{
         backgroundColor: currentColor,
         transitionBehavior: "background-color",
