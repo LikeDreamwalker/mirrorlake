@@ -94,7 +94,8 @@ export function ColorSliders() {
           onPointerUp={handleSlideEnd}
         />
       </div>
-      <div className="space-y-2 mt-3">
+      {/* NOTE We have issues in updating alpha */}
+      {/* <div className="space-y-2 mt-3">
         <div className="flex justify-between items-center">
           <Label>Alpha: {localAlpha.toFixed(2)}</Label>
         </div>
@@ -108,7 +109,7 @@ export function ColorSliders() {
           onPointerDown={handleSlideStart}
           onPointerUp={handleSlideEnd}
         />
-      </div>
+      </div> */}
     </div>
   );
 }
