@@ -1,13 +1,18 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { toast } from "sonner";
 
 interface ColorPreviewProps {
   colorCode: string;
+  reverseTheme?: boolean;
 }
 
-export function ColorPreview({ colorCode }: ColorPreviewProps) {
+export function ColorPreview({
+  colorCode,
+  reverseTheme = false,
+}: ColorPreviewProps) {
   const { setColorFromHex } = useStore();
 
   // Normalize the color code
@@ -73,7 +78,12 @@ export function ColorPreview({ colorCode }: ColorPreviewProps) {
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 p-1 leading-tight rounded-md border border-border bg-background/90 cursor-pointer hover:bg-background transition-colors"
+      className={cn(
+        "inline-flex items-center gap-1.5 p-1 leading-tight rounded-md border cursor-pointer transition-colors",
+        reverseTheme
+          ? "bg-primary text-primary-foreground border-muted-foreground hover:border-primary-blue"
+          : "bg-background text-foreground border-border hover:border-primary-blue"
+      )}
       onClick={handleClick}
     >
       <span

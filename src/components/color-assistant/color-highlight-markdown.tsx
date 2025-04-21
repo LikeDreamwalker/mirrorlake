@@ -27,7 +27,10 @@ import { ExternalLink, ImageOff } from "lucide-react";
 import Image from "next/image";
 
 // Function to detect and format color codes in text
-const formatTextWithColorCodes = (text: string): React.ReactNode[] => {
+const formatTextWithColorCodes = (
+  text: string,
+  reverseTheme?: boolean
+): React.ReactNode[] => {
   // Comprehensive regex to match various color formats
   const colorRegex =
     /#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})\b|rgb$$\s*\d+\s*,\s*\d+\s*,\s*\d+\s*$$|rgba$$\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(?:0?\.\d+|1)\s*$$|hsl$$\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*$$|hsla$$\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*,\s*(?:0?\.\d+|1)\s*$$/g;
@@ -55,7 +58,11 @@ const formatTextWithColorCodes = (text: string): React.ReactNode[] => {
     // Add the color preview component
     const colorCode = match[0];
     parts.push(
-      <ColorPreview key={`color-${match.index}`} colorCode={colorCode} />
+      <ColorPreview
+        key={`color-${match.index}`}
+        colorCode={colorCode}
+        reverseTheme={reverseTheme}
+      />
     );
 
     lastIndex = match.index + colorCode.length;
@@ -73,9 +80,11 @@ const formatTextWithColorCodes = (text: string): React.ReactNode[] => {
 function ColorHighlightMarkdownBase({
   content,
   reasoning,
+  reverseTheme,
 }: {
   content: string;
   reasoning?: string;
+  reverseTheme?: boolean;
 }) {
   // Use useMemo to create components only when needed
   const components = useMemo<Components>(
@@ -87,7 +96,7 @@ function ColorHighlightMarkdownBase({
           {...props}
         >
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </h1>
       ),
@@ -97,7 +106,7 @@ function ColorHighlightMarkdownBase({
           {...props}
         >
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </h2>
       ),
@@ -107,7 +116,7 @@ function ColorHighlightMarkdownBase({
           {...props}
         >
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </h3>
       ),
@@ -117,7 +126,7 @@ function ColorHighlightMarkdownBase({
           {...props}
         >
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </h4>
       ),
@@ -127,7 +136,7 @@ function ColorHighlightMarkdownBase({
           {...props}
         >
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </h5>
       ),
@@ -137,7 +146,7 @@ function ColorHighlightMarkdownBase({
           {...props}
         >
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </h6>
       ),
@@ -146,21 +155,21 @@ function ColorHighlightMarkdownBase({
       p: ({ children, ...props }) => (
         <span className="leading-7 [&:not(:first-child)]:mt-6" {...props}>
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </span>
       ),
       strong: ({ children, ...props }) => (
         <strong className="font-semibold" {...props}>
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </strong>
       ),
       em: ({ children, ...props }) => (
         <em className="italic" {...props}>
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </em>
       ),
@@ -179,7 +188,7 @@ function ColorHighlightMarkdownBase({
       li: ({ children, ...props }) => (
         <li className="mt-2" {...props}>
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </li>
       ),
@@ -205,7 +214,7 @@ function ColorHighlightMarkdownBase({
               {...props}
             >
               {typeof children === "string"
-                ? formatTextWithColorCodes(children)
+                ? formatTextWithColorCodes(children, reverseTheme)
                 : children}
             </Link>
           );
@@ -223,7 +232,7 @@ function ColorHighlightMarkdownBase({
                   {...props}
                 >
                   {typeof children === "string"
-                    ? formatTextWithColorCodes(children)
+                    ? formatTextWithColorCodes(children, reverseTheme)
                     : children}
                   <ExternalLink className="ml-1 h-3 w-3" />
                 </a>
@@ -239,7 +248,7 @@ function ColorHighlightMarkdownBase({
         if (typeof children !== "string") {
           return <>{children}</>;
         }
-        return <>{formatTextWithColorCodes(children)}</>;
+        return <>{formatTextWithColorCodes(children, reverseTheme)}</>;
       },
 
       // Tables - using shadcn/ui Table components
@@ -260,14 +269,14 @@ function ColorHighlightMarkdownBase({
       th: ({ children, ...props }) => (
         <TableHead {...props}>
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </TableHead>
       ),
       td: ({ children, ...props }) => (
         <TableCell {...props}>
           {typeof children === "string"
-            ? formatTextWithColorCodes(children)
+            ? formatTextWithColorCodes(children, reverseTheme)
             : children}
         </TableCell>
       ),
@@ -333,7 +342,12 @@ function ColorHighlightMarkdownBase({
             /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})\b|^rgb$$\s*\d+\s*,\s*\d+\s*,\s*\d+\s*$$|^rgba$$\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(?:0?\.\d+|1)\s*$$|^hsl$$\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*$$|^hsla$$\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*,\s*(?:0?\.\d+|1)\s*$$$/;
 
           if (colorRegex.test(children.toString())) {
-            return <ColorPreview colorCode={children.toString()} />;
+            return (
+              <ColorPreview
+                colorCode={children.toString()}
+                reverseTheme={reverseTheme}
+              />
+            );
           }
 
           // If it's not a color code, render as normal inline code
