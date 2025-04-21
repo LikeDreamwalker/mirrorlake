@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useChatContext } from "./chat-context";
+import { useChatContext } from "./context";
 import { QueuedMarkdown } from "./queued-markdown";
 import { cn } from "@/lib/utils";
 import { ColorHighlightMarkdown } from "./color-highlight-markdown";

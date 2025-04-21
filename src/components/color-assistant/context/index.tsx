@@ -61,9 +61,34 @@ export const useChatContext = () => useContext(ChatContext);
 
 // Provider component
 export function ChatProvider({ children }: { children: React.ReactNode }) {
+  // Extract all necessary store methods
   const {
-    baseColor,
+    // Color picker state
+    currentColorInfo,
+    currentColor,
+    format,
+    isDark,
+
+    // Color picker actions
     setBaseColor,
+    getFullColor,
+    generateRandomColor,
+    setColorFromHex,
+    setColorFromRgb,
+    setColorFromHsl,
+    updateColorValues,
+    getColorName,
+
+    // Theme actions
+    colors,
+    addColor,
+    removeColor,
+    updateColor,
+    toggleFavorite,
+    getColorById,
+    setCurrentColorFromItem,
+
+    // Theme management actions
     addColorsToTheme,
     updateTheme,
     resetTheme,
@@ -176,6 +201,31 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             generateColorPalette(params);
             break;
 
+          case "setColorFromHex":
+            setColorFromHex(params.hex);
+            break;
+
+          case "setColorFromRgb":
+            const { r, g, b } = params;
+            setColorFromRgb(r, g, b);
+            break;
+
+          case "setColorFromHsl":
+            const { h, s, l } = params;
+            setColorFromHsl(h, s, l);
+            break;
+
+          case "generateRandomColor":
+            generateRandomColor();
+            break;
+
+          case "setCurrentColorFromItem":
+            const colorItem = getColorById(params.colorId);
+            if (colorItem) {
+              setCurrentColorFromItem(colorItem);
+            }
+            break;
+
           default:
             console.warn(`Unknown client action: ${action}`);
             return;
@@ -200,6 +250,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     removeColorsFromTheme,
     markColorAsFavorite,
     generateColorPalette,
+    setColorFromHex,
+    setColorFromRgb,
+    setColorFromHsl,
+    generateRandomColor,
+    getColorById,
+    setCurrentColorFromItem,
   ]);
 
   // Create a map of message completion status
@@ -250,14 +306,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (baseColor !== lastProcessedColor.current && baseColor) {
+      if (currentColor !== lastProcessedColor.current && currentColor) {
         setIsProcessingColor(true);
-        lastProcessedColor.current = baseColor;
+        lastProcessedColor.current = currentColor;
 
         try {
           // Skip if this is the initial color and we already have messages
           if (
-            baseColor === "#0066ff" &&
+            currentColor === "#0066FF" &&
             messages.length > 0 &&
             messages[0]?.content?.includes("#0066ff")
           ) {
@@ -276,7 +332,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           }
 
           // Add user message about selecting the color
-          const userMessage = `I just selected the color ${baseColor}.`;
+          const userMessage = `I just selected the color ${currentColor}.`;
           const userMessageId = Date.now().toString();
 
           // Create new messages array with user message
@@ -292,7 +348,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           setMessages(newMessages);
 
           // Get color advice from your Python part
-          const response = await getColorAdvice(baseColor);
+          const response = await getColorAdvice(currentColor);
 
           if (response.error) {
             throw new Error(response.message);
@@ -324,7 +380,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             {
               id: Date.now().toString(),
               role: "user" as const,
-              content: `I just selected the color ${baseColor}.`,
+              content: `I just selected the color ${currentColor}.`,
             } as Message,
             {
               id: errorMessageId,
@@ -349,18 +405,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     };
 
     processColorChange();
-  }, [
-    baseColor,
-    messages,
-    setMessages,
-    isProcessingColor,
-    addColorsToTheme,
-    updateTheme,
-    resetTheme,
-    removeColorsFromTheme,
-    markColorAsFavorite,
-    generateColorPalette,
-  ]);
+  }, [currentColor, messages, setMessages, isProcessingColor]);
 
   // Provide the chat context to children
   return (

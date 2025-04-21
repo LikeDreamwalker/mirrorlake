@@ -1,7 +1,7 @@
-import { Suspense } from "react"
-import { ChatContainer } from "./chat-container"
-import { ChatSkeleton } from "./chat-skeleton"
-import { ChatProvider } from "./chat-context"
+import { Suspense } from "react";
+import { ChatContainer } from "./chat-container";
+import { ChatSkeleton } from "./chat-skeleton";
+import { ChatProvider } from "./context";
 
 export default function ColorAssistant() {
   return (
@@ -12,5 +12,5 @@ export default function ColorAssistant() {
         </ChatProvider>
       </Suspense>
     </div>
-  )
+  );
 }
