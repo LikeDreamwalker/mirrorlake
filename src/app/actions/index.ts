@@ -18,8 +18,6 @@ export type ColorAdviceResponse = {
   message?: string;
 };
 
-// Remove the COLOR_NAMES map since we'll use the colorToName function
-
 // Color attributes by hue range
 const COLOR_ATTRIBUTES: Record<string, string[]> = {
   red: ["energetic", "passionate", "attention-grabbing", "bold", "exciting"],
@@ -36,6 +34,45 @@ const COLOR_ATTRIBUTES: Record<string, string[]> = {
   black: ["elegant", "sophisticated", "formal", "mysterious", "dramatic"],
   white: ["clean", "pure", "minimalist", "airy", "spacious"],
 };
+
+// Introduction phrases
+const INTRO_PHRASES = [
+  "I've analyzed the color {color} ({name}) and found the following information:",
+  "Here's what I discovered about the color {color} ({name}):",
+  "Let me share some details about the color {color} ({name}):",
+  "I've gathered some information about {color} ({name}):",
+  "Here's a breakdown of the color {color} ({name}):",
+  "I've examined the color {color} ({name}) and here's what I found:",
+  "Looking at the color {color} ({name}), I can provide these details:",
+  "The color {color} ({name}) has the following properties:",
+  "Here's an analysis of the color {color} ({name}):",
+  "I've processed the color {color} ({name}) and can tell you the following:",
+];
+
+// Conclusion phrases
+const CONCLUSION_PHRASES = [
+  "Would you like to add this color to your theme? I can also suggest color combinations or provide more specific information about how to use this color effectively in your design.",
+  "Would you like to incorporate this color into your theme? I can help with color combinations or provide more detailed usage recommendations.",
+  "Should we add this color to your theme? I can also recommend complementary colors or provide more specific design advice.",
+  "Would this color work well in your theme? I can suggest palette options or offer more targeted recommendations for using it effectively.",
+  "Does this color fit your design needs? I can help you integrate it into a theme or provide more specific guidance on how to use it.",
+  "Would you like to use this color in your project? I can recommend color pairings or provide more detailed information about its applications.",
+  "Is this a color you'd like to work with? I can suggest harmonious combinations or provide more specific advice for implementing it in your design.",
+  "Would you like to explore using this color? I can recommend palette options or provide more targeted advice for your specific design needs.",
+  "Does this color appeal to you for your project? I can help with color scheme suggestions or provide more detailed usage recommendations.",
+  "Would you like to save this color for your design? I can suggest complementary colors or provide more specific guidance on how to use it effectively.",
+  // Additional variations of the specific phrase
+  "How would this color fit into your theme? I can offer palette suggestions or provide specific recommendations for using it effectively.",
+  "Do you think this color would enhance your theme? I can suggest color combinations or provide targeted advice for implementing it.",
+  "Could this color be a good addition to your theme? I can recommend palette options or offer specific guidance for using it effectively.",
+  "Might this color work for your project? I can suggest complementary colors or provide tailored recommendations for its use.",
+  "Would this color be valuable in your design? I can recommend palette options or offer specific advice for implementing it effectively.",
+  "Do you see this color working in your theme? I can suggest color combinations or provide targeted recommendations for using it.",
+  "Could you use this color in your project? I can recommend palette options or offer specific guidance for implementing it effectively.",
+  "Is this a color that might enhance your theme? I can suggest complementary colors or provide tailored advice for using it.",
+  "Would this color be a good fit for your design? I can recommend palette options or offer specific guidance for implementing it effectively.",
+  "Do you think this color has potential for your project? I can suggest color combinations or provide targeted recommendations for its use.",
+];
 
 // Helper function to get attributes based on color properties
 function getColorAttributes(
@@ -72,117 +109,20 @@ function getColorAttributes(
   return COLOR_ATTRIBUTES.gray;
 }
 
-// Harmony descriptions
-const HARMONY_DESCRIPTIONS: Record<string, string> = {
-  complementary:
-    "Creates a strong contrast and vibrant look. Good for creating focus points.",
-  analogous:
-    "Creates a cohesive, harmonious feel with colors that sit next to each other on the color wheel.",
-  triadic:
-    "Offers vibrant contrast while maintaining color harmony, using three evenly spaced colors.",
-  tetradic:
-    "Rich, varied color scheme that works best when one color dominates and others are used as accents.",
-  monochromatic:
-    "Creates a cohesive look using variations in lightness and saturation of a single color.",
-};
-
-// Harmony use cases
-const HARMONY_USES: Record<string, string[]> = {
-  complementary: [
-    "logos with visual impact",
-    "sports team branding",
-    "call-to-action buttons",
-    "magazine covers",
-    "event posters",
-  ],
-  analogous: [
-    "natural landscapes",
-    "harmonious UI designs",
-    "relaxing environments",
-    "spa branding",
-    "educational materials",
-  ],
-  triadic: [
-    "playful designs",
-    "children's products",
-    "creative applications",
-    "art portfolios",
-    "game interfaces",
-  ],
-  tetradic: [
-    "rich illustrations",
-    "fashion design",
-    "seasonal promotions",
-    "food packaging",
-    "festival branding",
-  ],
-  monochromatic: [
-    "elegant branding",
-    "minimalist interfaces",
-    "professional documents",
-    "luxury products",
-    "corporate identities",
-  ],
-};
-
-// Color psychology by industry
-const COLOR_PSYCHOLOGY: Record<
-  string,
-  { industries: string[]; psychology: string; brands: string[] }
-> = {
-  red: {
-    industries: ["food", "retail", "entertainment"],
-    psychology: "Creates urgency, stimulates appetite, and encourages action.",
-    brands: ["Coca-Cola", "Netflix", "Target"],
-  },
-  orange: {
-    industries: ["food", "e-commerce", "health"],
-    psychology: "Conveys enthusiasm, creativity, and affordability.",
-    brands: ["Fanta", "Amazon", "Nickelodeon"],
-  },
-  yellow: {
-    industries: ["food", "leisure", "transportation"],
-    psychology: "Evokes optimism, clarity, and warmth.",
-    brands: ["McDonald's", "IKEA", "Hertz"],
-  },
-  green: {
-    industries: ["health", "finance", "sustainability"],
-    psychology: "Represents growth, health, and wealth.",
-    brands: ["Whole Foods", "Starbucks", "John Deere"],
-  },
-  blue: {
-    industries: ["finance", "technology", "healthcare"],
-    psychology: "Builds trust, security, and reliability.",
-    brands: ["Facebook", "IBM", "Visa"],
-  },
-  purple: {
-    industries: ["luxury", "beauty", "creativity"],
-    psychology: "Conveys luxury, creativity, and wisdom.",
-    brands: ["Cadbury", "Hallmark", "Yahoo"],
-  },
-  pink: {
-    industries: ["beauty", "fashion", "confectionery"],
-    psychology: "Suggests playfulness, femininity, and sweetness.",
-    brands: ["Barbie", "Victoria's Secret", "Baskin-Robbins"],
-  },
-};
-
-// Color blindness simulation descriptions
-const COLOR_BLINDNESS = {
-  protanopia:
-    "Red-blind (difficulty distinguishing reds and greens, reds appear darker)",
-  deuteranopia:
-    "Green-blind (difficulty distinguishing reds and greens, greens appear darker)",
-  tritanopia: "Blue-blind (difficulty distinguishing blues and yellows)",
-};
-
 // Helper function to get a random item from an array
 function getRandomItem<T>(array: T[]): T {
   return array[Math.floor(Math.random() * array.length)];
 }
 
-// Replace the getColorNameAndAttributes function with a new function that uses colorToName
-// and update the getColorAdvice function to use it
+// Helper function to format a template string with values
+function formatTemplate(
+  template: string,
+  values: Record<string, string>
+): string {
+  return template.replace(/{(\w+)}/g, (match, key) => {
+    return values[key] !== undefined ? values[key] : match;
+  });
+}
 
 /**
  * Gets color name and attributes using the existing colorToName function
@@ -238,108 +178,7 @@ function simulateColorBlindness(hexColor: string) {
   };
 }
 
-// Helper function to get color psychology
-function getColorPsychology(baseColor: string) {
-  for (const [color, info] of Object.entries(COLOR_PSYCHOLOGY)) {
-    if (baseColor.includes(color)) {
-      return info;
-    }
-  }
-
-  return {
-    industries: ["various"],
-    psychology: "Has versatile psychological effects depending on context.",
-    brands: ["Various"],
-  };
-}
-
-// Helper function to get use cases
-function getUseCases(
-  colorName: string,
-  attributes: string[],
-  contrastLevel: string
-) {
-  const useCases: string[] = [];
-
-  // Based on color attributes
-  if (
-    attributes.some((attr) =>
-      ["energetic", "attention-grabbing", "bold"].includes(attr)
-    )
-  ) {
-    useCases.push("call-to-action buttons");
-    useCases.push("promotional materials");
-  }
-
-  if (
-    attributes.some((attr) =>
-      ["calm", "trustworthy", "reliable"].includes(attr)
-    )
-  ) {
-    useCases.push("financial applications");
-    useCases.push("healthcare interfaces");
-  }
-
-  if (
-    attributes.some((attr) =>
-      ["professional", "formal", "sophisticated"].includes(attr)
-    )
-  ) {
-    useCases.push("business websites");
-    useCases.push("corporate branding");
-  }
-
-  if (
-    attributes.some((attr) => ["fresh", "natural", "balanced"].includes(attr))
-  ) {
-    useCases.push("eco-friendly products");
-    useCases.push("wellness applications");
-  }
-
-  if (
-    attributes.some((attr) =>
-      ["creative", "innovative", "imaginative"].includes(attr)
-    )
-  ) {
-    useCases.push("art portfolios");
-    useCases.push("creative agency branding");
-  }
-
-  // Based on contrast level
-  if (contrastLevel === "good" || contrastLevel === "excellent") {
-    useCases.push("text elements");
-    useCases.push("navigation components");
-  } else {
-    useCases.push("decorative elements");
-    useCases.push("background accents");
-  }
-
-  // Generic uses
-  const genericUses = [
-    "secondary branding elements",
-    "accent colors",
-    "background gradients",
-    "infographic elements",
-    "social media graphics",
-    "digital illustrations",
-    "product packaging",
-    "email marketing",
-    "mobile app interfaces",
-    "data visualization",
-  ];
-
-  // Add generic uses if we don't have enough
-  while (useCases.length < 3) {
-    const randomUse = getRandomItem(genericUses);
-    if (!useCases.includes(randomUse)) {
-      useCases.push(randomUse);
-    }
-  }
-
-  return useCases.slice(0, 3);
-}
-
-// Update the getColorAdvice function to include a friendly introduction and conclusion
+// Update the getColorAdvice function to include random introductions and conclusions
 
 export async function getColorAdvice(
   hexColor: string
@@ -410,10 +249,24 @@ export async function getColorAdvice(
     // Get color blindness simulation
     const colorBlindness = simulateColorBlindness(hexColor);
 
+    // Get random introduction and conclusion
+    const introTemplate = getRandomItem(INTRO_PHRASES);
+    const conclusionTemplate = getRandomItem(CONCLUSION_PHRASES);
+
+    // Format the templates with actual values
+    const intro = formatTemplate(introTemplate, {
+      color: hexColor,
+      name: colorName,
+    });
+    const conclusion = formatTemplate(conclusionTemplate, {
+      color: hexColor,
+      name: colorName,
+    });
+
     // Generate the response in markdown format with smaller headings and more tables
-    // Now with a friendly introduction and conclusion
+    // Now with random introduction and conclusion
     const advice = `
-I've analyzed the color ${hexColor} (${colorName}) and found the following information:
+${intro}
 
 ### Color Information: ${hexColor} (${colorName})
 
@@ -488,7 +341,7 @@ I've analyzed the color ${hexColor} (${colorName}) and found the following infor
       .darken(0.4)
       .toHex()}\` \`${c.darken(0.6).toHex()}\` \`${c.darken(0.8).toHex()}\` |
 
-Would you like to add this color to your theme? I can also suggest color combinations or provide more specific information about how to use this color effectively in your design.
+${conclusion}
 `;
 
     return {

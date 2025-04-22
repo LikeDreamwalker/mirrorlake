@@ -3,7 +3,15 @@
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { toast } from "sonner";
-
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import { useEffect, useMemo, useState } from "react";
+import { colorToName } from "@/app/actions/color";
+import { Loader2 } from "lucide-react";
 interface ColorPreviewProps {
   colorCode: string;
   reverseTheme?: boolean;
@@ -14,9 +22,12 @@ export function ColorPreview({
   reverseTheme = false,
 }: ColorPreviewProps) {
   const { setColorFromHex } = useStore();
+  const [colorName, setColorName] = useState("");
 
   // Normalize the color code
-  const normalizedColor = colorCode.trim();
+  const normalizedColor = useMemo(() => {
+    return colorCode.trim();
+  }, [colorCode]);
 
   // Convert rgb/rgba/hsl/hsla to hex if needed
   const getHexColor = (color: string): string => {
@@ -53,6 +64,11 @@ export function ColorPreview({
     return color;
   };
 
+  const getColorName = async () => {
+    const colorName = await colorToName(normalizedColor);
+    setColorName(colorName);
+  };
+
   const handleClick = () => {
     try {
       // Try to convert to hex if it's not already
@@ -77,20 +93,37 @@ export function ColorPreview({
   };
 
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 p-1 leading-tight rounded-md border cursor-pointer transition-colors",
-        reverseTheme
-          ? "bg-primary text-primary-foreground border-muted-foreground hover:border-primary-blue"
-          : "bg-background text-foreground border-border hover:border-primary-blue"
-      )}
-      onClick={handleClick}
-    >
-      <span
-        className="inline-block w-4 h-4 rounded-md border border-border shadow-sm"
-        style={{ backgroundColor: normalizedColor }}
-      />
-      <code className="font-mono">{normalizedColor}</code>
-    </span>
+    <TooltipProvider>
+      <Tooltip
+        onOpenChange={async () => {
+          await getColorName();
+        }}
+      >
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 p-1 leading-tight rounded-md border cursor-pointer transition-colors m-0.5",
+              reverseTheme
+                ? "bg-primary text-primary-foreground border-muted-foreground hover:border-primary-blue"
+                : "bg-background text-foreground border-border hover:border-primary-blue"
+            )}
+            onClick={handleClick}
+          >
+            <span
+              className="inline-block w-4 h-4 rounded-md border border-border shadow-sm"
+              style={{ backgroundColor: normalizedColor }}
+            />
+            <code className="font-mono">{normalizedColor}</code>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {colorName ? (
+            <p className="text-xs">{colorName}</p>
+          ) : (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
