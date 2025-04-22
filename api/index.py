@@ -7,7 +7,6 @@ import re
 import logging
 from typing import List, Dict, Optional, Tuple, Union, Callable, Any, cast
 import functools
-import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
 
 # Set up logging with more structured format
