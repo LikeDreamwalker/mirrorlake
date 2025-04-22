@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useChat, type Message } from "@ai-sdk/react";
 import { useStore } from "@/store";
-import { getColorAdvice } from "@/app/actions";
+import { getColorAdvice } from "@/app/actions/color-advice";
 import { toast } from "sonner";
 
 // Define a type for client actions
