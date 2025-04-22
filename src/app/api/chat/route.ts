@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 import { deepseek } from "@ai-sdk/deepseek";
 import { streamText, tool, createDataStreamResponse } from "ai";
 import { colorExpertSystemPrompt } from "@/lib/prompt";
