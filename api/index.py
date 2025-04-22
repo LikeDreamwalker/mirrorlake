@@ -7,7 +7,6 @@ import re
 import logging
 from typing import List, Dict, Optional, Tuple, Union, Callable, Any, cast
 import functools
-from sklearn.neighbors import KNeighborsClassifier
 
 # Set up logging with more structured format
 logging.basicConfig(
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Color Palette Generator API",
-    description="API for generating color palettes and analyzing color emotions",
+    description="API for generating color palettes",
     version="1.0.0",
     docs_url="/api/py/docs", 
     openapi_url="/api/py/openapi.json"
@@ -156,113 +155,6 @@ def validate_hex_color(hex_color: str) -> str:
         raise ValueError("Invalid hex color format. Please provide a color in the format #RRGGBB.")
     
     return hex_color
-
-# -----------------------
-# Color Emotion Research Data
-# -----------------------
-
-# This dataset is based on established color psychology research
-# It maps colors to emotions across different cultures
-COLOR_EMOTION_DATA = [
-    # Reds
-    {"color": "#FF0000", "primary_emotion": "excitement", "emotions": ["excitement", "passion", "anger", "love", "strength"], "culture": "western"},
-    {"color": "#FF0000", "primary_emotion": "luck", "emotions": ["luck", "joy", "celebration", "prosperity", "happiness"], "culture": "eastern"},
-    {"color": "#8B0000", "primary_emotion": "anger", "emotions": ["anger", "power", "intensity", "danger", "determination"], "culture": "western"},
-    {"color": "#FF6B6B", "primary_emotion": "love", "emotions": ["love", "compassion", "warmth", "sensitivity", "romance"], "culture": "western"},
-    
-    # Oranges
-    {"color": "#FFA500", "primary_emotion": "warmth", "emotions": ["warmth", "enthusiasm", "creativity", "energy", "stimulation"], "culture": "western"},
-    {"color": "#FF8C00", "primary_emotion": "energy", "emotions": ["energy", "vitality", "adventure", "playfulness", "health"], "culture": "western"},
-    {"color": "#FF4500", "primary_emotion": "creativity", "emotions": ["creativity", "enthusiasm", "determination", "success", "encouragement"], "culture": "western"},
-    
-    # Yellows
-    {"color": "#FFFF00", "primary_emotion": "happiness", "emotions": ["happiness", "optimism", "clarity", "warmth", "attention"], "culture": "western"},
-    {"color": "#FFD700", "primary_emotion": "optimism", "emotions": ["optimism", "confidence", "self-esteem", "friendliness", "creativity"], "culture": "western"},
-    {"color": "#FFFF00", "primary_emotion": "wisdom", "emotions": ["wisdom", "royalty", "dignity", "honor", "respect"], "culture": "eastern"},
-    
-    # Greens
-    {"color": "#008000", "primary_emotion": "growth", "emotions": ["growth", "harmony", "freshness", "fertility", "safety"], "culture": "western"},
-    {"color": "#00FF00", "primary_emotion": "nature", "emotions": ["nature", "health", "renewal", "youth", "vigor"], "culture": "western"},
-    {"color": "#006400", "primary_emotion": "stability", "emotions": ["stability", "endurance", "reliability", "tradition", "wealth"], "culture": "western"},
-    {"color": "#90EE90", "primary_emotion": "peace", "emotions": ["peace", "tranquility", "healing", "softness", "nurturing"], "culture": "western"},
-    
-    # Blues
-    {"color": "#0000FF", "primary_emotion": "trust", "emotions": ["trust", "reliability", "calmness", "serenity", "loyalty"], "culture": "western"},
-    {"color": "#1E90FF", "primary_emotion": "serenity", "emotions": ["serenity", "tranquility", "peace", "relaxation", "harmony"], "culture": "western"},
-    {"color": "#00008B", "primary_emotion": "authority", "emotions": ["authority", "power", "intelligence", "dignity", "security"], "culture": "western"},
-    {"color": "#0000FF", "primary_emotion": "spirituality", "emotions": ["spirituality", "immortality", "healing", "protection", "wisdom"], "culture": "eastern"},
-    
-    # Purples
-    {"color": "#800080", "primary_emotion": "luxury", "emotions": ["luxury", "royalty", "nobility", "sophistication", "mystery"], "culture": "western"},
-    {"color": "#9932CC", "primary_emotion": "creativity", "emotions": ["creativity", "imagination", "inspiration", "spirituality", "magic"], "culture": "western"},
-    {"color": "#4B0082", "primary_emotion": "mystery", "emotions": ["mystery", "dignity", "independence", "magic", "contemplation"], "culture": "western"},
-    
-    # Pinks
-    {"color": "#FFC0CB", "primary_emotion": "romance", "emotions": ["romance", "love", "gentleness", "calm", "nurturing"], "culture": "western"},
-    {"color": "#FF69B4", "primary_emotion": "playfulness", "emotions": ["playfulness", "energy", "youth", "fun", "excitement"], "culture": "western"},
-    
-    # Browns
-    {"color": "#A52A2A", "primary_emotion": "reliability", "emotions": ["reliability", "stability", "warmth", "comfort", "earthiness"], "culture": "western"},
-    {"color": "#8B4513", "primary_emotion": "security", "emotions": ["security", "protection", "support", "grounding", "simplicity"], "culture": "western"},
-    
-    # Blacks
-    {"color": "#000000", "primary_emotion": "elegance", "emotions": ["elegance", "sophistication", "power", "authority", "strength"], "culture": "western"},
-    {"color": "#000000", "primary_emotion": "mourning", "emotions": ["mourning", "seriousness", "formality", "mystery", "depth"], "culture": "western"},
-    {"color": "#000000", "primary_emotion": "protection", "emotions": ["protection", "mystery", "elegance", "sophistication", "prestige"], "culture": "eastern"},
-    
-    # Whites
-    {"color": "#FFFFFF", "primary_emotion": "purity", "emotions": ["purity", "cleanliness", "innocence", "simplicity", "perfection"], "culture": "western"},
-    {"color": "#FFFFFF", "primary_emotion": "mourning", "emotions": ["mourning", "respect", "purity", "humility", "simplicity"], "culture": "eastern"},
-    
-    # Grays
-    {"color": "#808080", "primary_emotion": "neutrality", "emotions": ["neutrality", "balance", "sophistication", "practicality", "solidity"], "culture": "western"},
-    {"color": "#A9A9A9", "primary_emotion": "reliability", "emotions": ["reliability", "intelligence", "wisdom", "security", "maturity"], "culture": "western"},
-]
-
-# -----------------------
-# Color Emotion Map Implementation
-# -----------------------
-
-# Initialize emotion classifiers once at startup
-def initialize_emotion_classifiers():
-    """Initialize and return the emotion classifiers."""
-    # Prepare the emotion data for the KNN classifier
-    emotion_colors = [item["color"] for item in COLOR_EMOTION_DATA]
-    emotion_rgb_values = [hex_to_rgb(color) for color in emotion_colors]
-    emotion_primary_emotions = [item["primary_emotion"] for item in COLOR_EMOTION_DATA]
-
-    # Create a KNN classifier for emotions
-    emotion_classifier = KNeighborsClassifier(n_neighbors=3, weights='distance')
-    emotion_classifier.fit(emotion_rgb_values, emotion_primary_emotions)
-
-    # Create culture-specific classifiers
-    western_data = [item for item in COLOR_EMOTION_DATA if item["culture"] == "western"]
-    eastern_data = [item for item in COLOR_EMOTION_DATA if item["culture"] == "eastern"]
-
-    western_colors = [item["color"] for item in western_data]
-    western_rgb_values = [hex_to_rgb(color) for color in western_colors]
-    western_primary_emotions = [item["primary_emotion"] for item in western_data]
-
-    eastern_colors = [item["color"] for item in eastern_data]
-    eastern_rgb_values = [hex_to_rgb(color) for color in eastern_colors]
-    eastern_primary_emotions = [item["primary_emotion"] for item in eastern_data]
-
-    # Create culture-specific classifiers if we have enough data
-    culture_classifiers = {}
-    if len(western_rgb_values) >= 3:
-        western_classifier = KNeighborsClassifier(n_neighbors=min(3, len(western_rgb_values)), weights='distance')
-        western_classifier.fit(western_rgb_values, western_primary_emotions)
-        culture_classifiers["western"] = western_classifier
-
-    if len(eastern_rgb_values) >= 3:
-        eastern_classifier = KNeighborsClassifier(n_neighbors=min(3, len(eastern_rgb_values)), weights='distance')
-        eastern_classifier.fit(eastern_rgb_values, eastern_primary_emotions)
-        culture_classifiers["eastern"] = eastern_classifier
-        
-    return emotion_classifier, culture_classifiers
-
-# Initialize classifiers
-emotion_classifier, culture_classifiers = initialize_emotion_classifiers()
 
 # -----------------------
 # Palette Generator Class
@@ -462,62 +354,8 @@ class PaletteResponse(BaseModel):
     error: bool = Field(False, description="Whether an error occurred")
     message: str = Field("", description="Error message if applicable")
 
-class EmotionRequest(BaseModel):
-    color: str = Field(..., description="Hex color code to analyze")
-    culture: Optional[str] = Field(None, description="Specific culture to analyze (western, eastern)")
-    
-    @validator('color')
-    def validate_color(cls, v):
-        try:
-            return validate_hex_color(v)
-        except ValueError as e:
-            raise ValueError(str(e))
-    
-    @validator('culture')
-    def validate_culture(cls, v):
-        if v is not None and v not in ["western", "eastern"]:
-            raise ValueError("Culture must be either 'western' or 'eastern'")
-        return v
-
-class EmotionResponse(BaseModel):
-    color: str = Field(..., description="Hex color code analyzed")
-    primary_emotion: str = Field(..., description="Primary emotion associated with the color")
-    emotions: List[str] = Field(..., description="List of emotions associated with the color")
-    confidence: float = Field(..., description="Confidence score of the emotion prediction")
-    cultural_variations: Optional[Dict[str, str]] = Field(None, description="Emotion variations across cultures")
-    error: bool = Field(False, description="Whether an error occurred")
-    message: str = Field("", description="Error message if applicable")
-
-class ColorEmotionMapRequest(BaseModel):
-    color: str = Field(..., description="Hex color code to analyze")
-    culture: Optional[str] = Field(None, description="Specific culture to analyze (western, eastern)")
-    
-    @validator('color')
-    def validate_color(cls, v):
-        try:
-            return validate_hex_color(v)
-        except ValueError as e:
-            raise ValueError(str(e))
-
-class ColorEmotionMapResponse(BaseModel):
-    color: str = Field(..., description="Hex color code analyzed")
-    primary_emotion: str = Field(..., description="Primary emotion associated with the color")
-    emotions: List[str] = Field(..., description="List of emotions associated with the color")
-    confidence: float = Field(..., description="Confidence score of the emotion prediction")
-    cultural_variations: Dict[str, str] = Field(..., description="Emotion variations across cultures")
-    similar_colors: List[str] = Field(..., description="Colors with similar emotional impact")
-    contrasting_emotions: List[str] = Field(..., description="Emotions that contrast with the primary emotion")
-    error: bool = Field(False, description="Whether an error occurred")
-    message: str = Field("", description="Error message if applicable")
-
 class AdvancedColorResponse(BaseModel):
     palette: List[str] = Field(..., description="Generated color palette")
-    emotions: List[str] = Field(..., description="Emotions associated with the color")
-    primary_emotion: str = Field(..., description="Primary emotion associated with the color")
-    emotion_confidence: float = Field(..., description="Confidence score of the emotion prediction")
-    cultural_variations: Optional[Dict[str, str]] = Field(None, description="Emotion variations across cultures")
-    similar_colors: List[str] = Field([], description="Colors with similar emotional impact")
-    contrasting_emotions: List[str] = Field([], description="Emotions that contrast with the primary emotion")
     error: bool = Field(False, description="Whether an error occurred")
     message: str = Field("", description="Error message if applicable")
 
@@ -567,212 +405,26 @@ async def generate_palette(request: PaletteRequest):
             "message": f"Error generating palette: {str(e)}"
         }
 
-@app.post("/api/py/color-emotion", response_model=EmotionResponse)
-async def predict_color_emotion(request: EmotionRequest):
-    """
-    Predict emotions associated with a color.
-    
-    This endpoint analyzes a color and returns the primary emotion associated
-    with it, along with a list of related emotions and confidence score.
-    """
-    try:
-        # Convert to RGB for the classifier
-        rgb = hex_to_rgb(request.color)
-        
-        # Predict primary emotion using the KNN classifier
-        primary_emotion = emotion_classifier.predict([rgb])[0]
-        
-        # Get probabilities to calculate confidence
-        probabilities = emotion_classifier.predict_proba([rgb])[0]
-        confidence = float(max(probabilities))
-        
-        # Find the closest color in our dataset to get associated emotions
-        closest_color = None
-        min_distance = float('inf')
-        
-        for item in COLOR_EMOTION_DATA:
-            distance = calculate_color_distance(request.color, item["color"])
-            if distance < min_distance:
-                min_distance = distance
-                closest_color = item
-        
-        # Get associated emotions
-        emotions = closest_color["emotions"] if closest_color else [primary_emotion]
-        
-        # Get cultural variations if available
-        cultural_variations = {}
-        
-        # If a specific culture is requested, only return that one
-        if request.culture:
-            if request.culture in culture_classifiers:
-                cultural_variations[request.culture] = culture_classifiers[request.culture].predict([rgb])[0]
-        else:
-            # Otherwise return all available cultures
-            for culture, classifier in culture_classifiers.items():
-                cultural_variations[culture] = classifier.predict([rgb])[0]
-        
-        return {
-            "color": request.color,
-            "primary_emotion": primary_emotion,
-            "emotions": emotions,
-            "confidence": confidence,
-            "cultural_variations": cultural_variations
-        }
-    
-    except ValueError as e:
-        logger.warning(f"Validation error in predict_color_emotion: {e}")
-        return {
-            "color": request.color,
-            "primary_emotion": "",
-            "emotions": [],
-            "confidence": 0.0,
-            "cultural_variations": {},
-            "error": True,
-            "message": str(e)
-        }
-    except Exception as e:
-        logger.error(f"Error predicting color emotion: {e}", exc_info=True)
-        return {
-            "color": request.color,
-            "primary_emotion": "",
-            "emotions": [],
-            "confidence": 0.0,
-            "cultural_variations": {},
-            "error": True,
-            "message": f"Error predicting color emotion: {str(e)}"
-        }
-
-@app.post("/api/py/color-emotion-map", response_model=ColorEmotionMapResponse)
-async def get_color_emotion_map(request: ColorEmotionMapRequest):
-    """
-    Generate a detailed emotion map for a color.
-    
-    This endpoint provides a comprehensive analysis of a color's emotional
-    associations, including similar colors and contrasting emotions.
-    """
-    try:
-        # Convert to RGB for the classifier
-        rgb = hex_to_rgb(request.color)
-        
-        # Predict primary emotion using the KNN classifier
-        primary_emotion = emotion_classifier.predict([rgb])[0]
-        
-        # Get probabilities to calculate confidence
-        probabilities = emotion_classifier.predict_proba([rgb])[0]
-        confidence = float(max(probabilities))
-        
-        # Find the closest color in our dataset to get associated emotions
-        closest_color = None
-        min_distance = float('inf')
-        
-        for item in COLOR_EMOTION_DATA:
-            distance = calculate_color_distance(request.color, item["color"])
-            if distance < min_distance:
-                min_distance = distance
-                closest_color = item
-        
-        # Get associated emotions
-        emotions = closest_color["emotions"] if closest_color else [primary_emotion]
-        
-        # Get cultural variations if available
-        cultural_variations = {}
-        for culture, classifier in culture_classifiers.items():
-            cultural_variations[culture] = classifier.predict([rgb])[0]
-        
-        # Find similar colors with the same emotion
-        similar_colors = []
-        for item in COLOR_EMOTION_DATA:
-            if item["primary_emotion"] == primary_emotion and item["color"] != request.color:
-                similar_colors.append(item["color"])
-        
-        # Limit to 5 similar colors
-        similar_colors = similar_colors[:5]
-        
-        # Find contrasting emotions
-        all_emotions = set(item["primary_emotion"] for item in COLOR_EMOTION_DATA)
-        contrasting_emotions = list(all_emotions - {primary_emotion})
-        # Limit to 3 contrasting emotions
-        contrasting_emotions = contrasting_emotions[:3]
-        
-        return {
-            "color": request.color,
-            "primary_emotion": primary_emotion,
-            "emotions": emotions,
-            "confidence": confidence,
-            "cultural_variations": cultural_variations,
-            "similar_colors": similar_colors,
-            "contrasting_emotions": contrasting_emotions
-        }
-    
-    except ValueError as e:
-        logger.warning(f"Validation error in get_color_emotion_map: {e}")
-        return {
-            "color": request.color,
-            "primary_emotion": "",
-            "emotions": [],
-            "confidence": 0.0,
-            "cultural_variations": {},
-            "similar_colors": [],
-            "contrasting_emotions": [],
-            "error": True,
-            "message": str(e)
-        }
-    except Exception as e:
-        logger.error(f"Error generating color emotion map: {e}", exc_info=True)
-        return {
-            "color": request.color,
-            "primary_emotion": "",
-            "emotions": [],
-            "confidence": 0.0,
-            "cultural_variations": {},
-            "similar_colors": [],
-            "contrasting_emotions": [],
-            "error": True,
-            "message": f"Error generating color emotion map: {str(e)}"
-        }
-
 @app.post("/api/py/advanced-color", response_model=AdvancedColorResponse)
 async def get_advanced_color_analysis(request: ColorRequest):
     """
-    Perform comprehensive color analysis.
+    Perform color palette generation.
     
-    This endpoint combines palette generation and emotion analysis to provide
-    a complete color profile, including palette suggestions, emotional associations,
-    and cultural variations.
+    This endpoint generates a palette based on the provided color.
     """
     try:
         # Generate palette
         palette = palette_generator.generate_palette(request.color, count=5, style="balanced")
         
-        # Get emotion data
-        emotion_request = EmotionRequest(color=request.color)
-        emotion_response = await predict_color_emotion(emotion_request)
-        
-        # Get emotion map data for cultural variations
-        emotion_map_request = ColorEmotionMapRequest(color=request.color)
-        emotion_map_response = await get_color_emotion_map(emotion_map_request)
-        
-        # Create the response with data from all sources
+        # Create the response with just the palette data
         return {
-            "palette": palette,
-            "emotions": emotion_response.get("emotions", []),
-            "primary_emotion": emotion_response.get("primary_emotion", ""),
-            "emotion_confidence": emotion_response.get("confidence", 0.0),
-            "cultural_variations": emotion_map_response.get("cultural_variations", {}),
-            "similar_colors": emotion_map_response.get("similar_colors", []),
-            "contrasting_emotions": emotion_map_response.get("contrasting_emotions", []),
+            "palette": palette
         }
     
     except ValueError as e:
         logger.warning(f"Validation error in get_advanced_color_analysis: {e}")
         return {
             "palette": [],
-            "emotions": [],
-            "primary_emotion": "",
-            "emotion_confidence": 0.0,
-            "cultural_variations": {},
-            "similar_colors": [],
-            "contrasting_emotions": [],
             "error": True,
             "message": str(e)
         }
@@ -780,12 +432,6 @@ async def get_advanced_color_analysis(request: ColorRequest):
         logger.error(f"Error in advanced color analysis: {e}", exc_info=True)
         return {
             "palette": [],
-            "emotions": [],
-            "primary_emotion": "",
-            "emotion_confidence": 0.0,
-            "cultural_variations": {},
-            "similar_colors": [],
-            "contrasting_emotions": [],
             "error": True,
             "message": f"Error in advanced color analysis: {str(e)}"
         }

@@ -109,7 +109,6 @@ export async function getColorAdvice(
 
     // Fetch advanced color analysis from Python API
     const advancedData = await fetchAdvancedColorData(hexColor, BASE_URL);
-
     // Generate the response in markdown format with smaller headings and more tables
     const advice = `
 ${intro}
@@ -188,53 +187,6 @@ ${intro}
 | Shades (Darker) | \`${c.darken(0.2).toHex()}\` \`${c
       .darken(0.4)
       .toHex()}\` \`${c.darken(0.6).toHex()}\` \`${c.darken(0.8).toHex()}\` |
-
-${
-  advancedData.hasOwnProperty("primary_emotion")
-    ? `
-#### Emotional Impact
-
-| Emotion | Confidence |
-|---------|------------|
-| Primary: ${advancedData.primary_emotion} | ${Math.round(
-        advancedData.emotion_confidence * 100
-      )}% |
-
-Associated emotions: ${advancedData.emotions?.join(", ")}
-
-${
-  advancedData.cultural_variations &&
-  Object.keys(advancedData.cultural_variations).length > 0
-    ? `
-##### Cultural Variations
-${Object.entries(advancedData.cultural_variations)
-  .map(([culture, emotion]) => `- **${culture}**: ${emotion}`)
-  .join("\n")}
-`
-    : ""
-}
-
-${
-  advancedData.similar_colors && advancedData.similar_colors.length > 0
-    ? `
-##### Similar Colors with Same Emotion
-${advancedData.similar_colors.map((color: string) => `\`${color}\``).join(" ")}
-`
-    : ""
-}
-
-${
-  advancedData.contrasting_emotions &&
-  advancedData.contrasting_emotions.length > 0
-    ? `
-##### Contrasting Emotions
-${advancedData.contrasting_emotions.join(", ")}
-`
-    : ""
-}
-`
-    : ""
-}
 
 ${
   advancedData.hasOwnProperty("palette")
