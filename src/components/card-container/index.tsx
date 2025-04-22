@@ -21,10 +21,10 @@ export default function CardContainer({
       <CardContent className="h-full p-2">
         {needScroll ? (
           <ScrollArea className="h-full rounded-xl">
-            <div className="h-full p-2">{children}</div>
+            <div className="h-full w-full">{children}</div>
           </ScrollArea>
         ) : (
-          <div className="h-full p-2">{children}</div>
+          <div className="h-full rounded-xl overflow-hidden">{children}</div>
         )}
       </CardContent>
     </Card>

@@ -18,7 +18,9 @@ export default async function RootLayout({
       <body>
         <ThemeProvider attribute="class" defaultTheme="dark">
           <ColorProvider initialColor="#0066FF">
-            <div className="flex justify-center">{children}</div>
+            <div className="flex justify-center h-screen w-screen">
+              {children}
+            </div>
             <Toaster />
           </ColorProvider>
         </ThemeProvider>

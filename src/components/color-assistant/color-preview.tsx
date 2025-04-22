@@ -1,86 +1,120 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import { useEffect, useState } from "react";
+import { colord } from "colord";
+import { isColorCode } from "@/components/color-assistant/color-highlight-markdown";
 
 interface ColorPreviewProps {
   colorCode: string;
+  reverseTheme?: boolean;
 }
 
-export function ColorPreview({ colorCode }: ColorPreviewProps) {
-  const { setColorFromHex } = useStore();
+export function ColorPreview({
+  colorCode,
+  reverseTheme = false,
+}: ColorPreviewProps) {
+  const { setColorFromHex, getColorName } = useStore();
+  const [hexColor, setHexColor] = useState("");
+  const [isValidColor, setIsValidColor] = useState(true);
+  const [colorName, setColorName] = useState("");
+  // Process the color code and convert it to HEX
+  useEffect(() => {
+    const processColorCode = async () => {
+      const trimmedColor = colorCode.trim();
 
-  // Normalize the color code
-  const normalizedColor = colorCode.trim();
-
-  // Convert rgb/rgba/hsl/hsla to hex if needed
-  const getHexColor = (color: string): string => {
-    // If it's already a hex color, just return it
-    if (color.startsWith("#")) {
-      return color;
-    }
-
-    // Create a temporary element to use the browser's color parsing
-    const tempEl = document.createElement("div");
-    tempEl.style.color = color;
-    document.body.appendChild(tempEl);
-
-    // Get the computed color value
-    const computedColor = window.getComputedStyle(tempEl).color;
-
-    // Remove the element
-    document.body.removeChild(tempEl);
-
-    // If the computed color is in rgb format, convert it to hex
-    if (computedColor.startsWith("rgb")) {
-      // Extract the rgb values
-      const rgbMatch = computedColor.match(/rgb$$(\d+),\s*(\d+),\s*(\d+)$$/);
-      if (rgbMatch) {
-        const [r, g, b] = rgbMatch.map(Number);
-        // Convert to hex
-        return `#${r.toString(16).padStart(2, "0")}${g
-          .toString(16)
-          .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+      // Validate the color format
+      if (!isColorCode(trimmedColor)) {
+        setIsValidColor(false);
+        setHexColor(""); // Reset HEX color if invalid
+        return;
       }
+
+      // Use colord to convert to HEX
+      const color = colord(trimmedColor);
+      if (color.isValid()) {
+        setHexColor(color.toHex());
+        const colorName = await getColorName({ color: color.toHex() });
+        setColorName(colorName);
+        setIsValidColor(true);
+      } else {
+        setIsValidColor(false);
+        setHexColor(""); // Reset HEX color if invalid
+      }
+    };
+
+    processColorCode();
+  }, [colorCode]);
+
+  // Handle click action
+  const handleClick = () => {
+    if (!isValidColor || !hexColor) {
+      toast.error("Invalid color format", {
+        description: `${colorCode} is not supported for now.`,
+      });
+      return;
     }
 
-    // If we couldn't convert it, just return the original
-    return color;
-  };
-
-  const handleClick = () => {
     try {
-      // Try to convert to hex if it's not already
-      const hexColor = getHexColor(normalizedColor);
-
       // Set the color in the store
       setColorFromHex(hexColor);
 
       // Show confirmation toast
       toast("Color selected", {
-        description: `${hexColor} is now the active color`,
+        description: `${hexColor} is now the active color.`,
       });
     } catch (error) {
       console.error("Error selecting color:", error);
 
       // Fallback to clipboard copy if selection fails
-      navigator.clipboard.writeText(normalizedColor);
+      navigator.clipboard.writeText(hexColor);
       toast("Color copied", {
-        description: `${normalizedColor} has been copied to clipboard`,
+        description: `${hexColor} has been copied to clipboard.`,
       });
     }
   };
 
   return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-border bg-background/90 cursor-pointer hover:bg-background transition-colors"
-      onClick={handleClick}
-    >
-      <span
-        className="inline-block w-4 h-4 rounded-md border border-border shadow-sm"
-        style={{ backgroundColor: normalizedColor }}
-      />
-      <code className="font-mono">{normalizedColor}</code>
-    </span>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 p-1 leading-tight rounded-md border cursor-pointer transition-colors m-0.5",
+              !isValidColor && "opacity-50",
+              reverseTheme
+                ? "bg-primary text-primary-foreground border-muted-foreground hover:border-primary-blue"
+                : "bg-background text-foreground border-border hover:border-primary-blue"
+            )}
+            onClick={handleClick}
+          >
+            {isValidColor && hexColor && (
+              <span
+                className="inline-block w-4 h-4 rounded-md border border-border shadow-sm"
+                style={{ backgroundColor: hexColor }}
+              />
+            )}
+            <code className="font-mono">{colorCode.trim()}</code>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {isValidColor ? (
+            <>
+              <p className="text-xs">{colorName}</p>
+            </>
+          ) : (
+            <p className="text-xs">Not supported yet</p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

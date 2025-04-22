@@ -3,14 +3,16 @@ import NavigationControls from "@/components/navigation";
 import CardContainer from "@/components/card-container";
 import ColorHistory from "@/components/color-history";
 import ColorAssistant from "@/components/color-assistant";
+import { GradientBackground } from "@/components/gradient-background";
 
 export default function Home() {
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col py-4 max-w-screen-2xl">
+    <main className="flex flex-col h-full w-full overflow-hidden max-w-screen-2xl mx-auto p-2">
+      <GradientBackground className="fixed inset-0 -z-10" />
       {/* Main content area with CSS-based scrolling */}
       <div
         id="scroll-container"
-        className="flex-1 flex overflow-x-auto snap-x snap-mandatory hide-scrollbar scroll-smooth h-full px-3 md:px-4"
+        className="flex-1 overflow-x-auto snap-x snap-mandatory hide-scrollbar scroll-smooth"
       >
         <div className="flex w-full h-full gap-3 md:gap-4 lg:gap-6">
           <CardContainer id="color-picker">
@@ -27,8 +29,10 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Bottom navigation - client component for interactivity */}
-      <NavigationControls />
-    </div>
+      {/* Bottom navigation with static height */}
+      <div className="h-16 pt-2 px-2 sm:hidden">
+        <NavigationControls />
+      </div>
+    </main>
   );
 }
