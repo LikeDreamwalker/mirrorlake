@@ -62,20 +62,50 @@ export function generateRandomColorSets(
   return result;
 }
 
+// Playlist item interface
+interface PlaylistItem {
+  colors: string[];
+  id: number; // Unique identifier for tracking
+}
+
 export function GradientBackground({
   className,
   transitionSpeed = 10,
 }: GradientBackgroundProps) {
   const { colors } = useStore();
+  const [progress, setProgress] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Playlist state
+  const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [nextIndex, setNextIndex] = useState(1);
-  const [progress, setProgress] = useState(0);
+  const [playlistIdCounter, setPlaylistIdCounter] = useState(0);
+
+  // Current visible layers
+  const [currentLayer, setCurrentLayer] = useState<string[]>([]);
+  const [nextLayer, setNextLayer] = useState<string[]>([]);
+
+  // Track if colors have changed
+  const [colorsChanged, setColorsChanged] = useState(false);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
+  const lastColorsRef = useRef<string[]>([]);
 
+  // Generate color sets when colors change
   const colorSets = useMemo(() => {
     const themeColors = colors.map((item) => item.color);
+
+    // Check if colors have changed
+    const hasChanged =
+      JSON.stringify(themeColors) !== JSON.stringify(lastColorsRef.current);
+    if (hasChanged) {
+      setColorsChanged(true);
+    }
+    lastColorsRef.current = themeColors;
+
     // Generate color sets and ensure each set has at least 2 colors
     const sets = generateRandomColorSets(themeColors);
 
@@ -87,10 +117,57 @@ export function GradientBackground({
     return sets;
   }, [colors]);
 
+  // Initialize or update playlist when colorSets change
+  useEffect(() => {
+    if (colorSets.length === 0) return;
+
+    // Check if this is initial setup
+    if (playlist.length === 0) {
+      // Create initial playlist with IDs
+      const initialPlaylist = colorSets.map((colors, index) => ({
+        colors,
+        id: index,
+      }));
+      setPlaylist(initialPlaylist);
+      setPlaylistIdCounter(colorSets.length);
+
+      // Set initial layers
+      setCurrentLayer(colorSets[0]);
+      setNextLayer(colorSets[1]);
+
+      return;
+    }
+
+    // If colors have changed, update the playlist
+    if (colorsChanged) {
+      // Create new playlist items for the new color sets
+      let newIdCounter = playlistIdCounter;
+      const newItems = colorSets.map((colors) => {
+        newIdCounter++;
+        return { colors, id: newIdCounter };
+      });
+
+      // Update the playlist:
+      // If we're currently transitioning, keep both current and next items
+      // Otherwise, just keep the current item
+      if (isTransitioning) {
+        setPlaylist([playlist[currentIndex], playlist[nextIndex], ...newItems]);
+      } else {
+        // Not transitioning, so we only need to keep the current item
+        setPlaylist([playlist[currentIndex], ...newItems]);
+        // Update the next index to point to the first new item
+        setNextIndex(1);
+      }
+
+      setPlaylistIdCounter(newIdCounter);
+      setColorsChanged(false);
+    }
+  }, [colorSets, colorsChanged, isTransitioning]);
+
   // Animation loop
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || playlist.length < 2) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -114,73 +191,43 @@ export function GradientBackground({
       setProgress((prev) => {
         const newProgress = prev + (deltaTime / 1000) * (transitionSpeed / 100);
 
-        // If transition complete, move to next color set
+        // If transition complete, move to next color set in playlist
         if (newProgress >= 1) {
-          setCurrentIndex(nextIndex);
-          setNextIndex((nextIndex + 1) % colorSets.length);
+          // Move to next item in playlist
+          const newCurrentIndex = nextIndex;
+          const newNextIndex = (nextIndex + 1) % playlist.length;
+
+          setCurrentIndex(newCurrentIndex);
+          setNextIndex(newNextIndex);
+
+          // Update the current and next layers
+          setCurrentLayer(playlist[newCurrentIndex].colors);
+          setNextLayer(playlist[newNextIndex].colors);
+
+          setIsTransitioning(false);
           return 0;
         }
 
+        setIsTransitioning(true);
         return newProgress;
       });
 
-      // Draw gradient
-      drawGradient(ctx, canvas.width, canvas.height);
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw current layer (fading out)
+      drawGradientLayer(
+        ctx,
+        canvas.width,
+        canvas.height,
+        currentLayer,
+        1 - progress
+      );
+
+      // Draw next layer (fading in)
+      drawGradientLayer(ctx, canvas.width, canvas.height, nextLayer, progress);
 
       animationRef.current = requestAnimationFrame(animate);
-    };
-
-    // Draw gradient function
-    const drawGradient = (
-      ctx: CanvasRenderingContext2D,
-      width: number,
-      height: number
-    ) => {
-      // Safety check for empty color sets
-      if (
-        colorSets.length === 0 ||
-        !colorSets[currentIndex] ||
-        !colorSets[nextIndex]
-      ) {
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, width, height);
-        return;
-      }
-
-      const currentColors = colorSets[currentIndex];
-      const nextColors = colorSets[nextIndex];
-
-      // Calculate interpolated colors
-      const interpolatedColors = currentColors.map((color, i) => {
-        const nextColor = nextColors[i % nextColors.length];
-        return interpolateColor(color, nextColor, progress);
-      });
-
-      // Create gradient
-      const gradient = ctx.createLinearGradient(0, 0, width, height);
-
-      // Handle edge cases for color stops
-      if (interpolatedColors.length === 0) {
-        // No colors available, use white
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, width, height);
-        return;
-      } else if (interpolatedColors.length === 1) {
-        // Only one color, use solid fill
-        ctx.fillStyle = interpolatedColors[0];
-        ctx.fillRect(0, 0, width, height);
-        return;
-      }
-
-      // Add color stops for multiple colors
-      interpolatedColors.forEach((color, index) => {
-        const stopPosition = index / (interpolatedColors.length - 1);
-        gradient.addColorStop(stopPosition, color);
-      });
-
-      // Fill canvas
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
     };
 
     // Start animation
@@ -193,40 +240,72 @@ export function GradientBackground({
       }
       window.removeEventListener("resize", resizeCanvas);
     };
-  }, [colorSets, currentIndex, nextIndex, progress, transitionSpeed]);
+  }, [
+    playlist,
+    currentLayer,
+    nextLayer,
+    currentIndex,
+    nextIndex,
+    progress,
+    transitionSpeed,
+    isTransitioning,
+  ]);
+
+  // Update layers when playlist or indices change
+  useEffect(() => {
+    if (playlist.length < 2) return;
+
+    // Ensure we always have the correct layers based on current indices
+    setCurrentLayer(playlist[currentIndex]?.colors || ["#ffffff"]);
+    setNextLayer(playlist[nextIndex]?.colors || ["#ffffff"]);
+  }, [playlist, currentIndex, nextIndex]);
+
+  // Draw a single gradient layer with opacity
+  function drawGradientLayer(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    colors: string[],
+    opacity: number
+  ) {
+    // Safety check for empty colors
+    if (!colors || colors.length === 0) {
+      return;
+    }
+
+    // Save current context state
+    ctx.save();
+
+    // Set global alpha for this layer
+    ctx.globalAlpha = opacity;
+
+    // Create gradient
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+
+    // Handle edge cases for color stops
+    if (colors.length === 1) {
+      // Only one color, use solid fill
+      ctx.fillStyle = colors[0];
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      // Add color stops for multiple colors
+      colors.forEach((color, index) => {
+        const stopPosition = index / (colors.length - 1);
+        gradient.addColorStop(stopPosition, color);
+      });
+
+      // Fill canvas
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    // Restore context state
+    ctx.restore();
+  }
 
   return (
     <div className={cn("w-full h-full bg-background", className)}>
-      <canvas ref={canvasRef} />
+      <canvas ref={canvasRef} className="w-full h-full" />
     </div>
   );
-}
-
-// Helper function to interpolate between two colors
-function interpolateColor(
-  color1: string,
-  color2: string,
-  factor: number
-): string {
-  // Convert hex to RGB
-  const parseColor = (hexColor: string) => {
-    const hex = hexColor.startsWith("#") ? hexColor.slice(1) : hexColor;
-    const bigint = Number.parseInt(hex, 16);
-    return {
-      r: (bigint >> 16) & 255,
-      g: (bigint >> 8) & 255,
-      b: bigint & 255,
-    };
-  };
-
-  const c1 = parseColor(color1);
-  const c2 = parseColor(color2);
-
-  // Interpolate RGB values
-  const r = Math.round(c1.r + factor * (c2.r - c1.r));
-  const g = Math.round(c1.g + factor * (c2.g - c1.g));
-  const b = Math.round(c1.b + factor * (c2.b - c1.b));
-
-  // Convert back to hex
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }

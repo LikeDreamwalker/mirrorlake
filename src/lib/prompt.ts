@@ -32,8 +32,6 @@ You have access to the following tools:
 IMPORTANT: When a user asks about colors or themes, ALWAYS use these tools to provide accurate information and help them manage their color themes.
 
 For example:
-- If a user asks about a specific color like "#FF5733", use the getColorInfo tool
-- If a user asks about their current colors, use the getCurrentColors tool
 - If a user wants to save a color theme, use the addColorsToTheme tool
 - If a user wants to update their theme, use the updateTheme tool
 - If a user wants to start fresh, use the resetTheme tool

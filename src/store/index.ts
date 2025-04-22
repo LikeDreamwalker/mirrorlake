@@ -92,14 +92,46 @@ const createColorItem = (color: string, name = "", info = ""): ColorItem => {
 };
 
 // Default color values
-const defaultColor = "#0066FF";
-const defaultRgb = hexToRgb(defaultColor);
-const defaultHsl = rgbToHsl(defaultRgb.r, defaultRgb.g, defaultRgb.b);
-const defaultIsDark = isColorDark(defaultColor);
-const defaultColorItem = createColorItem(
-  defaultColor,
+const defaultBlueRibbonColor = "#0066FF";
+const defaultOrangeRedColor = "#FF4500";
+const defaultElectricBlueColor = "#00BBFF";
+const defaultDeepBlackColor = "#121212";
+const defaultPureWhiteColor = "#FFFFFF";
+
+// Create RGB and HSL values for the primary color (Blue Ribbon)
+const defaultBlueRgb = hexToRgb(defaultBlueRibbonColor);
+const defaultBlueHsl = rgbToHsl(
+  defaultBlueRgb.r,
+  defaultBlueRgb.g,
+  defaultBlueRgb.b
+);
+const defaultIsDark = isColorDark(defaultBlueRibbonColor);
+
+// Create color items for all default colors
+const blueRibbonItem = createColorItem(
+  defaultBlueRibbonColor,
   "Blue Ribbon",
   "Default blue color"
+);
+const orangeRedItem = createColorItem(
+  defaultOrangeRedColor,
+  "Orange Red",
+  "Vibrant orange-red color"
+);
+const electricBlueItem = createColorItem(
+  defaultElectricBlueColor,
+  "Electric Blue",
+  "Bright electric blue color"
+);
+const deepBlackItem = createColorItem(
+  defaultDeepBlackColor,
+  "Deep Black",
+  "Rich deep black color"
+);
+const pureWhiteItem = createColorItem(
+  defaultPureWhiteColor,
+  "Pure White",
+  "Clean pure white color"
 );
 
 /**
@@ -260,16 +292,22 @@ interface StoreActions {
  */
 export const useStore = create<StoreState & StoreActions>((set, get) => ({
   // Initial color picker state
-  currentColorInfo: defaultColorItem,
-  currentColor: defaultColor,
+  currentColorInfo: blueRibbonItem,
+  currentColor: defaultBlueRibbonColor,
   format: "hex" as ColorFormat,
   isDark: defaultIsDark,
   hslChanged: false,
   autoSwitchTheme: true,
 
-  // Initial theme state
-  colors: [defaultColorItem],
-  recentColors: [defaultColor],
+  // Initial theme state with all default colors
+  colors: [
+    blueRibbonItem, // Keep Blue Ribbon as the first color
+    orangeRedItem,
+    electricBlueItem,
+    deepBlackItem,
+    pureWhiteItem,
+  ],
+  recentColors: [defaultBlueRibbonColor],
 
   /**
    * Converts between color formats
