@@ -23,12 +23,6 @@ export async function fetchAdvancedColorData(
       const data = await response.json();
       return {
         palette: data.palette || [],
-        emotions: data.emotions || [],
-        primary_emotion: data.primary_emotion || "",
-        emotion_confidence:
-          typeof data.emotion_confidence === "number"
-            ? data.emotion_confidence
-            : 0,
         cultural_variations: data.cultural_variations || {},
         similar_colors: data.similar_colors || [],
         contrasting_emotions: data.contrasting_emotions || [],
@@ -37,9 +31,6 @@ export async function fetchAdvancedColorData(
 
     return {
       palette: [],
-      emotions: [],
-      primary_emotion: "",
-      emotion_confidence: 0,
       cultural_variations: {},
       similar_colors: [],
       contrasting_emotions: [],
@@ -49,9 +40,6 @@ export async function fetchAdvancedColorData(
     // Return empty data with default values if there's an error
     return {
       palette: [],
-      emotions: [],
-      primary_emotion: "",
-      emotion_confidence: 0,
       cultural_variations: {},
       similar_colors: [],
       contrasting_emotions: [],
