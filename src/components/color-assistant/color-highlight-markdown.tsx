@@ -26,29 +26,56 @@ import {
 import { ExternalLink, ImageOff } from "lucide-react";
 import Image from "next/image";
 
+// Shared regex patterns for color formats
+const COLOR_REGEX_PATTERNS = [
+  "^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})\\b", // Hex colors
+  "^rgb\\(\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*\\)$", // RGB
+  "^rgba\\(\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*,\\s*(?:0?\\.\\d+|1(?:\\.0{1,2})?)\\s*\\)$", // RGBA
+  "^hsl\\(\\s*\\d{1,3}\\s*°?\\s*,\\s*\\d{1,3}%\\s*,\\s*\\d{1,3}%\\s*\\)$", // HSL
+  "^hsla\\(\\s*\\d{1,3}\\s*°?\\s*,\\s*\\d{1,3}%\\s*,\\s*\\d{1,3}%\\s*,\\s*(?:0?\\.\\d+|1(?:\\.0{1,2})?)\\s*\\)$", // HSLA
+  "^hsv\\(\\s*\\d{1,3}\\s*°?\\s*,\\s*\\d{1,3}%\\s*,\\s*\\d{1,3}%\\s*\\)$", // HSV
+  "^cmyk\\(\\s*\\d{1,3}%?\\s*,\\s*\\d{1,3}%?\\s*,\\s*\\d{1,3}%?\\s*,\\s*\\d{1,3}%?\\s*\\)$", // CMYK
+];
+
+// Utility function to create a regex from the shared patterns
+const createColorRegex = (flags = ""): RegExp =>
+  new RegExp(COLOR_REGEX_PATTERNS.join("|"), flags);
+
+// Function to check if a string is a valid color code
+export const isColorCode = (text: string): boolean => {
+  const colorRegex = createColorRegex();
+  return colorRegex.test(text);
+};
+
+// Function to find all color codes in a string
+export const findColorCodes = (text: string): RegExpMatchArray | null => {
+  const colorRegex = createColorRegex("g"); // Global flag to find all matches
+  return text.match(colorRegex);
+};
+
 // Function to detect and format color codes in text
 const formatTextWithColorCodes = (
   text: string,
   reverseTheme?: boolean
 ): React.ReactNode[] => {
-  // Comprehensive regex to match various color formats
-  const colorRegex =
-    /#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})\b|rgb$$\s*\d+\s*,\s*\d+\s*,\s*\d+\s*$$|rgba$$\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(?:0?\.\d+|1)\s*$$|hsl$$\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*$$|hsla$$\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*,\s*(?:0?\.\d+|1)\s*$$/g;
+  // Use the shared utility to find color codes
+  const matches = findColorCodes(text);
 
   // If no color codes are found, return the original text
-  if (!text.match(colorRegex)) {
+  if (!matches) {
     return [text];
   }
 
   // Split the text by color codes
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
-  let match;
 
   // Create a copy of the text to work with
   const textCopy = text.toString();
+  const colorRegex = createColorRegex("g");
 
   // Find all color codes and replace them with ColorPreview components
+  let match;
   while ((match = colorRegex.exec(textCopy)) !== null) {
     // Add text before the color code
     if (match.index > lastIndex) {
@@ -337,11 +364,8 @@ function ColorHighlightMarkdownBase({
         const match = /language-(\w+)/.exec(className || "");
         // If no language match is found, it's an inline code block
         if (!match && children) {
-          // Regex for color codes
-          const colorRegex =
-            /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})\b|^rgb$$\s*\d+\s*,\s*\d+\s*,\s*\d+\s*$$|^rgba$$\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(?:0?\.\d+|1)\s*$$|^hsl$$\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*$$|^hsla$$\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*,\s*(?:0?\.\d+|1)\s*$$$/;
-
-          if (colorRegex.test(children.toString())) {
+          // Use the shared utility to check if it's a color code
+          if (isColorCode(children.toString())) {
             return (
               <ColorPreview
                 colorCode={children.toString()}
