@@ -16,6 +16,14 @@ export type ColorAdviceResponse = {
   advice: string;
   error?: boolean;
   message?: string;
+  // Advanced ML features
+  palette?: string[];
+  emotions?: string[];
+  primary_emotion?: string;
+  emotion_confidence?: number;
+  cultural_variations?: Record<string, string>;
+  similar_colors?: string[];
+  contrasting_emotions?: string[];
 };
 
 // Color attributes by hue range
@@ -178,8 +186,17 @@ function simulateColorBlindness(hexColor: string) {
   };
 }
 
-// Update the getColorAdvice function to include random introductions and conclusions
+// Base URL configuration for API requests
+const BASE_URL =
+  process.env.NEXT_PUBLIC_VERCEL_ENV == null ||
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "development"
+    ? "http://localhost:8000"
+    : process.env.NEXT_PUBLIC_VERCEL_ENV === "preview"
+    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+    : `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`;
 
+// Update the getColorAdvice function to include random introductions and conclusions
+// and to fetch advanced ML features from Python API
 export async function getColorAdvice(
   hexColor: string
 ): Promise<ColorAdviceResponse> {
@@ -263,10 +280,43 @@ export async function getColorAdvice(
       name: colorName,
     });
 
+    // Fetch advanced color analysis from Python API
+    let advancedData = {};
+    try {
+      const apiUrl = `${BASE_URL}/api/py/advanced-color`;
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          color: hexColor,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        advancedData = {
+          palette: data.palette,
+          emotions: data.emotions,
+          primary_emotion: data.primary_emotion,
+          emotion_confidence: data.emotion_confidence,
+          cultural_variations: data.cultural_variations || {},
+          similar_colors: data.similar_colors || [],
+          contrasting_emotions: data.contrasting_emotions || [],
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching advanced color data:", error);
+      // Continue without advanced data if there's an error
+    }
+
     // Generate the response in markdown format with smaller headings and more tables
     // Now with random introduction and conclusion
     const advice = `
 ${intro}
+
+---
 
 ### Color Information: ${hexColor} (${colorName})
 
@@ -341,11 +391,77 @@ ${intro}
       .darken(0.4)
       .toHex()}\` \`${c.darken(0.6).toHex()}\` \`${c.darken(0.8).toHex()}\` |
 
+${
+  advancedData.hasOwnProperty("primary_emotion")
+    ? `
+#### Emotional Impact
+
+| Emotion | Confidence |
+|---------|------------|
+| Primary: ${(advancedData as any).primary_emotion} | ${Math.round(
+        (advancedData as any).emotion_confidence * 100
+      )}% |
+
+Associated emotions: ${(advancedData as any).emotions?.join(", ")}
+
+${
+  (advancedData as any).cultural_variations &&
+  Object.keys((advancedData as any).cultural_variations).length > 0
+    ? `
+##### Cultural Variations
+${Object.entries((advancedData as any).cultural_variations)
+  .map(([culture, emotion]) => `- **${culture}**: ${emotion}`)
+  .join("\n")}
+`
+    : ""
+}
+
+${
+  (advancedData as any).similar_colors &&
+  (advancedData as any).similar_colors.length > 0
+    ? `
+##### Similar Colors with Same Emotion
+${(advancedData as any).similar_colors
+  .map((color: string) => `\`${color}\``)
+  .join(" ")}
+`
+    : ""
+}
+
+${
+  (advancedData as any).contrasting_emotions &&
+  (advancedData as any).contrasting_emotions.length > 0
+    ? `
+##### Contrasting Emotions
+${(advancedData as any).contrasting_emotions.join(", ")}
+`
+    : ""
+}
+`
+    : ""
+}
+
+${
+  advancedData.hasOwnProperty("palette")
+    ? `
+#### Palette
+
+${(advancedData as any).palette
+  ?.map((color: string) => `\`${color}\``)
+  .join(" ")}
+
+---
+
+`
+    : ""
+}
+
 ${conclusion}
 `;
 
     return {
       advice,
+      ...advancedData,
     };
   } catch (error) {
     console.error("Error generating color advice:", error);
