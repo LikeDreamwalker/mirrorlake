@@ -1,68 +1,162 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 import colorsys
 import random
 import re
 import logging
-from typing import List, Dict, Optional
-import datetime
+from typing import List, Dict, Optional, Tuple, Union, Callable, Any, cast
+import functools
 import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
+# Set up logging with more structured format
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(docs_url="/api/py/docs", openapi_url="/api/py/openapi.json")
+app = FastAPI(
+    title="Color Palette Generator API",
+    description="API for generating color palettes and analyzing color emotions",
+    version="1.0.0",
+    docs_url="/api/py/docs", 
+    openapi_url="/api/py/openapi.json"
+)
 
-# Add CORS middleware
+# Add CORS middleware with more specific settings
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # For development - restrict this in production
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
 # ----------------------
-# Basic Color Utility Functions
+# Basic Color Utility Functions with Caching
 # ----------------------
 
-def hex_to_rgb(hex_color):
-    """Convert hex color to RGB."""
+@functools.lru_cache(maxsize=128)
+def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
+    """
+    Convert hex color to RGB tuple.
+    
+    Args:
+        hex_color: A hex color string (with or without #)
+        
+    Returns:
+        RGB tuple with values from 0-255
+    """
     hex_color = hex_color.lstrip('#')
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
-def rgb_to_hex(rgb):
-    """Convert RGB to hex color."""
+@functools.lru_cache(maxsize=128)
+def rgb_to_hex(rgb: Tuple[int, int, int]) -> str:
+    """
+    Convert RGB tuple to hex color string.
+    
+    Args:
+        rgb: RGB tuple with values from 0-255
+        
+    Returns:
+        Hex color string with # prefix
+    """
     r, g, b = rgb
     return f"#{r:02x}{g:02x}{b:02x}"
 
-def rgb_to_hsl(rgb):
-    """Convert RGB to HSL."""
+@functools.lru_cache(maxsize=128)
+def rgb_to_hsl(rgb: Tuple[int, int, int]) -> Tuple[float, float, float]:
+    """
+    Convert RGB tuple to HSL tuple.
+    
+    Args:
+        rgb: RGB tuple with values from 0-255
+        
+    Returns:
+        HSL tuple with h in degrees (0-360), s in percent (0-100), l in percent (0-100)
+    """
     r, g, b = [x/255.0 for x in rgb]
     h, l, s = colorsys.rgb_to_hls(r, g, b)
     return (h*360, s*100, l*100)
 
-def hsl_to_rgb(h, s, l):
-    """Convert HSL to RGB."""
+@functools.lru_cache(maxsize=128)
+def hsl_to_rgb(h: float, s: float, l: float) -> Tuple[int, int, int]:
+    """
+    Convert HSL values to RGB tuple.
+    
+    Args:
+        h: Hue in degrees (0-360)
+        s: Saturation in percent (0-100)
+        l: Lightness in percent (0-100)
+        
+    Returns:
+        RGB tuple with values from 0-255
+    """
     h, s, l = h/360, s/100, l/100
     r, g, b = colorsys.hls_to_rgb(h, l, s)
-    r, g, b = int(r*255), int(g*255), int(b*255)
-    return (r, g, b)
+    return (int(r*255), int(g*255), int(b*255))
 
-def hsl_to_hex(h, s, l):
-    """Convert HSL to hex color."""
+@functools.lru_cache(maxsize=128)
+def hsl_to_hex(h: float, s: float, l: float) -> str:
+    """
+    Convert HSL values to hex color string.
+    
+    Args:
+        h: Hue in degrees (0-360)
+        s: Saturation in percent (0-100)
+        l: Lightness in percent (0-100)
+        
+    Returns:
+        Hex color string with # prefix
+    """
     r, g, b = hsl_to_rgb(h, s, l)
     return f"#{r:02x}{g:02x}{b:02x}"
 
-def calculate_color_distance(color1, color2):
-    """Calculate perceptual distance between two colors in Lab space."""
-    # Simple Euclidean distance in RGB space as a fallback
+def calculate_color_distance(color1: str, color2: str) -> float:
+    """
+    Calculate perceptual distance between two colors in RGB space.
+    
+    Args:
+        color1: First hex color string
+        color2: Second hex color string
+        
+    Returns:
+        Euclidean distance between the colors
+    """
     rgb1 = hex_to_rgb(color1)
     rgb2 = hex_to_rgb(color2)
-    return sum((a - b) ** 2 for a, b in zip(rgb1, rgb2)) ** 0.5
+    # Weighted RGB distance to better match human perception
+    # Weights based on human perception sensitivity to different colors
+    r_weight, g_weight, b_weight = 0.3, 0.59, 0.11
+    r_diff = (rgb1[0] - rgb2[0]) * r_weight
+    g_diff = (rgb1[1] - rgb2[1]) * g_weight
+    b_diff = (rgb1[2] - rgb2[2]) * b_weight
+    return (r_diff**2 + g_diff**2 + b_diff**2) ** 0.5
+
+def validate_hex_color(hex_color: str) -> str:
+    """
+    Validate and normalize a hex color string.
+    
+    Args:
+        hex_color: A hex color string (with or without #)
+        
+    Returns:
+        Normalized hex color string with # prefix
+        
+    Raises:
+        ValueError: If the hex color is invalid
+    """
+    # Add # if missing
+    if not hex_color.startswith('#'):
+        hex_color = f'#{hex_color}'
+    
+    # Check if it's a valid hex color
+    if not re.match(r'^#[0-9A-Fa-f]{6}$', hex_color):
+        raise ValueError("Invalid hex color format. Please provide a color in the format #RRGGBB.")
+    
+    return hex_color
 
 # -----------------------
 # Color Emotion Research Data
@@ -130,112 +224,111 @@ COLOR_EMOTION_DATA = [
 # Color Emotion Map Implementation
 # -----------------------
 
-# Prepare the emotion data for the KNN classifier
-emotion_colors = [item["color"] for item in COLOR_EMOTION_DATA]
-emotion_rgb_values = [hex_to_rgb(color) for color in emotion_colors]
-emotion_primary_emotions = [item["primary_emotion"] for item in COLOR_EMOTION_DATA]
+# Initialize emotion classifiers once at startup
+def initialize_emotion_classifiers():
+    """Initialize and return the emotion classifiers."""
+    # Prepare the emotion data for the KNN classifier
+    emotion_colors = [item["color"] for item in COLOR_EMOTION_DATA]
+    emotion_rgb_values = [hex_to_rgb(color) for color in emotion_colors]
+    emotion_primary_emotions = [item["primary_emotion"] for item in COLOR_EMOTION_DATA]
 
-# Create a KNN classifier for emotions
-emotion_classifier = KNeighborsClassifier(n_neighbors=3, weights='distance')
-emotion_classifier.fit(emotion_rgb_values, emotion_primary_emotions)
+    # Create a KNN classifier for emotions
+    emotion_classifier = KNeighborsClassifier(n_neighbors=3, weights='distance')
+    emotion_classifier.fit(emotion_rgb_values, emotion_primary_emotions)
 
-# Create culture-specific classifiers
-western_data = [item for item in COLOR_EMOTION_DATA if item["culture"] == "western"]
-eastern_data = [item for item in COLOR_EMOTION_DATA if item["culture"] == "eastern"]
+    # Create culture-specific classifiers
+    western_data = [item for item in COLOR_EMOTION_DATA if item["culture"] == "western"]
+    eastern_data = [item for item in COLOR_EMOTION_DATA if item["culture"] == "eastern"]
 
-western_colors = [item["color"] for item in western_data]
-western_rgb_values = [hex_to_rgb(color) for color in western_colors]
-western_primary_emotions = [item["primary_emotion"] for item in western_data]
+    western_colors = [item["color"] for item in western_data]
+    western_rgb_values = [hex_to_rgb(color) for color in western_colors]
+    western_primary_emotions = [item["primary_emotion"] for item in western_data]
 
-eastern_colors = [item["color"] for item in eastern_data]
-eastern_rgb_values = [hex_to_rgb(color) for color in eastern_colors]
-eastern_primary_emotions = [item["primary_emotion"] for item in eastern_data]
+    eastern_colors = [item["color"] for item in eastern_data]
+    eastern_rgb_values = [hex_to_rgb(color) for color in eastern_colors]
+    eastern_primary_emotions = [item["primary_emotion"] for item in eastern_data]
 
-# Create culture-specific classifiers if we have enough data
-culture_classifiers = {}
-if len(western_rgb_values) >= 3:
-    western_classifier = KNeighborsClassifier(n_neighbors=min(3, len(western_rgb_values)), weights='distance')
-    western_classifier.fit(western_rgb_values, western_primary_emotions)
-    culture_classifiers["western"] = western_classifier
+    # Create culture-specific classifiers if we have enough data
+    culture_classifiers = {}
+    if len(western_rgb_values) >= 3:
+        western_classifier = KNeighborsClassifier(n_neighbors=min(3, len(western_rgb_values)), weights='distance')
+        western_classifier.fit(western_rgb_values, western_primary_emotions)
+        culture_classifiers["western"] = western_classifier
 
-if len(eastern_rgb_values) >= 3:
-    eastern_classifier = KNeighborsClassifier(n_neighbors=min(3, len(eastern_rgb_values)), weights='distance')
-    eastern_classifier.fit(eastern_rgb_values, eastern_primary_emotions)
-    culture_classifiers["eastern"] = eastern_classifier
+    if len(eastern_rgb_values) >= 3:
+        eastern_classifier = KNeighborsClassifier(n_neighbors=min(3, len(eastern_rgb_values)), weights='distance')
+        eastern_classifier.fit(eastern_rgb_values, eastern_primary_emotions)
+        culture_classifiers["eastern"] = eastern_classifier
+        
+    return emotion_classifier, culture_classifiers
+
+# Initialize classifiers
+emotion_classifier, culture_classifiers = initialize_emotion_classifiers()
 
 # -----------------------
-# Simplified ML-based Color Features
+# Palette Generator Class
 # -----------------------
 
 class ColorPaletteGenerator:
-    """Simplified palette generation."""
+    """
+    Generate color palettes based on color theory principles.
+    
+    This class provides methods to generate different types of color palettes
+    based on a seed color, including monochromatic, analogous, complementary,
+    and balanced palettes.
+    """
+    
     def __init__(self):
-        # This would normally load a trained model
-        # For simplicity, we'll use rule-based generation with some randomness
-        self.hue_shifts = [15, 30, 45, 60, 90, 120, 180]
+        """Initialize the palette generator with predefined shift values."""
+        # Predefined shift values for different palette styles
+        self.hue_shifts = {
+            "small": [15, 30, 45],
+            "medium": [60, 90],
+            "large": [120, 180]
+        }
         self.saturation_shifts = [-20, -10, 0, 10, 20]
         self.lightness_shifts = [-30, -15, 0, 15, 30]
     
-    def generate_palette(self, seed_color, count=5, style="balanced"):
-        """Generate a color palette based on a seed color."""
+    def generate_palette(self, seed_color: str, count: int = 5, style: str = "balanced") -> List[str]:
+        """
+        Generate a color palette based on a seed color.
+        
+        Args:
+            seed_color: Hex color string to use as the base
+            count: Number of colors to generate (2-10)
+            style: Palette style ("balanced", "monochromatic", "analogous", "complementary")
+            
+        Returns:
+            List of hex color strings
+        """
+        # Normalize and validate the seed color
+        try:
+            seed_color = validate_hex_color(seed_color)
+        except ValueError as e:
+            logger.error(f"Invalid seed color: {e}")
+            raise
+            
         # Convert hex to HSL
         rgb = hex_to_rgb(seed_color)
         h, s, l = rgb_to_hsl(rgb)
         
+        # Initialize palette with seed color
         palette = [seed_color]
         
-        if style == "monochromatic":
-            # Vary lightness and saturation
-            for i in range(count - 1):
-                new_s = max(0, min(100, s + random.choice(self.saturation_shifts)))
-                new_l = max(10, min(90, l + random.choice(self.lightness_shifts)))
-                new_hex = hsl_to_hex(h, new_s, new_l)
-                palette.append(new_hex)
-        
-        elif style == "analogous":
-            # Use neighboring hues
-            for i in range(count - 1):
-                shift = random.choice([15, 30, 45])
-                direction = 1 if i % 2 == 0 else -1
-                new_h = (h + shift * direction) % 360
-                new_s = max(0, min(100, s + random.choice(self.saturation_shifts)))
-                new_l = max(10, min(90, l + random.choice(self.lightness_shifts)))
-                new_hex = hsl_to_hex(new_h, new_s, new_l)
-                palette.append(new_hex)
-        
-        elif style == "complementary":
-            # Include complementary color and variations
-            comp_h = (h + 180) % 360
-            palette.append(hsl_to_hex(comp_h, s, l))
-            
-            for i in range(count - 2):
-                if i % 2 == 0:
-                    base_h = h
-                else:
-                    base_h = comp_h
-                
-                new_h = (base_h + random.choice([-15, 15])) % 360
-                new_s = max(0, min(100, s + random.choice(self.saturation_shifts)))
-                new_l = max(10, min(90, l + random.choice(self.lightness_shifts)))
-                new_hex = hsl_to_hex(new_h, new_s, new_l)
-                palette.append(new_hex)
-        
-        else:  # balanced
-            # Mix of hue, saturation and lightness variations
-            for i in range(count - 1):
-                shift = random.choice(self.hue_shifts)
-                new_h = (h + shift) % 360
-                new_s = max(0, min(100, s + random.choice(self.saturation_shifts)))
-                new_l = max(10, min(90, l + random.choice(self.lightness_shifts)))
-                new_hex = hsl_to_hex(new_h, new_s, new_l)
-                palette.append(new_hex)
+        # Generate palette based on style
+        style_method = getattr(self, f"_generate_{style}_palette", None)
+        if style_method and callable(style_method):
+            palette = style_method(h, s, l, count)
+        else:
+            # Default to balanced if style not found
+            palette = self._generate_balanced_palette(h, s, l, count)
         
         # Ensure all colors are unique
         palette = list(dict.fromkeys(palette))
         
-        # If we don't have enough colors, add more
+        # If we don't have enough colors, add more with the balanced method
         while len(palette) < count:
-            new_h = (h + random.choice(self.hue_shifts)) % 360
+            new_h = (h + random.choice(self.hue_shifts["medium"])) % 360
             new_s = max(0, min(100, s + random.choice(self.saturation_shifts)))
             new_l = max(10, min(90, l + random.choice(self.lightness_shifts)))
             new_hex = hsl_to_hex(new_h, new_s, new_l)
@@ -243,113 +336,230 @@ class ColorPaletteGenerator:
                 palette.append(new_hex)
         
         return palette[:count]
+    
+    def _generate_monochromatic_palette(self, h: float, s: float, l: float, count: int) -> List[str]:
+        """Generate a monochromatic palette (same hue, different saturation/lightness)."""
+        palette = [hsl_to_hex(h, s, l)]  # Start with the seed color
+        
+        # Create variations by changing saturation and lightness
+        for i in range(count - 1):
+            # Alternate between changing saturation and lightness
+            if i % 2 == 0:
+                new_s = max(0, min(100, s + self.saturation_shifts[i % len(self.saturation_shifts)]))
+                new_l = l
+            else:
+                new_s = s
+                new_l = max(10, min(90, l + self.lightness_shifts[i % len(self.lightness_shifts)]))
+            
+            new_hex = hsl_to_hex(h, new_s, new_l)
+            palette.append(new_hex)
+        
+        return palette
+    
+    def _generate_analogous_palette(self, h: float, s: float, l: float, count: int) -> List[str]:
+        """Generate an analogous palette (adjacent hues on the color wheel)."""
+        palette = [hsl_to_hex(h, s, l)]  # Start with the seed color
+        
+        # Create variations with neighboring hues
+        for i in range(count - 1):
+            # Alternate between clockwise and counterclockwise on the color wheel
+            direction = 1 if i % 2 == 0 else -1
+            shift = self.hue_shifts["small"][i % len(self.hue_shifts["small"])]
+            
+            new_h = (h + shift * direction) % 360
+            # Slightly vary saturation and lightness for more interest
+            new_s = max(0, min(100, s + random.choice([-5, 0, 5])))
+            new_l = max(10, min(90, l + random.choice([-5, 0, 5])))
+            
+            new_hex = hsl_to_hex(new_h, new_s, new_l)
+            palette.append(new_hex)
+        
+        return palette
+    
+    def _generate_complementary_palette(self, h: float, s: float, l: float, count: int) -> List[str]:
+        """Generate a complementary palette (opposite hues on the color wheel)."""
+        # Start with the seed color
+        palette = [hsl_to_hex(h, s, l)]
+        
+        # Add the complementary color
+        comp_h = (h + 180) % 360
+        palette.append(hsl_to_hex(comp_h, s, l))
+        
+        # Add variations of both the original and complementary colors
+        for i in range(count - 2):
+            # Alternate between variations of the original and complementary colors
+            base_h = h if i % 2 == 0 else comp_h
+            
+            # Small hue shift
+            new_h = (base_h + random.choice([-15, 15])) % 360
+            # Vary saturation and lightness
+            new_s = max(0, min(100, s + random.choice(self.saturation_shifts)))
+            new_l = max(10, min(90, l + random.choice(self.lightness_shifts)))
+            
+            new_hex = hsl_to_hex(new_h, new_s, new_l)
+            palette.append(new_hex)
+        
+        return palette
+    
+    def _generate_balanced_palette(self, h: float, s: float, l: float, count: int) -> List[str]:
+        """Generate a balanced palette with good distribution around the color wheel."""
+        palette = [hsl_to_hex(h, s, l)]  # Start with the seed color
+        
+        # Create a well-distributed palette
+        for i in range(count - 1):
+            # Use golden ratio to distribute colors evenly
+            golden_ratio = 0.618033988749895
+            h = (h + 360 * golden_ratio) % 360
+            
+            # Vary saturation and lightness slightly
+            new_s = max(0, min(100, s + random.choice([-10, 0, 10])))
+            new_l = max(10, min(90, l + random.choice([-10, 0, 10])))
+            
+            new_hex = hsl_to_hex(h, new_s, new_l)
+            palette.append(new_hex)
+        
+        return palette
 
 # Initialize the palette generator
 palette_generator = ColorPaletteGenerator()
 
 # -----------------------
-# API Models and Endpoints
+# API Models
 # -----------------------
 
-# Pydantic models for requests and responses
 class ColorRequest(BaseModel):
-    color: str
+    color: str = Field(..., description="Hex color code (with or without # prefix)")
+    
+    @validator('color')
+    def validate_color(cls, v):
+        try:
+            return validate_hex_color(v)
+        except ValueError as e:
+            raise ValueError(str(e))
 
 class PaletteRequest(BaseModel):
-    seed_color: str
-    count: int = 5
-    style: str = "balanced"  # balanced, monochromatic, analogous, complementary
+    seed_color: str = Field(..., description="Hex color code to use as the base for the palette")
+    count: int = Field(5, ge=2, le=10, description="Number of colors in the palette (2-10)")
+    style: str = Field("balanced", description="Palette style: balanced, monochromatic, analogous, complementary")
+    
+    @validator('seed_color')
+    def validate_seed_color(cls, v):
+        try:
+            return validate_hex_color(v)
+        except ValueError as e:
+            raise ValueError(str(e))
+    
+    @validator('style')
+    def validate_style(cls, v):
+        valid_styles = ["balanced", "monochromatic", "analogous", "complementary"]
+        if v not in valid_styles:
+            raise ValueError(f"Invalid style. Please choose from: {', '.join(valid_styles)}")
+        return v
 
 class PaletteResponse(BaseModel):
-    palette: List[str]
-    seed_color: str
-    style: str
-    error: bool = False
-    message: str = ""
+    palette: List[str] = Field(..., description="List of hex color codes in the palette")
+    seed_color: str = Field(..., description="Original seed color")
+    style: str = Field(..., description="Palette style used")
+    error: bool = Field(False, description="Whether an error occurred")
+    message: str = Field("", description="Error message if applicable")
 
 class EmotionRequest(BaseModel):
-    color: str
-    culture: Optional[str] = None
+    color: str = Field(..., description="Hex color code to analyze")
+    culture: Optional[str] = Field(None, description="Specific culture to analyze (western, eastern)")
+    
+    @validator('color')
+    def validate_color(cls, v):
+        try:
+            return validate_hex_color(v)
+        except ValueError as e:
+            raise ValueError(str(e))
+    
+    @validator('culture')
+    def validate_culture(cls, v):
+        if v is not None and v not in ["western", "eastern"]:
+            raise ValueError("Culture must be either 'western' or 'eastern'")
+        return v
 
 class EmotionResponse(BaseModel):
-    color: str
-    primary_emotion: str
-    emotions: List[str]
-    confidence: float
-    cultural_variations: Optional[Dict[str, str]] = None
-    error: bool = False
-    message: str = ""
+    color: str = Field(..., description="Hex color code analyzed")
+    primary_emotion: str = Field(..., description="Primary emotion associated with the color")
+    emotions: List[str] = Field(..., description="List of emotions associated with the color")
+    confidence: float = Field(..., description="Confidence score of the emotion prediction")
+    cultural_variations: Optional[Dict[str, str]] = Field(None, description="Emotion variations across cultures")
+    error: bool = Field(False, description="Whether an error occurred")
+    message: str = Field("", description="Error message if applicable")
 
 class ColorEmotionMapRequest(BaseModel):
-    color: str
-    culture: Optional[str] = None
+    color: str = Field(..., description="Hex color code to analyze")
+    culture: Optional[str] = Field(None, description="Specific culture to analyze (western, eastern)")
+    
+    @validator('color')
+    def validate_color(cls, v):
+        try:
+            return validate_hex_color(v)
+        except ValueError as e:
+            raise ValueError(str(e))
 
 class ColorEmotionMapResponse(BaseModel):
-    color: str
-    primary_emotion: str
-    emotions: List[str]
-    confidence: float
-    cultural_variations: Dict[str, str]
-    similar_colors: List[str]
-    contrasting_emotions: List[str]
-    error: bool = False
-    message: str = ""
+    color: str = Field(..., description="Hex color code analyzed")
+    primary_emotion: str = Field(..., description="Primary emotion associated with the color")
+    emotions: List[str] = Field(..., description="List of emotions associated with the color")
+    confidence: float = Field(..., description="Confidence score of the emotion prediction")
+    cultural_variations: Dict[str, str] = Field(..., description="Emotion variations across cultures")
+    similar_colors: List[str] = Field(..., description="Colors with similar emotional impact")
+    contrasting_emotions: List[str] = Field(..., description="Emotions that contrast with the primary emotion")
+    error: bool = Field(False, description="Whether an error occurred")
+    message: str = Field("", description="Error message if applicable")
 
 class AdvancedColorResponse(BaseModel):
-    palette: List[str]
-    emotions: List[str]
-    primary_emotion: str
-    emotion_confidence: float
-    cultural_variations: Optional[Dict[str, str]] = None
-    similar_colors: List[str] = []
-    contrasting_emotions: List[str] = []
-    error: bool = False
-    message: str = ""
+    palette: List[str] = Field(..., description="Generated color palette")
+    emotions: List[str] = Field(..., description="Emotions associated with the color")
+    primary_emotion: str = Field(..., description="Primary emotion associated with the color")
+    emotion_confidence: float = Field(..., description="Confidence score of the emotion prediction")
+    cultural_variations: Optional[Dict[str, str]] = Field(None, description="Emotion variations across cultures")
+    similar_colors: List[str] = Field([], description="Colors with similar emotional impact")
+    contrasting_emotions: List[str] = Field([], description="Emotions that contrast with the primary emotion")
+    error: bool = Field(False, description="Whether an error occurred")
+    message: str = Field("", description="Error message if applicable")
 
-# New endpoint for ML-based palette generation
+# -----------------------
+# API Endpoints
+# -----------------------
+
 @app.post("/api/py/generate-palette", response_model=PaletteResponse)
 async def generate_palette(request: PaletteRequest):
+    """
+    Generate a color palette based on a seed color.
+    
+    This endpoint creates a palette of colors based on the provided seed color
+    and the specified style. Available styles include balanced, monochromatic,
+    analogous, and complementary.
+    """
     try:
-        # Validate hex color
-        hex_color = request.seed_color
-        if not hex_color.startswith('#'):
-            hex_color = f'#{hex_color}'
-        
-        if not re.match(r'^#[0-9A-Fa-f]{6}$', hex_color):
-            return {
-                "palette": [],
-                "seed_color": hex_color,
-                "style": request.style,
-                "error": True,
-                "message": "Invalid hex color format. Please provide a color in the format #RRGGBB."
-            }
-        
-        # Validate style
-        valid_styles = ["balanced", "monochromatic", "analogous", "complementary"]
-        if request.style not in valid_styles:
-            return {
-                "palette": [],
-                "seed_color": hex_color,
-                "style": request.style,
-                "error": True,
-                "message": f"Invalid style. Please choose from: {', '.join(valid_styles)}"
-            }
-        
         # Generate palette
         palette = palette_generator.generate_palette(
-            hex_color, 
-            count=min(max(request.count, 2), 10),  # Limit between 2 and 10 colors
+            request.seed_color, 
+            count=request.count,
             style=request.style
         )
         
         return {
             "palette": palette,
-            "seed_color": hex_color,
+            "seed_color": request.seed_color,
             "style": request.style
         }
     
+    except ValueError as e:
+        logger.warning(f"Validation error in generate_palette: {e}")
+        return {
+            "palette": [],
+            "seed_color": request.seed_color,
+            "style": request.style,
+            "error": True,
+            "message": str(e)
+        }
     except Exception as e:
-        logger.error(f"Error generating palette: {e}")
+        logger.error(f"Error generating palette: {e}", exc_info=True)
         return {
             "palette": [],
             "seed_color": request.seed_color,
@@ -358,42 +568,31 @@ async def generate_palette(request: PaletteRequest):
             "message": f"Error generating palette: {str(e)}"
         }
 
-# New endpoint for color emotion prediction using research data
 @app.post("/api/py/color-emotion", response_model=EmotionResponse)
 async def predict_color_emotion(request: EmotionRequest):
+    """
+    Predict emotions associated with a color.
+    
+    This endpoint analyzes a color and returns the primary emotion associated
+    with it, along with a list of related emotions and confidence score.
+    """
     try:
-        # Validate hex color
-        hex_color = request.color
-        if not hex_color.startswith('#'):
-            hex_color = f'#{hex_color}'
-        
-        if not re.match(r'^#[0-9A-Fa-f]{6}$', hex_color):
-            return {
-                "color": hex_color,
-                "primary_emotion": "",
-                "emotions": [],
-                "confidence": 0.0,
-                "cultural_variations": {},
-                "error": True,
-                "message": "Invalid hex color format. Please provide a color in the format #RRGGBB."
-            }
-        
         # Convert to RGB for the classifier
-        rgb = hex_to_rgb(hex_color)
+        rgb = hex_to_rgb(request.color)
         
         # Predict primary emotion using the KNN classifier
         primary_emotion = emotion_classifier.predict([rgb])[0]
         
         # Get probabilities to calculate confidence
         probabilities = emotion_classifier.predict_proba([rgb])[0]
-        confidence = max(probabilities)
+        confidence = float(max(probabilities))
         
         # Find the closest color in our dataset to get associated emotions
         closest_color = None
         min_distance = float('inf')
         
         for item in COLOR_EMOTION_DATA:
-            distance = calculate_color_distance(hex_color, item["color"])
+            distance = calculate_color_distance(request.color, item["color"])
             if distance < min_distance:
                 min_distance = distance
                 closest_color = item
@@ -403,19 +602,37 @@ async def predict_color_emotion(request: EmotionRequest):
         
         # Get cultural variations if available
         cultural_variations = {}
-        for culture, classifier in culture_classifiers.items():
-            cultural_variations[culture] = classifier.predict([rgb])[0]
+        
+        # If a specific culture is requested, only return that one
+        if request.culture:
+            if request.culture in culture_classifiers:
+                cultural_variations[request.culture] = culture_classifiers[request.culture].predict([rgb])[0]
+        else:
+            # Otherwise return all available cultures
+            for culture, classifier in culture_classifiers.items():
+                cultural_variations[culture] = classifier.predict([rgb])[0]
         
         return {
-            "color": hex_color,
+            "color": request.color,
             "primary_emotion": primary_emotion,
             "emotions": emotions,
-            "confidence": float(confidence),
+            "confidence": confidence,
             "cultural_variations": cultural_variations
         }
     
+    except ValueError as e:
+        logger.warning(f"Validation error in predict_color_emotion: {e}")
+        return {
+            "color": request.color,
+            "primary_emotion": "",
+            "emotions": [],
+            "confidence": 0.0,
+            "cultural_variations": {},
+            "error": True,
+            "message": str(e)
+        }
     except Exception as e:
-        logger.error(f"Error predicting color emotion: {e}")
+        logger.error(f"Error predicting color emotion: {e}", exc_info=True)
         return {
             "color": request.color,
             "primary_emotion": "",
@@ -426,44 +643,31 @@ async def predict_color_emotion(request: EmotionRequest):
             "message": f"Error predicting color emotion: {str(e)}"
         }
 
-# New endpoint for color emotion map
 @app.post("/api/py/color-emotion-map", response_model=ColorEmotionMapResponse)
 async def get_color_emotion_map(request: ColorEmotionMapRequest):
+    """
+    Generate a detailed emotion map for a color.
+    
+    This endpoint provides a comprehensive analysis of a color's emotional
+    associations, including similar colors and contrasting emotions.
+    """
     try:
-        # Validate hex color
-        hex_color = request.color
-        if not hex_color.startswith('#'):
-            hex_color = f'#{hex_color}'
-        
-        if not re.match(r'^#[0-9A-Fa-f]{6}$', hex_color):
-            return {
-                "color": hex_color,
-                "primary_emotion": "",
-                "emotions": [],
-                "confidence": 0.0,
-                "cultural_variations": {},
-                "similar_colors": [],
-                "contrasting_emotions": [],
-                "error": True,
-                "message": "Invalid hex color format. Please provide a color in the format #RRGGBB."
-            }
-        
         # Convert to RGB for the classifier
-        rgb = hex_to_rgb(hex_color)
+        rgb = hex_to_rgb(request.color)
         
         # Predict primary emotion using the KNN classifier
         primary_emotion = emotion_classifier.predict([rgb])[0]
         
         # Get probabilities to calculate confidence
         probabilities = emotion_classifier.predict_proba([rgb])[0]
-        confidence = max(probabilities)
+        confidence = float(max(probabilities))
         
         # Find the closest color in our dataset to get associated emotions
         closest_color = None
         min_distance = float('inf')
         
         for item in COLOR_EMOTION_DATA:
-            distance = calculate_color_distance(hex_color, item["color"])
+            distance = calculate_color_distance(request.color, item["color"])
             if distance < min_distance:
                 min_distance = distance
                 closest_color = item
@@ -479,7 +683,7 @@ async def get_color_emotion_map(request: ColorEmotionMapRequest):
         # Find similar colors with the same emotion
         similar_colors = []
         for item in COLOR_EMOTION_DATA:
-            if item["primary_emotion"] == primary_emotion and item["color"] != hex_color:
+            if item["primary_emotion"] == primary_emotion and item["color"] != request.color:
                 similar_colors.append(item["color"])
         
         # Limit to 5 similar colors
@@ -492,17 +696,30 @@ async def get_color_emotion_map(request: ColorEmotionMapRequest):
         contrasting_emotions = contrasting_emotions[:3]
         
         return {
-            "color": hex_color,
+            "color": request.color,
             "primary_emotion": primary_emotion,
             "emotions": emotions,
-            "confidence": float(confidence),
+            "confidence": confidence,
             "cultural_variations": cultural_variations,
             "similar_colors": similar_colors,
             "contrasting_emotions": contrasting_emotions
         }
     
+    except ValueError as e:
+        logger.warning(f"Validation error in get_color_emotion_map: {e}")
+        return {
+            "color": request.color,
+            "primary_emotion": "",
+            "emotions": [],
+            "confidence": 0.0,
+            "cultural_variations": {},
+            "similar_colors": [],
+            "contrasting_emotions": [],
+            "error": True,
+            "message": str(e)
+        }
     except Exception as e:
-        logger.error(f"Error generating color emotion map: {e}")
+        logger.error(f"Error generating color emotion map: {e}", exc_info=True)
         return {
             "color": request.color,
             "primary_emotion": "",
@@ -515,52 +732,53 @@ async def get_color_emotion_map(request: ColorEmotionMapRequest):
             "message": f"Error generating color emotion map: {str(e)}"
         }
 
-# New endpoint that combines all advanced color features
 @app.post("/api/py/advanced-color", response_model=AdvancedColorResponse)
 async def get_advanced_color_analysis(request: ColorRequest):
+    """
+    Perform comprehensive color analysis.
+    
+    This endpoint combines palette generation and emotion analysis to provide
+    a complete color profile, including palette suggestions, emotional associations,
+    and cultural variations.
+    """
     try:
-        # Validate hex color
-        hex_color = request.color
-        if not hex_color.startswith('#'):
-            hex_color = f'#{hex_color}'
-        
-        if not re.match(r'^#[0-9A-Fa-f]{6}$', hex_color):
-            return {
-                "palette": [],
-                "emotions": [],
-                "primary_emotion": "",
-                "emotion_confidence": 0.0,
-                "cultural_variations": {},
-                "similar_colors": [],
-                "contrasting_emotions": [],
-                "error": True,
-                "message": "Invalid hex color format. Please provide a color in the format #RRGGBB."
-            }
-        
         # Generate palette
-        palette = palette_generator.generate_palette(hex_color, count=5, style="balanced")
+        palette = palette_generator.generate_palette(request.color, count=5, style="balanced")
         
         # Get emotion data
-        emotion_request = EmotionRequest(color=hex_color)
+        emotion_request = EmotionRequest(color=request.color)
         emotion_response = await predict_color_emotion(emotion_request)
         
         # Get emotion map data for cultural variations
-        emotion_map_request = ColorEmotionMapRequest(color=hex_color)
+        emotion_map_request = ColorEmotionMapRequest(color=request.color)
         emotion_map_response = await get_color_emotion_map(emotion_map_request)
         
         # Create the response with data from all sources
         return {
             "palette": palette,
-            "emotions": emotion_response["emotions"] if "emotions" in emotion_response else [],
-            "primary_emotion": emotion_response["primary_emotion"] if "primary_emotion" in emotion_response else "",
-            "emotion_confidence": emotion_response["confidence"] if "confidence" in emotion_response else 0.0,
-            "cultural_variations": emotion_map_response["cultural_variations"] if "cultural_variations" in emotion_map_response else {},
-            "similar_colors": emotion_map_response["similar_colors"] if "similar_colors" in emotion_map_response else [],
-            "contrasting_emotions": emotion_map_response["contrasting_emotions"] if "contrasting_emotions" in emotion_map_response else [],
+            "emotions": emotion_response.get("emotions", []),
+            "primary_emotion": emotion_response.get("primary_emotion", ""),
+            "emotion_confidence": emotion_response.get("confidence", 0.0),
+            "cultural_variations": emotion_map_response.get("cultural_variations", {}),
+            "similar_colors": emotion_map_response.get("similar_colors", []),
+            "contrasting_emotions": emotion_map_response.get("contrasting_emotions", []),
         }
     
+    except ValueError as e:
+        logger.warning(f"Validation error in get_advanced_color_analysis: {e}")
+        return {
+            "palette": [],
+            "emotions": [],
+            "primary_emotion": "",
+            "emotion_confidence": 0.0,
+            "cultural_variations": {},
+            "similar_colors": [],
+            "contrasting_emotions": [],
+            "error": True,
+            "message": str(e)
+        }
     except Exception as e:
-        logger.error(f"Error in advanced color analysis: {e}")
+        logger.error(f"Error in advanced color analysis: {e}", exc_info=True)
         return {
             "palette": [],
             "emotions": [],
@@ -572,16 +790,3 @@ async def get_advanced_color_analysis(request: ColorRequest):
             "error": True,
             "message": f"Error in advanced color analysis: {str(e)}"
         }
-
-# Health check endpoint
-@app.get("/api/py/health")
-async def health_check():
-    return {
-        "status": "healthy", 
-        "service": "Color Analysis API",
-        "features": [
-            "ML Palette Generation",
-            "Color Emotion Prediction",
-            "Color Emotion Map"
-        ]
-    }
