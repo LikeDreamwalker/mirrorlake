@@ -60,12 +60,12 @@ Inheriting from this, I built up Mirrorlake today as a Complete Modern AI Agent,
 Mirrorlake uses a different way to work. The main design is as below:
 
 - Client Side Runtime (Next.js Client Side): Handle states and response to User Actions ASAP
-- Server Side Runtime (Hybrid): Control the basic logic and ccomputing, also make a bridge between Client Size and Reasoning Engine
+- Server Side Runtime (Hybrid): Control the basic logic and ccomputing, also make a bridge between Client Side and Reasoning Engine
   - Next.js Server Side: Handle the rendering, routing and API calls. Connect to the Edge Services and Reasoning Engine
     - Reserved for connecting to DataBase and fetch the specific data
   - Python Server Side: Reserved for handle complex computing and color analysis jobs. Now runs on Vercel Edge Services or with the Liquid Computing
     - Because Mirrolake is designed to deploy on Vercel, the actual power is limited by Edge Services. It should be more common to build up an independent Python Server to handle all the difficult computing jobs
-- Reasoning Engine (DeepSeek Online Services): Handle the complex logic and understand the user inputs. Use Tool Calling to make an action for user on the Client Side. Reserved for bidirectional MCP communication
+- Reasoning Engine (DeepSeek Online Services): Handle the complex logic and understand the user inputs. Uses Tool Calling to make an action for user on the Client Side. Reserved for bidirectional MCP communication
 
 From a business perspective, now we actually have three levels of services:
 
@@ -77,7 +77,7 @@ Since they all working together, Mirrorlake can offer a more flexible experience
 
 ## Why this
 
-I like the times of AI, but I really think we are expecting too much and asking too much from AI, and the traditional engineering is going to be forgotten that it can also do lots of things. And Mirrorlake is designed for this, we only use AI when we actually need and use it to improve our performance, not just offering user an chat input component to do their own jobs. What's the difference between offering user a terminal to command themselves?
+I like the times of AI, but I really think we are expecting too much and asking too much from Reasoning and Model, and the traditional engineering is going to be forgotten that it can also do lots of things. And Mirrorlake is designed for this, we only use AI when we actually need and use it to improve our performance, not just offering user an chat input component to do their own jobs. What's the difference between offering user a terminal to command themselves?
 
 Agent, or an app really binding the AI and Engineering together, is the future of AI.
 
