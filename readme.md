@@ -75,13 +75,21 @@ From a business perspective, now we actually have three levels of services:
 
 Since they all working together, Mirrorlake can offer a more flexible experience with lower cost.
 
-## Why this
+### Thanks to
+
+- **_[nextjs-fastapi](https://github.com/digitros/nextjs-fastapi)_** for the inspiration of the project structure, it offers a brilliant way to bind up Python Runtime and Next.js Runtime together both in the local and prod environment.
+- **_[colord](https://github.com/omgovich/colord)_** for the color analysis on Next.js runtime. This is actually the core of Mirrorlake, which saved me a lot of time of building up basic color abilities.
+- **_[color-names](https://github.com/meodai/color-names)_** for generating color names. And we acually build up a server action to only fetch the specific color name from the NExt.js Server Side, which will avoid the memory cost on Client Side.
+
+... and all the Dependencies this project is using!
+
+## Why this?
 
 I like the times of AI, but I really think we are expecting too much and asking too much from Reasoning and Model, and the traditional engineering is going to be forgotten about it can also do lots of things. And Mirrorlake is designed for this, we only use AI when we actually need and use it to improve our performance, not just offering user an chat input component to do their own jobs. What's the difference between offering user a terminal to command themselves?
 
 Agent, or an app really binding the AI and Engineering together, is the future of AI.
 
-## To Contribute
+## To contribute
 
 Feel free to open an issue or a pull request! Mirrorlake actually can do lots of things, like asking AI to return items about a specific color, or use AIGC to generate a image or video based on the current theme. But I don't have enough time to do all of these, so if you are interested in this project, you are free to contribute.
 
