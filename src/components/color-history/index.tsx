@@ -6,7 +6,7 @@ import ColorPalettes from "./color-palettes";
 export default function ColorHistory() {
   return (
     <div className="flex flex-col h-full">
-      <div className="space-y-6">
+      <div className="space-y-2">
         <Suspense fallback={<Card className="h-24 animate-pulse" />}>
           <CurrentTheme />
         </Suspense>
