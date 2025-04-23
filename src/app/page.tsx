@@ -4,10 +4,14 @@ import CardContainer from "@/components/card-container";
 import ColorHistory from "@/components/color-history";
 import ColorAssistant from "@/components/color-assistant";
 import { GradientBackground } from "@/components/gradient-background";
+import StructuredData from "@/components/structured-data";
+import InvisibleSEOHeading from "@/components/invisible-seo-heading";
 
 export default function Home() {
   return (
     <main className="flex flex-col h-full w-full overflow-hidden max-w-screen-2xl mx-auto p-2">
+      <StructuredData />
+      <InvisibleSEOHeading title="Mirrorlake - Color Agent" level={1} />
       <GradientBackground className="fixed inset-0 -z-10" />
       {/* Main content area with CSS-based scrolling */}
       <div

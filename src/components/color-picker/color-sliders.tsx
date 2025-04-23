@@ -78,7 +78,7 @@ export function ColorSliders() {
   };
 
   return (
-    <div className="w-full space-y-4 mt-4">
+    <div className="w-full space-y-4">
       <div className="space-y-2">
         <div className="flex justify-between">
           <Label>Lightness: {localLightness}%</Label>

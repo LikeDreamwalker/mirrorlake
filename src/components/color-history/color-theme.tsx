@@ -26,20 +26,20 @@ export default function CurrentTheme() {
   };
 
   return (
-    <TooltipProvider>
-      <Card>
-        <CardHeader className="flex flex-row justify-between items-center w-full">
-          <h3 className="font-medium">Current Theme</h3>
-          <Badge variant="outline">{colors.length} colors</Badge>
-        </CardHeader>
+    <Card>
+      <CardHeader className="flex flex-row justify-between items-center w-full">
+        <h3 className="font-medium text-lg">Current Theme</h3>
+        <Badge variant="outline">{colors.length} colors</Badge>
+      </CardHeader>
 
-        <CardContent>
-          {colors.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <ColorGrid columns={11} gap="gap-1.5">
-              {colors.map((color) => (
-                <Tooltip key={color.id}>
+      <CardContent>
+        {colors.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <ColorGrid columns={11} gap="gap-1.5">
+            {colors.map((color) => (
+              <TooltipProvider key={color.id}>
+                <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="w-full cursor-pointer">
                       <ColorBlock
@@ -60,12 +60,12 @@ export default function CurrentTheme() {
                     <p className="text-xs font-mono">{color.color}</p>
                   </TooltipContent>
                 </Tooltip>
-              ))}
-            </ColorGrid>
-          )}
-        </CardContent>
-      </Card>
-    </TooltipProvider>
+              </TooltipProvider>
+            ))}
+          </ColorGrid>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

@@ -25,9 +25,9 @@ export default function ColorPalettes() {
   };
 
   return (
-    <Card className="h-[30%]">
+    <Card>
       <CardHeader>
-        <h3 className="font-medium">Palettes</h3>
+        <h3 className="font-medium text-lg">Palettes</h3>
       </CardHeader>
 
       <CardContent>
