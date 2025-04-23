@@ -77,7 +77,7 @@ Since they all working together, Mirrorlake can offer a more flexible experience
 
 ## Why this
 
-I like the times of AI, but I really think we are expecting too much and asking too much from Reasoning and Model, and the traditional engineering is going to be forgotten that it can also do lots of things. And Mirrorlake is designed for this, we only use AI when we actually need and use it to improve our performance, not just offering user an chat input component to do their own jobs. What's the difference between offering user a terminal to command themselves?
+I like the times of AI, but I really think we are expecting too much and asking too much from Reasoning and Model, and the traditional engineering is going to be forgotten about it can also do lots of things. And Mirrorlake is designed for this, we only use AI when we actually need and use it to improve our performance, not just offering user an chat input component to do their own jobs. What's the difference between offering user a terminal to command themselves?
 
 Agent, or an app really binding the AI and Engineering together, is the future of AI.
 
