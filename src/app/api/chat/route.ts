@@ -4,7 +4,8 @@ import { deepseek } from "@ai-sdk/deepseek";
 import { streamText, tool, createDataStreamResponse } from "ai";
 import { colorExpertSystemPrompt } from "@/lib/prompt";
 import { z } from "zod";
-import { CoreMessage } from "ai";
+import type { CoreMessage } from "ai";
+import { colorToName } from "@/app/actions/color";
 
 // Define a type for client actions
 interface ClientAction<T = any> {
@@ -213,6 +214,7 @@ export async function POST(req: Request) {
               };
             },
           }),
+
           generateColorPalette: tool({
             description: "Generate a color palette based on a base color",
             parameters: z.object({
@@ -251,6 +253,36 @@ export async function POST(req: Request) {
               };
             },
           }),
+
+          // New tool to get color names from the server-side function
+          getColorName: tool({
+            description:
+              "Get the standardized name for a color code from our database",
+            parameters: z.object({
+              colorCode: z
+                .string()
+                .describe("Color code in any valid format (hex, rgb, hsl)"),
+            }),
+            execute: async (params) => {
+              try {
+                // Call the server-side colorToName function
+                const colorName = await colorToName(params.colorCode);
+                return {
+                  success: true,
+                  colorName: colorName || "Unknown color",
+                  colorCode: params.colorCode,
+                };
+              } catch (error) {
+                console.error("Error getting color name:", error);
+                return {
+                  success: false,
+                  error: String(error),
+                  colorCode: params.colorCode,
+                  colorName: "Unknown color",
+                };
+              }
+            },
+          }),
         };
 
         try {
@@ -260,7 +292,7 @@ export async function POST(req: Request) {
             system: colorExpertSystemPrompt,
             temperature: 0.7,
             tools,
-            maxSteps: 5, // Allow up to 3 steps for multi-step tool calling
+            maxSteps: 5, // Allow up to 5 steps for multi-step tool calling
             onStepFinish: ({ text, toolCalls, toolResults, finishReason }) => {
               console.log(`Step finished with reason: ${finishReason}`);
               if (toolCalls.length > 0) {
