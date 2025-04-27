@@ -1,6 +1,6 @@
 # Mirrorlake Color Agent
 
-An aggregated color agent with LLM, Engineering and the other AI abilities.
+An aggregated color agent with LLM, engineering, and other AI capabilities.
 
 ![Screen Shot](public/screenshot.png)
 
@@ -8,7 +8,7 @@ An aggregated color agent with LLM, Engineering and the other AI abilities.
 
 ### Online
 
-Visit _[mirrorlake.ldwid.com](https://mirrorlake.ldwid.com)_.
+Visit [mirrorlake.ldwid.com](https://mirrorlake.ldwid.com).
 
 > _The online version is hosted on Vercel and uses my own DeepSeek API key._
 >
@@ -18,80 +18,80 @@ Visit _[mirrorlake.ldwid.com](https://mirrorlake.ldwid.com)_.
 
 > **This project is designed to deploy on Vercel.**
 >
-> If you want to deploy on the other services (including your own server), you should picking up the Python part to an independent service.
+> If you want to deploy on other services (including your own server), you should extract the Python part to an independent service.
 >
-> _Before you get started, please make sure you have Python 3.12+ on your local env_
+> _Before you get started, please make sure you have Python 3.12+ in your local environment_
 
 1. Clone this repository
 2. Run `python3 -m venv venv`
 3. Run `source venv/bin/activate` on Mac or `venv\Scripts\activate` on Windows
 4. Install dependencies with `pnpm i`
 5. Run the development server with `pnpm dev`
-6. Open _[http://localhost:3000](http://localhost:3000)_ with your browser to see the app
-7. To use the Reasoning Engine, you need to set up the DeepSeek API KEY in `.env.local` file. And we are using AI SDK so you can change the actually reasoning engine to anyone you like.
+6. Open [http://localhost:3000](http://localhost:3000) with your browser to see the app
+7. To use the Reasoning Engine, you need to set up the DeepSeek API KEY in the `.env.local` file. We're using AI SDK, so you can change the actual reasoning engine to any provider you prefer.
 
 ```bash
-   DEEPSEEK_API_KEY=your_deepseek_api_key
+DEEPSEEK_API_KEY=your_deepseek_api_key
 ```
 
-## How to use
+## How to Use
 
-You can pick up a color from the color picker, and you can also see the related basic color information. The agent will try to also return you the advice about this color.
+You can pick a color from the color picker and view related basic color information. The agent will also provide advice about this color.
 
-You can also talk to the agent to ask it do the jobs for you as below:
+You can also talk to the agent to perform various tasks, such as:
 
-- Give me a random color
-- Give me a "You need a blue sky holiday" theme and add it to my theme
-- Reset my theme to default
-- Tell me more about `#0066FF`
+- "Give me a random color"
+- "Give me a 'You need a blue sky holiday' theme and add it to my theme"
+- "Reset my theme to default"
+- "Tell me more about `#0066FF`"
 
 ## Annotation
 
 ### What is this agent about?
 
-The Color Picker, or the Color Agent idea comes from my early designed project _[Mirrorlake Theme Editior](https://github.com/LikeDreamwalker/mirrorlake-theme-editor)_, which is used to help myself with Vuetify to setup my own theme in time.
+The Color Picker, or the Color Agent idea, comes from my earlier project [Mirrorlake Theme Editor](https://github.com/LikeDreamwalker/mirrorlake-theme-editor), which I used to help myself set up custom themes in Vuetify.
 
-Inheriting from this, I built up Mirrorlake today as a Complete Modern AI Agent, which is target at offering a better experience in selecting colors and building up a theme. Also, use AI to replace some of the traditional UI and UX and manually jobs.
+Building on this foundation, I developed Mirrorlake as a complete modern AI agent, aimed at offering a better experience in selecting colors and building themes. It uses AI to replace some traditional UI/UX elements and manual tasks.
 
-> _This project is not designed for commercial, but more like a best practice template for myself, to involve multiple abilities I will use today._
+> _This project is not designed for commercial use, but rather serves as a best practice template for myself, incorporating multiple capabilities I use today._
 
 ### Details
 
-Mirrorlake uses a different way to work. The main design is as below:
+Mirrorlake uses a multi-layered architecture:
 
-- Client Side Runtime (Next.js Client Side): Handle states and response to User Actions ASAP
-- Server Side Runtime (Hybrid): Control the basic logic and ccomputing, also make a bridge between Client Side and Reasoning Engine
-  - Next.js Server Side: Handle the rendering, routing and API calls. Connect to the Edge Services and Reasoning Engine
-    - Reserved for connecting to DataBase and fetch the specific data
-  - Python Server Side: Reserved for handle complex computing and color analysis jobs. Now runs on Vercel Edge Services or with the Liquid Computing
-    - Because Mirrolake is designed to deploy on Vercel, the actual power is limited by Edge Services. It should be more common to build up an independent Python Server to handle all the difficult computing jobs
-- Reasoning Engine (DeepSeek Online Services): Handle the complex logic and understand the user inputs. Uses Tool Calling to make an action for user on the Client Side. Reserved for bidirectional MCP communication
+- **Client Side Runtime (Next.js Client Side)**: Handles states and responds to user actions immediately
+- **Server Side Runtime (Hybrid)**: Controls basic logic and computing, bridging the client side and reasoning engine
+  - **Next.js Server Side**: Handles rendering, routing, and API calls; connects to edge services and the reasoning engine
+    - Reserved for connecting to databases and fetching specific data
+  - **Python Server Side**: Handles complex computing and color analysis jobs; runs on Vercel Edge Services or with Liquid Computing
+    - Since Mirrorlake is designed for Vercel deployment, its actual power is limited by Edge Services. It would be more common to build an independent Python server to handle complex computing tasks
+- **Reasoning Engine (DeepSeek Online Services)**: Handles complex logic and understands user inputs; uses Tool Calling to execute actions for users on the client side; reserved for bidirectional MCP communication
 
-From a business perspective, now we actually have three levels of services:
+From a business perspective, we have three service levels:
 
-- For the basic color actions, the Next.js Client Side is enough to response
-- For the color analysis, the Next.js Server Side and Python Server Side will work together to return a universal result
-- For the specific user needs, the Reasoning Engine will understand what user needs and tell both the Server and the Client side to finish the job
+- Basic color actions are handled by the Next.js Client Side
+- Color analysis is performed by the Next.js Server Side and Python Server Side working together
+- Specific user needs are addressed by the Reasoning Engine, which coordinates with both server and client sides
 
-Since they all working together, Mirrorlake can offer a more flexible experience with lower cost.
+By working together, these components allow Mirrorlake to offer a flexible experience with lower costs.
 
 ### Thanks to
 
-- **_[nextjs-fastapi](https://github.com/digitros/nextjs-fastapi)_** for the inspiration of the project structure, it offers a brilliant way to bind up Python Runtime and Next.js Runtime together both in the local and prod environment.
-- **_[colord](https://github.com/omgovich/colord)_** for the color analysis on Next.js runtime. This is actually the core of Mirrorlake, which saved me a lot of time of building up basic color abilities.
-- **_[color-names](https://github.com/meodai/color-names)_** for generating color names. And we acually build up a server action to only fetch the specific color name from the NExt.js Server Side, which will avoid the memory cost on Client Side.
+- **[nextjs-fastapi](https://github.com/digitros/nextjs-fastapi)** for inspiring the project structure, offering a brilliant way to combine Python Runtime and Next.js Runtime in both local and production environments.
+- **[colord](https://github.com/omgovich/colord)** for color analysis on Next.js runtime. This is the core of Mirrorlake, saving me significant time in building basic color capabilities.
+- **[color-names](https://github.com/meodai/color-names)** for generating color names. We built a server action to fetch specific color names from the Next.js Server Side, avoiding memory costs on the Client Side.
 
-... and all the Dependencies this project is using!
+...and all the dependencies this project uses!
 
-## Why this?
+## Why This?
 
-I like the times of AI, but I really think we are expecting too much and asking too much from Reasoning and Model, and the traditional engineering is going to be forgotten about it can also do lots of things. And Mirrorlake is designed for this, we only use AI when we actually need and use it to improve our performance, not just offering user an chat input component to do their own jobs. What's the difference between offering user a terminal to command themselves?
+I appreciate the AI era, but I believe we often expect too much from reasoning models while neglecting traditional engineering that can accomplish many tasks efficiently. Mirrorlake is designed with this philosophy in mind—we only use AI when truly needed and to improve performance, rather than simply offering users a chat interface to do their work. What's the difference between that and giving users a terminal to command themselves?
 
-Agent, or an app really binding the AI and Engineering together, is the future of AI.
+An agent, or an app that truly integrates AI with engineering, represents the future of AI applications.
 
-## To contribute
+## To Contribute
 
-Feel free to open an issue or a pull request! Mirrorlake actually can do lots of things, like asking AI to return items about a specific color, or use AIGC to generate a image or video based on the current theme. But I don't have enough time to do all of these, so if you are interested in this project, you are free to contribute.
+Feel free to open an issue or a pull request! Mirrorlake has potential for many additional features, such as asking AI to provide information about specific colors, or using AI-generated content to create images or videos based on the current theme. I don't have enough time to implement all these ideas, so if you're interested in this project, you're welcome to contribute.
 
 ## License
 
@@ -99,4 +99,4 @@ MIT License and All Rights Reserved.
 
 ![LikeDreamwalker](public/ldw.svg)
 
-Meet Me at _[likedreamwalker.space](https://likedreamwalker.space)_
+Meet me at [likedreamwalker.space](https://likedreamwalker.space)
