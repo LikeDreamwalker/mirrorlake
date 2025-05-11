@@ -51,8 +51,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       color-name-list:
-        specifier: ^11.9.1
-        version: 11.9.1
+        specifier: ^11.15.0
+        version: 11.15.0
       colord:
         specifier: ^2.9.3
         version: 2.9.3
@@ -1235,8 +1235,8 @@ packages:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
     engines: {node: '>=7.0.0'}
 
-  color-name-list@11.9.1:
-    resolution: {integrity: sha512-ayQANA+29DQuCDjXQGHBRbRol+q+Ni5JBgvgdu0TK8BBB9nA23wUo1BoxXsv3rkTM3BvTkZoNNPEZPiuHHPiyQ==}
+  color-name-list@11.15.0:
+    resolution: {integrity: sha512-rhYshYvYI7GZMnwGurJNKAk/NLoB2PLKK3qOf6m2F4XHiYoXtm/9MoGz8v6DBolzDZr0Uv66JPzxN7Tfvi+ziQ==}
     engines: {node: '>=20.11.0', npm: '>=10.2.0'}
 
   color-name@1.1.4:
@@ -3794,7 +3794,7 @@ snapshots:
     dependencies:
       color-name: 1.1.4
 
-  color-name-list@11.9.1: {}
+  color-name-list@11.15.0: {}
 
   color-name@1.1.4: {}
 
