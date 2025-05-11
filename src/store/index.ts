@@ -115,22 +115,22 @@ const blueRibbonItem = createColorItem(
 );
 const orangeRedItem = createColorItem(
   defaultOrangeRedColor,
-  "Orange Red",
+  "Red Dit",
   "Vibrant orange-red color"
 );
 const electricBlueItem = createColorItem(
   defaultElectricBlueColor,
-  "Electric Blue",
+  "Hawaii Morning",
   "Bright electric blue color"
 );
 const deepBlackItem = createColorItem(
   defaultDeepBlackColor,
-  "Deep Black",
+  "Dark Tone Ink",
   "Rich deep black color"
 );
 const pureWhiteItem = createColorItem(
   defaultPureWhiteColor,
-  "Pure White",
+  "White",
   "Clean pure white color"
 );
 

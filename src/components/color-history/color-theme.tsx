@@ -1,9 +1,14 @@
 "use client";
 
-import { useStore } from "@/store";
-import { Star } from "lucide-react";
+import { ColorItem, useStore } from "@/store";
+import { Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -13,9 +18,13 @@ import {
 } from "@/components/ui/tooltip";
 import ColorBlock from "./color-block";
 import ColorGrid from "./color-grid";
+import { Separator } from "@/components/ui/separator";
+import { ColorPreview } from "@/components/color-assistant/color-preview";
+import { Button } from "../ui/button";
+import { ScrollArea } from "../ui/scroll-area";
 
 export default function CurrentTheme() {
-  const { colors, setColorFromHex } = useStore();
+  const { colors, setColorFromHex, removeColor } = useStore();
 
   const handleSelectColor = (hex: string) => {
     setColorFromHex(hex);
@@ -25,45 +34,60 @@ export default function CurrentTheme() {
     });
   };
 
+  const handleRemoveCurrentColor = (color: ColorItem) => {
+    removeColor(color.id);
+    toast("Color removed", {
+      description: `${color.color} has been removed from your theme`,
+      duration: 2000,
+    });
+  };
+
   return (
     <Card>
-      <CardHeader className="flex flex-row justify-between items-center w-full">
+      <CardHeader className="flex flex-row justify-between items-center w-full pb-2">
         <h3 className="font-medium text-lg">Current Theme</h3>
         <Badge variant="outline">{colors.length} colors</Badge>
       </CardHeader>
 
       <CardContent>
-        {colors.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <ColorGrid columns={11} gap="gap-1.5">
-            {colors.map((color) => (
-              <TooltipProvider key={color.id}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="w-full cursor-pointer">
-                      <ColorBlock
-                        color={color.color}
-                        onClick={() => handleSelectColor(color.color)}
-                        className="w-full"
-                      >
-                        {color.favorite && (
-                          <div className="absolute top-1 left-1">
-                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          </div>
-                        )}
-                      </ColorBlock>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{color.name}</p>
-                    <p className="text-xs font-mono">{color.color}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))}
-          </ColorGrid>
-        )}
+        <ScrollArea className="w-full h-[50vh] rounded-lg">
+          {colors.length === 0 ? (
+            <EmptyState />
+          ) : (
+            colors.map((color) => (
+              <Card
+                key={color.id}
+                className="w-full rounded-xl overflow-hidden my-2"
+              >
+                <CardContent
+                  className="h-20"
+                  style={{
+                    backgroundColor: color.color,
+                  }}
+                ></CardContent>
+                <Separator />
+                <CardFooter className="p-4 flex justify-between items-center">
+                  <span className="text-lg font-bold">{color.name}</span>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleRemoveCurrentColor(color)}
+                      className="h-8 w-8"
+                      aria-label="Remove color from theme"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <ColorPreview
+                      colorCode={color.color}
+                      // className="h-4"
+                    ></ColorPreview>
+                  </div>
+                </CardFooter>
+              </Card>
+            ))
+          )}
+        </ScrollArea>
       </CardContent>
     </Card>
   );

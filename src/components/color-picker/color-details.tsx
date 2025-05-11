@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Copy, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { AlertCircle, Copy, Plus, Trash2, Dices } from "lucide-react";
 import { toast } from "sonner";
 import { useColorPicker } from "./context";
 import { DetailItem } from "./detail-item";
@@ -141,33 +141,30 @@ export function ColorDetails() {
             <div className="flex gap-2">
               {currentColorInTheme ? (
                 <Button
-                  variant="ghost"
-                  size="icon"
+                  variant="outline"
                   onClick={handleRemoveCurrentColor}
-                  className="h-8 w-8"
                   aria-label="Remove color from theme"
                 >
                   <Trash2 className="h-4 w-4" />
+                  Remove from Theme
                 </Button>
               ) : (
                 <Button
-                  variant="ghost"
-                  size="icon"
+                  variant="outline"
                   onClick={handleAddToTheme}
-                  className="h-8 w-8"
                   aria-label="Add color to theme"
                 >
                   <Plus className="h-4 w-4" />
+                  Add to Theme
                 </Button>
               )}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 onClick={generateRandomColor}
-                className="h-8 w-8"
                 aria-label="Generate random color"
               >
-                <RefreshCw className="h-4 w-4" />
+                <Dices className="h-4 w-4" />
               </Button>
             </div>
           </div>
