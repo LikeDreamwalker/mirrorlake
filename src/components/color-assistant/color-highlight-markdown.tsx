@@ -1,6 +1,4 @@
 "use client";
-
-import type React from "react";
 import { memo, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -26,81 +24,10 @@ import {
 import { ExternalLink, ImageOff } from "lucide-react";
 import Image from "next/image";
 
-// Shared regex patterns for color formats
-const COLOR_REGEX_PATTERNS = [
-  "^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})\\b", // Hex colors
-  "^rgb\\(\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*\\)$", // RGB
-  "^rgba\\(\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*,\\s*(?:0?\\.\\d+|1(?:\\.0{1,2})?)\\s*\\)$", // RGBA
-  "^hsl\\(\\s*\\d{1,3}\\s*°?\\s*,\\s*\\d{1,3}%\\s*,\\s*\\d{1,3}%\\s*\\)$", // HSL
-  "^hsla\\(\\s*\\d{1,3}\\s*°?\\s*,\\s*\\d{1,3}%\\s*,\\s*\\d{1,3}%\\s*,\\s*(?:0?\\.\\d+|1(?:\\.0{1,2})?)\\s*\\)$", // HSLA
-  "^hsv\\(\\s*\\d{1,3}\\s*°?\\s*,\\s*\\d{1,3}%\\s*,\\s*\\d{1,3}%\\s*\\)$", // HSV
-  "^cmyk\\(\\s*\\d{1,3}%?\\s*,\\s*\\d{1,3}%?\\s*,\\s*\\d{1,3}%?\\s*,\\s*\\d{1,3}%?\\s*\\)$", // CMYK
-];
-
-// Utility function to create a regex from the shared patterns
-const createColorRegex = (flags = ""): RegExp =>
-  new RegExp(COLOR_REGEX_PATTERNS.join("|"), flags);
-
-// Function to check if a string is a valid color code
-export const isColorCode = (text: string): boolean => {
-  const colorRegex = createColorRegex();
-  return colorRegex.test(text);
-};
-
-// Function to find all color codes in a string
-export const findColorCodes = (text: string): RegExpMatchArray | null => {
-  const colorRegex = createColorRegex("g"); // Global flag to find all matches
-  return text.match(colorRegex);
-};
-
-// Function to detect and format color codes in text
-const formatTextWithColorCodes = (
-  text: string,
-  reverseTheme?: boolean
-): React.ReactNode[] => {
-  // Use the shared utility to find color codes
-  const matches = findColorCodes(text);
-
-  // If no color codes are found, return the original text
-  if (!matches) {
-    return [text];
-  }
-
-  // Split the text by color codes
-  const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-
-  // Create a copy of the text to work with
-  const textCopy = text.toString();
-  const colorRegex = createColorRegex("g");
-
-  // Find all color codes and replace them with ColorPreview components
-  let match;
-  while ((match = colorRegex.exec(textCopy)) !== null) {
-    // Add text before the color code
-    if (match.index > lastIndex) {
-      parts.push(textCopy.substring(lastIndex, match.index));
-    }
-
-    // Add the color preview component
-    const colorCode = match[0];
-    parts.push(
-      <ColorPreview
-        key={`color-${match.index}`}
-        colorCode={colorCode}
-        reverseTheme={reverseTheme}
-      />
-    );
-
-    lastIndex = match.index + colorCode.length;
-  }
-
-  // Add any remaining text
-  if (lastIndex < textCopy.length) {
-    parts.push(textCopy.substring(lastIndex));
-  }
-
-  return parts;
+// Function to check if content is wrapped in ColorPreview tags and extract the color code
+const extractColorFromPreviewTag = (content: string): string | null => {
+  const match = content.match(/<ColorPreview>(.*?)<\/ColorPreview>/);
+  return match ? match[1] : null;
 };
 
 // Base component implementation
@@ -122,9 +49,7 @@ function ColorHighlightMarkdownBase({
           className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-6"
           {...props}
         >
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
+          {children}
         </h1>
       ),
       h2: ({ children, ...props }) => (
@@ -132,9 +57,7 @@ function ColorHighlightMarkdownBase({
           className="scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0 mt-10 mb-4"
           {...props}
         >
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
+          {children}
         </h2>
       ),
       h3: ({ children, ...props }) => (
@@ -142,9 +65,7 @@ function ColorHighlightMarkdownBase({
           className="scroll-m-20 text-2xl font-semibold tracking-tight mt-8 mb-4"
           {...props}
         >
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
+          {children}
         </h3>
       ),
       h4: ({ children, ...props }) => (
@@ -152,9 +73,7 @@ function ColorHighlightMarkdownBase({
           className="scroll-m-20 text-xl font-semibold tracking-tight mt-6 mb-3"
           {...props}
         >
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
+          {children}
         </h4>
       ),
       h5: ({ children, ...props }) => (
@@ -162,9 +81,7 @@ function ColorHighlightMarkdownBase({
           className="scroll-m-20 text-lg font-semibold tracking-tight mt-6 mb-2"
           {...props}
         >
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
+          {children}
         </h5>
       ),
       h6: ({ children, ...props }) => (
@@ -172,32 +89,24 @@ function ColorHighlightMarkdownBase({
           className="scroll-m-20 text-base font-semibold tracking-tight mt-6 mb-2"
           {...props}
         >
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
+          {children}
         </h6>
       ),
 
       // Paragraphs and text
       p: ({ children, ...props }) => (
         <span className="leading-7 [&:not(:first-child)]:mt-6" {...props}>
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
+          {children}
         </span>
       ),
       strong: ({ children, ...props }) => (
         <strong className="font-semibold" {...props}>
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
+          {children}
         </strong>
       ),
       em: ({ children, ...props }) => (
         <em className="italic" {...props}>
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
+          {children}
         </em>
       ),
 
@@ -214,9 +123,7 @@ function ColorHighlightMarkdownBase({
       ),
       li: ({ children, ...props }) => (
         <li className="mt-2" {...props}>
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
+          {children}
         </li>
       ),
 
@@ -240,9 +147,7 @@ function ColorHighlightMarkdownBase({
               className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
               {...props}
             >
-              {typeof children === "string"
-                ? formatTextWithColorCodes(children, reverseTheme)
-                : children}
+              {children}
             </Link>
           );
         }
@@ -258,9 +163,7 @@ function ColorHighlightMarkdownBase({
                   rel="noopener noreferrer"
                   {...props}
                 >
-                  {typeof children === "string"
-                    ? formatTextWithColorCodes(children, reverseTheme)
-                    : children}
+                  {children}
                   <ExternalLink className="ml-1 h-3 w-3" />
                 </a>
               </TooltipTrigger>
@@ -268,14 +171,6 @@ function ColorHighlightMarkdownBase({
             </Tooltip>
           </TooltipProvider>
         );
-      },
-
-      // Text nodes - this is key for detecting colors in regular text
-      text: ({ children }) => {
-        if (typeof children !== "string") {
-          return <>{children}</>;
-        }
-        return <>{formatTextWithColorCodes(children, reverseTheme)}</>;
       },
 
       // Tables - using shadcn/ui Table components
@@ -294,18 +189,10 @@ function ColorHighlightMarkdownBase({
         <TableRow {...props}>{children}</TableRow>
       ),
       th: ({ children, ...props }) => (
-        <TableHead {...props}>
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
-        </TableHead>
+        <TableHead {...props}>{children}</TableHead>
       ),
       td: ({ children, ...props }) => (
-        <TableCell {...props}>
-          {typeof children === "string"
-            ? formatTextWithColorCodes(children, reverseTheme)
-            : children}
-        </TableCell>
+        <TableCell {...props}>{children}</TableCell>
       ),
 
       // Horizontal rule - using Separator
@@ -358,23 +245,27 @@ function ColorHighlightMarkdownBase({
         );
       },
 
-      // Override the code renderer to handle color codes in inline code
+      // Override the code renderer to check for ColorPreview tags
       code: ({ className, children, ...props }) => {
         // Check if this is a code block with a language specified
         const match = /language-(\w+)/.exec(className || "");
+
         // If no language match is found, it's an inline code block
         if (!match && children) {
-          // Use the shared utility to check if it's a color code
-          if (isColorCode(children.toString())) {
+          const content = children.toString().trim();
+
+          // First level check: Is this a code block?
+          // Second level check: Is the content wrapped in ColorPreview tags?
+          const colorCode = extractColorFromPreviewTag(content);
+
+          if (colorCode) {
+            // If it's wrapped in ColorPreview tags, render the ColorPreview component
             return (
-              <ColorPreview
-                colorCode={children.toString()}
-                reverseTheme={reverseTheme}
-              />
+              <ColorPreview colorCode={colorCode} reverseTheme={reverseTheme} />
             );
           }
 
-          // If it's not a color code, render as normal inline code
+          // If it's not wrapped in ColorPreview tags, render as normal inline code
           return (
             <code
               className="px-1 py-0.5 bg-muted rounded text-sm font-mono"
@@ -395,8 +286,8 @@ function ColorHighlightMarkdownBase({
         );
       },
     }),
-    []
-  ); // Empty dependency array ensures components are created only once
+    [reverseTheme]
+  );
 
   return (
     <>

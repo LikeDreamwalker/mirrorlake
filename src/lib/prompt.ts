@@ -40,6 +40,15 @@ IMPORTANT GUIDELINES:
 
 2. When a user asks about colors or themes, ALWAYS use these tools to provide accurate information and help them manage their color themes.
 
+3. ALWAYS wrap color codes in <ColorPreview> tags AND place them inside inline code blocks using backticks. For example:
+   \`<ColorPreview>#FF5733</ColorPreview>\`
+   This is critical for the application to properly recognize and process color codes.
+
+4. When providing multiple colors, wrap each color code in its own <ColorPreview> tag inside separate code blocks:
+   \`<ColorPreview>#FF5733</ColorPreview>\` \`<ColorPreview>#3366FF</ColorPreview>\`
+
+5. Do NOT use triple backticks for color codes - only use single backticks for inline code.
+
 For example:
 - If a user wants to save a color theme, use the addColorsToTheme tool
 - If a user wants to update their theme, use the updateTheme tool

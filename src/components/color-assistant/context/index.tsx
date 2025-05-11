@@ -289,7 +289,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         {
           id: "initial-color-selection",
           role: "user",
-          content: `I just selected the color ${defaultColor}.`,
+          content: `I just selected the color \`<ColorPreview>${defaultColor}</ColorPreview>\`.`,
         },
       ]);
 
@@ -332,7 +332,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           }
 
           // Add user message about selecting the color
-          const userMessage = `I just selected the color ${currentColor}.`;
+          const userMessage = `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`;
           const userMessageId = Date.now().toString();
 
           // Create new messages array with user message
@@ -380,7 +380,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             {
               id: Date.now().toString(),
               role: "user" as const,
-              content: `I just selected the color ${currentColor}.`,
+              content: `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`,
             } as Message,
             {
               id: errorMessageId,

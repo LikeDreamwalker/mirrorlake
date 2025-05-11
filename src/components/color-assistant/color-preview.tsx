@@ -10,8 +10,11 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { useEffect, useState } from "react";
-import { colord } from "colord";
-import { isColorCode } from "@/components/color-assistant/color-highlight-markdown";
+import { colord, extend } from "colord";
+import namesPlugin from "colord/plugins/names";
+
+// Extend colord with the names plugin for better color name support
+extend([namesPlugin]);
 
 interface ColorPreviewProps {
   colorCode: string;
@@ -28,19 +31,13 @@ export function ColorPreview({
   const [hexColor, setHexColor] = useState("");
   const [isValidColor, setIsValidColor] = useState(true);
   const [colorName, setColorName] = useState("");
+
   // Process the color code and convert it to HEX
   useEffect(() => {
     const processColorCode = async () => {
       const trimmedColor = colorCode.trim();
 
-      // Validate the color format
-      if (!isColorCode(trimmedColor)) {
-        setIsValidColor(false);
-        setHexColor(""); // Reset HEX color if invalid
-        return;
-      }
-
-      // Use colord to convert to HEX
+      // Use colord directly to validate the color
       const color = colord(trimmedColor);
       if (color.isValid()) {
         setHexColor(color.toHex());
@@ -54,7 +51,7 @@ export function ColorPreview({
     };
 
     processColorCode();
-  }, [colorCode]);
+  }, [colorCode, getColorName]);
 
   // Handle click action
   const handleClick = () => {
@@ -90,7 +87,7 @@ export function ColorPreview({
         <TooltipTrigger asChild>
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 p-1 leading-tight rounded-md border cursor-pointer transition-colors ",
+              "inline-flex items-center gap-1.5 p-1 leading-tight rounded-md border cursor-pointer transition-colors",
               !isValidColor && "opacity-50",
               reverseTheme
                 ? "bg-primary text-primary-foreground border-muted-foreground hover:border-primary-blue"
