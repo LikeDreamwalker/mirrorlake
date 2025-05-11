@@ -22,6 +22,13 @@ const BASE_URL =
     : `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`;
 
 /**
+ * Helper function to wrap color codes in ColorPreview tags inside code blocks
+ */
+function formatColorCode(hexColor: string): string {
+  return `\`<ColorPreview>${hexColor}</ColorPreview>\``;
+}
+
+/**
  * Main server action to get comprehensive color advice
  */
 export async function getColorAdvice(
@@ -109,13 +116,15 @@ export async function getColorAdvice(
 
     // Fetch advanced color analysis from Python API
     const advancedData = await fetchAdvancedColorData(hexColor, BASE_URL);
+
     // Generate the response in markdown format with smaller headings and more tables
+    // Using our new format for color codes
     const advice = `
 ${intro}
 
 ---
 
-### Color Information: ${hexColor} (${colorName})
+### Color Information: ${formatColorCode(hexColor)} (${colorName})
 
 | Property | Value |
 |----------|-------|
@@ -128,7 +137,7 @@ ${intro}
 
 | Format | Value |
 |--------|-------|
-| HEX | ${c.toHex().toUpperCase()} |
+| HEX | ${formatColorCode(c.toHex().toUpperCase())} |
 | RGB | rgb(${rgb.r}, ${rgb.g}, ${rgb.b}) |
 | HSL | hsl(${Math.round(hsl.h)}°, ${Math.round(hsl.s)}%, ${Math.round(
       hsl.l
@@ -144,19 +153,25 @@ ${intro}
 
 | Harmony Type | Colors |
 |-------------|--------|
-| Complementary | \`${complementary}\` |
-| Analogous | \`${analogous[0]}\` \`${analogous[1]}\` |
-| Triadic | \`${triadic[0]}\` \`${triadic[1]}\` |
-| Tetradic | \`${tetradic[0]}\` \`${tetradic[1]}\` \`${tetradic[2]}\` |
-| Monochromatic | \`${monochromatic[0]}\` \`${monochromatic[1]}\` \`${
-      monochromatic[2]
-    }\` \`${monochromatic[3]}\` |
+| Complementary | ${formatColorCode(complementary)} |
+| Analogous | ${formatColorCode(analogous[0])} ${formatColorCode(
+      analogous[1]
+    )} |
+| Triadic | ${formatColorCode(triadic[0])} ${formatColorCode(triadic[1])} |
+| Tetradic | ${formatColorCode(tetradic[0])} ${formatColorCode(
+      tetradic[1]
+    )} ${formatColorCode(tetradic[2])} |
+| Monochromatic | ${formatColorCode(monochromatic[0])} ${formatColorCode(
+      monochromatic[1]
+    )} ${formatColorCode(monochromatic[2])} ${formatColorCode(
+      monochromatic[3]
+    )} |
 
 #### Accessibility
 
 | Metric | Value |
 |--------|-------|
-| Best text color | ${betterText} (\`${betterTextHex}\`) |
+| Best text color | ${betterText} (${formatColorCode(betterTextHex)}) |
 | Contrast with white | ${whiteContrast.toFixed(2)}:1 |
 | Contrast with black | ${blackContrast.toFixed(2)}:1 |
 | WCAG compliance | ${
@@ -173,27 +188,33 @@ ${intro}
 
 | Type | Appearance |
 |------|------------|
-| Protanopia (red-blind) | \`${colorBlindness.protanopia}\` |
-| Deuteranopia (green-blind) | \`${colorBlindness.deuteranopia}\` |
-| Tritanopia (blue-blind) | \`${colorBlindness.tritanopia}\` |
+| Protanopia (red-blind) | ${formatColorCode(colorBlindness.protanopia)} |
+| Deuteranopia (green-blind) | ${formatColorCode(colorBlindness.deuteranopia)} |
+| Tritanopia (blue-blind) | ${formatColorCode(colorBlindness.tritanopia)} |
 
 #### Tints and Shades
 
 | Type | Colors |
 |------|--------|
-| Tints (Lighter) | \`${c.lighten(0.8).toHex()}\` \`${c
-      .lighten(0.6)
-      .toHex()}\` \`${c.lighten(0.4).toHex()}\` \`${c.lighten(0.2).toHex()}\` |
-| Shades (Darker) | \`${c.darken(0.2).toHex()}\` \`${c
-      .darken(0.4)
-      .toHex()}\` \`${c.darken(0.6).toHex()}\` \`${c.darken(0.8).toHex()}\` |
+| Tints (Lighter) | ${formatColorCode(
+      c.lighten(0.8).toHex()
+    )} ${formatColorCode(c.lighten(0.6).toHex())} ${formatColorCode(
+      c.lighten(0.4).toHex()
+    )} ${formatColorCode(c.lighten(0.2).toHex())} |
+| Shades (Darker) | ${formatColorCode(c.darken(0.2).toHex())} ${formatColorCode(
+      c.darken(0.4).toHex()
+    )} ${formatColorCode(c.darken(0.6).toHex())} ${formatColorCode(
+      c.darken(0.8).toHex()
+    )} |
 
 ${
   advancedData.hasOwnProperty("palette")
     ? `
 #### Palette
 
-${advancedData.palette?.map((color: string) => `\`${color}\``).join(" ")}
+${advancedData.palette
+  ?.map((color: string) => formatColorCode(color))
+  .join(" ")}
 
 ---
 
