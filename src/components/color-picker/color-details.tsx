@@ -168,9 +168,6 @@ export function ColorDetails() {
               </Button>
             </div>
           </div>
-          <Badge variant="outline" className="mt-1">
-            {color}
-          </Badge>
         </div>
       </div>
 

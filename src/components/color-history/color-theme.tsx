@@ -1,7 +1,7 @@
 "use client";
 
 import { ColorItem, useStore } from "@/store";
-import { Star, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Card,
@@ -10,29 +10,13 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
-import ColorBlock from "./color-block";
-import ColorGrid from "./color-grid";
 import { Separator } from "@/components/ui/separator";
 import { ColorPreview } from "@/components/color-assistant/color-preview";
 import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
 
 export default function CurrentTheme() {
-  const { colors, setColorFromHex, removeColor } = useStore();
-
-  const handleSelectColor = (hex: string) => {
-    setColorFromHex(hex);
-    toast("Color selected", {
-      description: `${hex} is now the active color`,
-      duration: 1500,
-    });
-  };
+  const { colors, removeColor } = useStore();
 
   const handleRemoveCurrentColor = (color: ColorItem) => {
     removeColor(color.id);
@@ -78,10 +62,7 @@ export default function CurrentTheme() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                    <ColorPreview
-                      colorCode={color.color}
-                      // className="h-4"
-                    ></ColorPreview>
+                    <ColorPreview colorCode={color.color}></ColorPreview>
                   </div>
                 </CardFooter>
               </Card>
