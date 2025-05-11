@@ -16,11 +16,13 @@ import { isColorCode } from "@/components/color-assistant/color-highlight-markdo
 interface ColorPreviewProps {
   colorCode: string;
   reverseTheme?: boolean;
+  className?: string;
 }
 
 export function ColorPreview({
   colorCode,
   reverseTheme = false,
+  className,
 }: ColorPreviewProps) {
   const { setColorFromHex, getColorName } = useStore();
   const [hexColor, setHexColor] = useState("");
@@ -88,11 +90,12 @@ export function ColorPreview({
         <TooltipTrigger asChild>
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 p-1 leading-tight rounded-md border cursor-pointer transition-colors m-0.5",
+              "inline-flex items-center gap-1.5 p-1 leading-tight rounded-md border cursor-pointer transition-colors ",
               !isValidColor && "opacity-50",
               reverseTheme
                 ? "bg-primary text-primary-foreground border-muted-foreground hover:border-primary-blue"
-                : "bg-background text-foreground border-border hover:border-primary-blue"
+                : "bg-background text-foreground border-border hover:border-primary-blue",
+              className
             )}
             onClick={handleClick}
           >
@@ -108,7 +111,7 @@ export function ColorPreview({
         <TooltipContent side="top">
           {isValidColor ? (
             <>
-              <p className="text-xs">{colorName}</p>
+              <p className="text-xs">Select {colorName}</p>
             </>
           ) : (
             <p className="text-xs">Not supported yet</p>
