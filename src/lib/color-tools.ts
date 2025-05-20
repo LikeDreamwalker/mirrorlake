@@ -351,3 +351,11 @@ export function checkColorBlindAccessibility(
     issues,
   };
 }
+
+export function isValidHexColor(color: string): boolean {
+  // Remove the hash if it exists
+  const hex = color.replace(/^#/, "");
+
+  // Check if it's a valid hex color (3 or 6 characters)
+  return /^([0-9A-Fa-f]{3}){1,2}$/.test(hex);
+}

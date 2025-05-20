@@ -100,9 +100,10 @@ export function ColorDetails() {
     );
   };
 
-  // Find if this color exists in the current theme
-  const currentColorInTheme = colors.find(
-    (c) => c.color.toLowerCase() === color.toLowerCase()
+  // Find if this color exists in the current theme (memoized)
+  const currentColorInTheme = useMemo(
+    () => colors.find((c) => c.color.toLowerCase() === color.toLowerCase()),
+    [colors, color]
   );
 
   // Handle removing the current color from the theme

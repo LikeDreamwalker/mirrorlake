@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ColorProvider } from "@/provider";
+import { Analytics } from "@vercel/analytics/next";
 export const viewport: Viewport = {
   themeColor: "#0066FF",
   width: "device-width",
@@ -80,6 +81,7 @@ export default async function RootLayout({
           <ColorProvider initialColor="#0066FF">
             <div className="flex justify-center h-screen w-screen">
               {children}
+              <Analytics />
             </div>
             <Toaster />
           </ColorProvider>
