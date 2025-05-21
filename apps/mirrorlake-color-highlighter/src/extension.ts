@@ -1,30 +1,11 @@
 import * as vscode from "vscode";
+import { isColorDark } from "@mirrorlake/color-tools";
 
-// Create decoration types for color highlights
-let colorDecorationType: vscode.TextEditorDecorationType;
+let dynamicDecorationTypes: vscode.TextEditorDecorationType[] = [];
 let isEnabled = true;
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("Color highlighter extension is now active!");
-
-  colorDecorationType = vscode.window.createTextEditorDecorationType({
-    before: {
-      contentText: "\u2009▰\u2009", // Unicode circle
-      fontWeight: "900",
-      // width: "1em",
-      backgroundColor: "rgba(128, 128, 128, 0.10)", // Subtle background for the code
-    },
-    fontStyle: "italic",
-    // letterSpacing: "1px",
-    backgroundColor: "rgba(128, 128, 128, 0.10)", // Subtle background for the code
-    rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
-    after: {
-      contentText: "\u2009\u2009", // Unicode circle
-      // fontWeight: "900",
-      // width: "1em",
-      backgroundColor: "rgba(128, 128, 128, 0.10)", // Subtle background for the code
-    },
-  });
 
   // Register command to toggle between our extension and VSCode's built-in highlighting
   context.subscriptions.push(
@@ -52,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
           if (isEnabled) {
             updateColorDecorations(editor);
           } else {
-            editor.setDecorations(colorDecorationType, []);
+            clearAllDecorations(editor);
           }
         }
       }
@@ -276,55 +257,67 @@ function createColorHover(color: string, range: vscode.Range): vscode.Hover {
   return new vscode.Hover(content, range);
 }
 
+function clearAllDecorations(editor: vscode.TextEditor) {
+  for (const deco of dynamicDecorationTypes) {
+    editor.setDecorations(deco, []);
+    deco.dispose();
+  }
+  dynamicDecorationTypes = [];
+}
+
 function updateColorDecorations(editor: vscode.TextEditor) {
   const text = editor.document.getText();
-  const decorations: vscode.DecorationOptions[] = [];
 
-  // Match hex colors (#fff or #ffffff)
-  const hexColorRegex = /#([0-9A-Fa-f]{3}){1,2}\b/g;
-  let match;
-  while ((match = hexColorRegex.exec(text)) !== null) {
-    const startPos = editor.document.positionAt(match.index);
-    const endPos = editor.document.positionAt(match.index + match[0].length);
-    decorations.push({
-      range: new vscode.Range(startPos, endPos),
-      renderOptions: {
-        before: {
-          color: match[0], // Color the square
-        },
-      },
-    });
-  }
+  clearAllDecorations(editor);
 
-  // Match rgb/rgba/hsl/hsla colors
-  const rgbColorRegex = /rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)/gi;
-  const rgbaColorRegex =
-    /rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/gi;
-  const hslColorRegex = /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)/gi;
-  const hslaColorRegex =
-    /hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/gi;
+  // Tailwind theme backgrounds
+  const lightBg = "rgba(244,244,245,0.7)"; // --background
+  const darkBg = "rgba(35,38,42,0.7)"; // --foreground
 
-  for (const regex of [
-    rgbColorRegex,
-    rgbaColorRegex,
-    hslColorRegex,
-    hslaColorRegex,
-  ]) {
+  const colorRanges: Record<string, vscode.Range[]> = {};
+
+  const colorRegexes = [
+    /#([0-9A-Fa-f]{3}){1,2}\b/g,
+    /rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)/gi,
+    /rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/gi,
+    /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)/gi,
+    /hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/gi,
+  ];
+
+  for (const regex of colorRegexes) {
+    let match;
     while ((match = regex.exec(text)) !== null) {
+      const color = match[0];
       const startPos = editor.document.positionAt(match.index);
-      const endPos = editor.document.positionAt(match.index + match[0].length);
-      decorations.push({
-        range: new vscode.Range(startPos, endPos),
-        renderOptions: {
-          before: {
-            color: match[0],
-          },
-        },
-      });
+      const endPos = editor.document.positionAt(match.index + color.length);
+      const range = new vscode.Range(startPos, endPos);
+
+      if (!colorRanges[color]) {
+        colorRanges[color] = [];
+      }
+      colorRanges[color].push(range);
     }
   }
 
-  editor.setDecorations(colorDecorationType, decorations);
+  for (const color in colorRanges) {
+    const isDark = isColorDark(color);
+    const bg = isDark ? darkBg : lightBg;
+    const decoType = vscode.window.createTextEditorDecorationType({
+      backgroundColor: bg,
+      color: color,
+      before: {
+        color,
+        contentText: "\u2009▰\u2009",
+        backgroundColor: bg,
+      },
+      after: {
+        backgroundColor: bg,
+        contentText: "\u2009\u2009",
+      },
+    });
+    dynamicDecorationTypes.push(decoType);
+    editor.setDecorations(decoType, colorRanges[color]);
+  }
 }
 
 export function deactivate() {
@@ -333,7 +326,7 @@ export function deactivate() {
     .getConfiguration()
     .update("editor.colorDecorators", true, vscode.ConfigurationTarget.Global);
 
-  if (colorDecorationType) {
-    colorDecorationType.dispose();
+  if (vscode.window.activeTextEditor) {
+    clearAllDecorations(vscode.window.activeTextEditor);
   }
 }
