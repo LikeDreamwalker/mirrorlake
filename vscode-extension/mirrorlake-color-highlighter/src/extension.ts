@@ -7,20 +7,23 @@ let isEnabled = true;
 export function activate(context: vscode.ExtensionContext) {
   console.log("Color highlighter extension is now active!");
 
-  // Create the decoration type for color previews with a more distinctive style
   colorDecorationType = vscode.window.createTextEditorDecorationType({
     before: {
-      contentText: "■", // Square character for color preview
-      margin: "0 0.4em 0 0",
-      width: "2em",
-      height: "2em",
-      // borderRadius: "3px", // Rounded corners
-      border: "1px solid rgba(128, 128, 128, 0.5)", // Subtle border
+      contentText: "\u2009▰\u2009", // Unicode circle
+      fontWeight: "900",
+      // width: "1em",
+      backgroundColor: "rgba(128, 128, 128, 0.10)", // Subtle background for the code
     },
-    // Add a light background to make the entire color code stand out
-    backgroundColor: "rgba(128, 128, 128, 0.07)",
-    borderRadius: "3px",
+    fontStyle: "italic",
+    // letterSpacing: "1px",
+    backgroundColor: "rgba(128, 128, 128, 0.10)", // Subtle background for the code
     rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
+    after: {
+      contentText: "\u2009\u2009", // Unicode circle
+      // fontWeight: "900",
+      // width: "1em",
+      backgroundColor: "rgba(128, 128, 128, 0.10)", // Subtle background for the code
+    },
   });
 
   // Register command to toggle between our extension and VSCode's built-in highlighting
@@ -99,23 +102,21 @@ export function activate(context: vscode.ExtensionContext) {
             return createColorHover(color, hexRange);
           }
 
-          // Check for rgb/rgba colors - fixed regex
+          // Check for rgb/rgba colors
           const rgbRange = document.getWordRangeAtPosition(
             position,
-            /rgb$$\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*$$|rgba$$\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(?:0?\.)?\d+\s*$$/
+            /rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)|rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/
           );
-
           if (rgbRange) {
             const color = document.getText(rgbRange);
             return createColorHover(color, rgbRange);
           }
 
-          // Check for hsl colors - fixed regex
+          // Check for hsl/hsla colors
           const hslRange = document.getWordRangeAtPosition(
             position,
-            /hsl$$\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*$$|hsla$$\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(?:0?\.)?\d+\s*$$/
+            /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)|hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/
           );
-
           if (hslRange) {
             const color = document.getText(hslRange);
             return createColorHover(color, hslRange);
@@ -285,69 +286,44 @@ function updateColorDecorations(editor: vscode.TextEditor) {
   while ((match = hexColorRegex.exec(text)) !== null) {
     const startPos = editor.document.positionAt(match.index);
     const endPos = editor.document.positionAt(match.index + match[0].length);
-    const decoration = {
+    decorations.push({
       range: new vscode.Range(startPos, endPos),
       renderOptions: {
         before: {
-          backgroundColor: match[0],
+          color: match[0], // Color the square
         },
       },
-    };
-    decorations.push(decoration);
+    });
   }
 
-  // Match rgb colors - fixed regex
-  const rgbColorRegex =
-    /rgb$$\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*$$/g;
-  while ((match = rgbColorRegex.exec(text)) !== null) {
-    const startPos = editor.document.positionAt(match.index);
-    const endPos = editor.document.positionAt(match.index + match[0].length);
-    const decoration = {
-      range: new vscode.Range(startPos, endPos),
-      renderOptions: {
-        before: {
-          backgroundColor: match[0],
-        },
-      },
-    };
-    decorations.push(decoration);
-  }
-
-  // Match rgba colors - fixed regex
+  // Match rgb/rgba/hsl/hsla colors
+  const rgbColorRegex = /rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)/gi;
   const rgbaColorRegex =
-    /rgba$$\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*((?:0?\.)?\d+)\s*$$/g;
-  while ((match = rgbaColorRegex.exec(text)) !== null) {
-    const startPos = editor.document.positionAt(match.index);
-    const endPos = editor.document.positionAt(match.index + match[0].length);
-    const decoration = {
-      range: new vscode.Range(startPos, endPos),
-      renderOptions: {
-        before: {
-          backgroundColor: match[0],
+    /rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/gi;
+  const hslColorRegex = /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)/gi;
+  const hslaColorRegex =
+    /hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/gi;
+
+  for (const regex of [
+    rgbColorRegex,
+    rgbaColorRegex,
+    hslColorRegex,
+    hslaColorRegex,
+  ]) {
+    while ((match = regex.exec(text)) !== null) {
+      const startPos = editor.document.positionAt(match.index);
+      const endPos = editor.document.positionAt(match.index + match[0].length);
+      decorations.push({
+        range: new vscode.Range(startPos, endPos),
+        renderOptions: {
+          before: {
+            color: match[0],
+          },
         },
-      },
-    };
-    decorations.push(decoration);
+      });
+    }
   }
 
-  // Match hsl colors - fixed regex
-  const hslColorRegex =
-    /hsl$$\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*$$/g;
-  while ((match = hslColorRegex.exec(text)) !== null) {
-    const startPos = editor.document.positionAt(match.index);
-    const endPos = editor.document.positionAt(match.index + match[0].length);
-    const decoration = {
-      range: new vscode.Range(startPos, endPos),
-      renderOptions: {
-        before: {
-          backgroundColor: match[0],
-        },
-      },
-    };
-    decorations.push(decoration);
-  }
-
-  // Apply the decorations
   editor.setDecorations(colorDecorationType, decorations);
 }
 
