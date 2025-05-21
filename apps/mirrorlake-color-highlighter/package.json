@@ -1,5 +1,5 @@
 {
-  "name": "mirrorlake-color-highlighter",
+  "name": "@mirrorlake/vscode-extension",
   "displayName": "mirrorlake-color-highlighter",
   "description": "Highlight HSL, HEX and so on color codes.",
   "version": "0.0.1",
@@ -41,7 +41,8 @@
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "vsce:package": "vsce package"
   },
   "devDependencies": {
     "@types/vscode": "^1.100.0",

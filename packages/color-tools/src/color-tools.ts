@@ -4,7 +4,7 @@ import namesPlugin from "colord/plugins/names";
 import a11yPlugin from "colord/plugins/a11y";
 import harmoniesPlugin from "colord/plugins/harmonies";
 import mixPlugin from "colord/plugins/mix";
-import { colorToName } from "@/app/actions/color";
+import { colorToName } from "./color-names";
 
 // Extend colord with plugins
 extend([cmykPlugin, namesPlugin, a11yPlugin, harmoniesPlugin, mixPlugin]);
