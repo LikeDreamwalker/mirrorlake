@@ -11,7 +11,7 @@ import {
   simulateColorBlindness,
   isValidHexColor,
   isColorDark,
-} from "@/lib/color-tools";
+} from "@mirrorlake/color-tools";
 
 export async function GET(request: NextRequest) {
   try {

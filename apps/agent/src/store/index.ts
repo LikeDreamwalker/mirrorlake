@@ -12,7 +12,7 @@ import {
   rgbToHex,
   hslToHex,
   hslToRgb,
-} from "@/lib/color-tools";
+} from "@mirrorlake/color-tools";
 import { colorToName } from "@/app/actions/color";
 
 /**

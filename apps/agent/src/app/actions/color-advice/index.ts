@@ -4,7 +4,7 @@ import { colord } from "colord";
 import type { ColorAdviceResponse } from "./types";
 import { getRandomItem, formatTemplate } from "./utils";
 import { INTRO_PHRASES, CONCLUSION_PHRASES } from "./constants";
-import { simulateColorBlindness } from "@/lib/color-tools";
+import { simulateColorBlindness } from "@mirrorlake/color-tools";
 import { fetchAdvancedColorData } from "./advance-advice";
 import { colorToName } from "../color"; // Import from parent directory
 import { setupColord } from "./setup";
@@ -18,8 +18,8 @@ const BASE_URL =
   process.env.NEXT_PUBLIC_VERCEL_ENV === "development"
     ? "http://localhost:8000"
     : process.env.NEXT_PUBLIC_VERCEL_ENV === "preview"
-    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-    : `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`;
+      ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+      : `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`;
 
 /**
  * Helper function to wrap color codes in ColorPreview tags inside code blocks
@@ -178,10 +178,10 @@ ${intro}
       contrastValue >= 7
         ? "AA & AAA (all text)"
         : contrastValue >= 4.5
-        ? "AA (all text)"
-        : contrastValue >= 3
-        ? "AA (large text only)"
-        : "Not compliant"
+          ? "AA (all text)"
+          : contrastValue >= 3
+            ? "AA (large text only)"
+            : "Not compliant"
     } |
 
 #### Color Blindness Simulation
