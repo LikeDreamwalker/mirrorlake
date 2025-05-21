@@ -6,7 +6,9 @@
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/apps/mirrorlake-color-highlighter"
+        // Run the extension in the extension folder, not the root folder
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--disable-extensions"
       ],
       "outFiles": [
         "${workspaceFolder}/apps/mirrorlake-color-highlighter/dist/**/*.js"

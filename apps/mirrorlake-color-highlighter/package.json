@@ -1,5 +1,6 @@
 {
-  "name": "@mirrorlake/vscode-extension",
+  "name": "mirrorlake-color-highlighter",
+  "publisher": "mirrorlake",
   "displayName": "mirrorlake-color-highlighter",
   "description": "Highlight HSL, HEX and so on color codes.",
   "version": "0.0.1",
@@ -43,6 +44,9 @@
     "lint": "eslint src",
     "test": "vscode-test",
     "vsce:package": "vsce package"
+  },
+  "dependencies": {
+    "@mirrorlake/color-tools": "workspace:*"
   },
   "devDependencies": {
     "@types/vscode": "^1.100.0",

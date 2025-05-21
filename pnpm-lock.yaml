@@ -149,6 +149,10 @@ importers:
         version: 5.8.3
 
   apps/mirrorlake-color-highlighter:
+    dependencies:
+      '@mirrorlake/color-tools':
+        specifier: workspace:*
+        version: link:../../packages/color-tools
     devDependencies:
       '@types/mocha':
         specifier: ^10.0.10
