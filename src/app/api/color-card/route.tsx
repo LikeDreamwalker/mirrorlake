@@ -13,8 +13,6 @@ import {
   isColorDark,
 } from "@/lib/color-tools";
 
-export const runtime = "edge";
-
 export async function GET(request: NextRequest) {
   try {
     // Get color from query params
