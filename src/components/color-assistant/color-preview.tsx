@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useStore } from "@/store";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { colord, extend } from "colord";
 import namesPlugin from "colord/plugins/names";
 import {
@@ -12,7 +12,7 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Copy, Pipette } from "lucide-react";
+import { Copy, Pipette, Plus, Trash2 } from "lucide-react";
 
 // Extend colord with the names plugin for better color name support
 extend([namesPlugin]);
@@ -28,10 +28,22 @@ export function ColorPreview({
   reverseTheme = false,
   className,
 }: ColorPreviewProps) {
-  const { setColorFromHex, getColorName, addColor } = useStore();
+  const {
+    setColorFromHex,
+    getColorName,
+    addColor,
+    removeColor,
+    colors = [],
+  } = useStore();
   const [hexColor, setHexColor] = useState("");
   const [isValidColor, setIsValidColor] = useState(true);
   const [colorName, setColorName] = useState("");
+
+  // Find if this color exists in the current theme (memoized)
+  const currentColorInTheme = useMemo(
+    () => colors.find((c) => c.color.toLowerCase() === colorCode.toLowerCase()),
+    [colors, colorCode]
+  );
 
   // Process the color code and convert it to HEX
   useEffect(() => {
@@ -78,6 +90,29 @@ export function ColorPreview({
     });
   };
 
+  // Add current color to theme
+  const handleAddToTheme = () => {
+    if (!isValidColor || !hexColor) return;
+    if (!currentColorInTheme) {
+      addColor(hexColor, colorName);
+      toast("Color added", {
+        description: `${hexColor} has been added to your theme`,
+        duration: 2000,
+      });
+    }
+  };
+
+  // Remove current color from theme
+  const handleRemoveFromTheme = () => {
+    if (currentColorInTheme) {
+      removeColor(currentColorInTheme.id);
+      toast("Color removed", {
+        description: `${hexColor} has been removed from your theme`,
+        duration: 2000,
+      });
+    }
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -121,6 +156,25 @@ export function ColorPreview({
             <Button variant="outline" size="icon" onClick={handleSelect}>
               <Pipette />
             </Button>
+            {currentColorInTheme ? (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRemoveFromTheme}
+                aria-label="Remove color from theme"
+              >
+                <Trash2 />
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleAddToTheme}
+                aria-label="Add color to theme"
+              >
+                <Plus />
+              </Button>
+            )}
           </>
         ) : (
           <span className="text-xs text-muted-foreground">
