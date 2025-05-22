@@ -24,5 +24,6 @@
     "clean": {
       "cache": false
     }
-  }
+  },
+  "globalEnv": ["DEEPSEEK_API_KEY"]
 }
