@@ -74,53 +74,41 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Add hover provider for more information
   context.subscriptions.push(
-    vscode.languages.registerHoverProvider(
-      [
-        "css",
-        "scss",
-        "less",
-        "javascript",
-        "typescript",
-        "html",
-        "javascriptreact",
-        "typescriptreact",
-      ],
-      {
-        provideHover(document, position, token) {
-          // Check if we're hovering over a color
-          const hexRange = document.getWordRangeAtPosition(
-            position,
-            /#([0-9A-Fa-f]{3}){1,2}\b/
-          );
-          if (hexRange) {
-            const color = document.getText(hexRange);
-            return createColorHover(color, hexRange);
-          }
+    vscode.languages.registerHoverProvider("*", {
+      provideHover(document, position, token) {
+        // Check if we're hovering over a color
+        const hexRange = document.getWordRangeAtPosition(
+          position,
+          /#([0-9A-Fa-f]{3}){1,2}\b/
+        );
+        if (hexRange) {
+          const color = document.getText(hexRange);
+          return createColorHover(color, hexRange);
+        }
 
-          // Check for rgb/rgba colors
-          const rgbRange = document.getWordRangeAtPosition(
-            position,
-            /rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)|rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/
-          );
-          if (rgbRange) {
-            const color = document.getText(rgbRange);
-            return createColorHover(color, rgbRange);
-          }
+        // Check for rgb/rgba colors
+        const rgbRange = document.getWordRangeAtPosition(
+          position,
+          /rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)|rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/
+        );
+        if (rgbRange) {
+          const color = document.getText(rgbRange);
+          return createColorHover(color, rgbRange);
+        }
 
-          // Check for hsl/hsla colors
-          const hslRange = document.getWordRangeAtPosition(
-            position,
-            /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)|hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/
-          );
-          if (hslRange) {
-            const color = document.getText(hslRange);
-            return createColorHover(color, hslRange);
-          }
+        // Check for hsl/hsla colors
+        const hslRange = document.getWordRangeAtPosition(
+          position,
+          /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)|hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/
+        );
+        if (hslRange) {
+          const color = document.getText(hslRange);
+          return createColorHover(color, hslRange);
+        }
 
-          return null;
-        },
-      }
-    )
+        return null;
+      },
+    })
   );
 
   // Register command to open color in WebView
