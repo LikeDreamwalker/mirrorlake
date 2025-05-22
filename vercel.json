@@ -1,0 +1,4 @@
+{
+  "buildCommand": "turbo build",
+  "outputDirectory": "apps/agent/.next"
+}
