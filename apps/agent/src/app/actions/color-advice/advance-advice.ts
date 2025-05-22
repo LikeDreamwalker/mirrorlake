@@ -18,9 +18,11 @@ export async function fetchAdvancedColorData(
         color: hexColor,
       }),
     });
+    console.log(response, "response");
 
     if (response.ok) {
       const data = await response.json();
+      console.log(data, "data");
       return {
         palette: data.palette || [],
         cultural_variations: data.cultural_variations || {},
