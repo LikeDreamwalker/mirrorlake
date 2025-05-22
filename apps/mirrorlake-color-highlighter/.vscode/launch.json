@@ -7,13 +7,13 @@
       "request": "launch",
       "args": [
         // Run the extension in the extension folder, not the root folder
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--disable-extensions"
+        "--extensionDevelopmentPath=${workspaceFolder}"
+        // "--disable-extensions"
       ],
       "outFiles": [
         "${workspaceFolder}/apps/mirrorlake-color-highlighter/dist/**/*.js"
-      ],
-      "preLaunchTask": "${defaultBuildTask}"
+      ]
+      // "preLaunchTask": "${defaultBuildTask}"
     }
   ]
 }

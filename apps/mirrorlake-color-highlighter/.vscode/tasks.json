@@ -4,8 +4,8 @@
     {
       "type": "npm",
       "script": "watch",
-      "problemMatcher": "$tsc-watch", // Change from $esbuild-watch to $tsc-watch
       "isBackground": true,
+      "problemMatcher": [],
       "presentation": {
         "reveal": "never"
       },

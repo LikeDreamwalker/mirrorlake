@@ -4,12 +4,60 @@ import namesPlugin from "colord/plugins/names";
 import a11yPlugin from "colord/plugins/a11y";
 import harmoniesPlugin from "colord/plugins/harmonies";
 import mixPlugin from "colord/plugins/mix";
-import { colorToName } from "./color-names";
+import { colorToName, nameToColor } from "./color-names";
 
 // Extend colord with plugins
 extend([cmykPlugin, namesPlugin, a11yPlugin, harmoniesPlugin, mixPlugin]);
 
-// Basic color conversion functions
+// --- Color Regexes and Detection Utilities ---
+
+export const COLOR_REGEXES = [
+  {
+    format: "hexa",
+    regex: /#([0-9A-Fa-f]{4}|[0-9A-Fa-f]{8})(?![0-9A-Fa-f])/g,
+  },
+  {
+    format: "hex",
+    regex: /#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})(?![0-9A-Fa-f])/g,
+  },
+  {
+    format: "rgba",
+    regex:
+      /rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/gi,
+  },
+  {
+    format: "rgb",
+    regex: /rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)/gi,
+  },
+  {
+    format: "hsla",
+    regex:
+      /hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/gi,
+  },
+  {
+    format: "hsl",
+    regex: /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)/gi,
+  },
+];
+
+/**
+ * Try to match a color string and return its format and match.
+ */
+export function matchColorString(
+  str: string
+): { format: string; match: string } | null {
+  for (const { format, regex } of COLOR_REGEXES) {
+    regex.lastIndex = 0; // Reset regex state for global regexes
+    const match = regex.exec(str);
+    if (match) {
+      return { format, match: match[0] };
+    }
+  }
+  return null;
+}
+
+// --- Color Conversion and Analysis Functions (unchanged) ---
+
 export const hexToRgb = (hex: string) => {
   const rgb = colord(hex).toRgb();
   return {
@@ -50,7 +98,6 @@ export const alphaToHex = (alpha: number): string => {
     .toUpperCase();
 };
 
-// Color analysis functions
 export const isColorDark = (hex: string): boolean => {
   return colord(hex).isDark();
 };
@@ -74,13 +121,9 @@ export const getReadableTextColor = (backgroundColor: string): string => {
   return colord(backgroundColor).isDark() ? "#FFFFFF" : "#000000";
 };
 
-// Color name functions
 export const getColorName = async (color: string): Promise<string | null> => {
-  // First try the colord built-in name function
   const colorName = colord(color).toName();
   if (colorName) return colorName;
-
-  // If that fails, use our server action
   try {
     return await colorToName(color);
   } catch (error) {
@@ -89,7 +132,6 @@ export const getColorName = async (color: string): Promise<string | null> => {
   }
 };
 
-// Color manipulation functions
 export const mixColors = (
   color1: string,
   color2: string,
@@ -117,7 +159,6 @@ export const rotateHue = (color: string, degrees: number): string => {
   return colord(color).rotate(degrees).toHex().toUpperCase();
 };
 
-// Color palette generation
 export const getColorTints = (color: string, count = 5): string[] => {
   const tints: string[] = [];
   const c = colord(color);
@@ -142,7 +183,6 @@ export const getColorShades = (color: string, count = 5): string[] => {
   return shades;
 };
 
-// Color harmony functions
 export const calculateComplementary = (hexColor: string): string => {
   const complementaryColors = colord(hexColor).harmonies("complementary");
   return complementaryColors[1].toHex().toUpperCase();
@@ -153,7 +193,6 @@ export const calculateAnalogous = (
   hsl?: { h: number; s: number; l: number }
 ): string[] => {
   const analogousColors = colord(hexColor).harmonies("analogous");
-  // Return the two analogous colors (excluding the base color)
   return [
     analogousColors[1].toHex().toUpperCase(),
     analogousColors[2].toHex().toUpperCase(),
@@ -162,7 +201,6 @@ export const calculateAnalogous = (
 
 export const calculateTriadic = (hexColor: string): string[] => {
   const triadicColors = colord(hexColor).harmonies("triadic");
-  // Return the two triadic colors (excluding the base color)
   return [
     triadicColors[1].toHex().toUpperCase(),
     triadicColors[2].toHex().toUpperCase(),
@@ -171,7 +209,6 @@ export const calculateTriadic = (hexColor: string): string[] => {
 
 export const calculateTetradic = (hexColor: string): string[] => {
   const tetradicColors = colord(hexColor).harmonies("tetradic");
-  // Return the three tetradic colors (excluding the base color)
   return [
     tetradicColors[1].toHex().toUpperCase(),
     tetradicColors[2].toHex().toUpperCase(),
@@ -188,7 +225,6 @@ export const getColorPalette = (
     .map((c) => c.toHex().toUpperCase());
 };
 
-// Color attributes by hue range
 export const COLOR_ATTRIBUTES: Record<string, string[]> = {
   red: ["energetic", "passionate", "attention-grabbing", "bold", "exciting"],
   orange: ["warm", "energetic", "friendly", "playful", "inviting"],
@@ -205,31 +241,21 @@ export const COLOR_ATTRIBUTES: Record<string, string[]> = {
   white: ["clean", "pure", "minimalist", "airy", "spacious"],
 };
 
-/**
- * Helper function to get attributes based on color properties
- */
 export function getColorAttributes(
   colorName: string,
   hsl: { h: number; s: number; l: number }
 ): string[] {
-  // Try to find attributes based on color name
   for (const [baseColor, attributes] of Object.entries(COLOR_ATTRIBUTES)) {
     if (colorName.toLowerCase().includes(baseColor)) {
       return attributes;
     }
   }
-
-  // If no match by name, determine by hue
   const { h, s, l } = hsl;
-
-  // For grayscale colors
   if (s < 15) {
     if (l < 20) return COLOR_ATTRIBUTES.black;
     if (l > 80) return COLOR_ATTRIBUTES.white;
     return COLOR_ATTRIBUTES.gray;
   }
-
-  // For colors with saturation, determine by hue
   if ((h >= 0 && h < 30) || (h >= 330 && h <= 360)) return COLOR_ATTRIBUTES.red;
   if (h >= 30 && h < 60) return COLOR_ATTRIBUTES.orange;
   if (h >= 60 && h < 90) return COLOR_ATTRIBUTES.yellow;
@@ -237,38 +263,27 @@ export function getColorAttributes(
   if (h >= 150 && h < 210) return COLOR_ATTRIBUTES.cyan;
   if (h >= 210 && h < 270) return COLOR_ATTRIBUTES.blue;
   if (h >= 270 && h < 330) return COLOR_ATTRIBUTES.purple;
-
-  // Default
   return COLOR_ATTRIBUTES.gray;
 }
 
-/**
- * Gets color name and attributes using the existing colorToName function
- */
 export async function getColorNameAndAttributes(
   hexColor: string
 ): Promise<{ name: string; attributes: string[] }> {
-  // Get the color name using the existing function
   const name = await colorToName(hexColor);
-
-  // Get color attributes based on the name and HSL values
   const c = colord(hexColor);
   const hsl = c.toHsl();
   const attributes = getColorAttributes(name, hsl);
-
   return { name, attributes };
 }
 
-// Color blindness simulation
+// --- Color Blindness and Accessibility (unchanged) ---
+
 export type ColorBlindnessSimulation = {
   protanopia: string;
   deuteranopia: string;
   tritanopia: string;
 };
 
-/**
- * Helper function to simulate color blindness
- */
 export function simulateColorBlindness(
   hexColor: string
 ): ColorBlindnessSimulation {
@@ -278,22 +293,18 @@ export function simulateColorBlindness(
   const g = rgb.g / 255;
   const b = rgb.b / 255;
 
-  // Simplified simulation matrices
-  // Protanopia (red-blind)
   const protanopia = colord({
     r: Math.round((0.567 * r + 0.433 * g) * 255),
     g: Math.round((0.558 * r + 0.442 * g) * 255),
     b: Math.round((0.242 * g + 0.758 * b) * 255),
   });
 
-  // Deuteranopia (green-blind)
   const deuteranopia = colord({
     r: Math.round((0.625 * r + 0.375 * g) * 255),
     g: Math.round((0.7 * r + 0.3 * g) * 255),
     b: Math.round((0.3 * g + 0.7 * b) * 255),
   });
 
-  // Tritanopia (blue-blind)
   const tritanopia = colord({
     r: Math.round((0.95 * r + 0.05 * g) * 255),
     g: Math.round((0.433 * g + 0.567 * b) * 255),
@@ -307,20 +318,14 @@ export function simulateColorBlindness(
   };
 }
 
-/**
- * Check if a color is accessible for color blind users
- */
 export function checkColorBlindAccessibility(
   foreground: string,
   background: string
 ): { accessible: boolean; issues: string[] } {
   const issues: string[] = [];
-
-  // Simulate color blindness for both foreground and background
   const fgBlind = simulateColorBlindness(foreground);
   const bgBlind = simulateColorBlindness(background);
 
-  // Check contrast ratios for each type of color blindness
   const protanopiaContrast = colord(fgBlind.protanopia).contrast(
     bgBlind.protanopia
   );
@@ -331,17 +336,14 @@ export function checkColorBlindAccessibility(
     bgBlind.tritanopia
   );
 
-  // WCAG requires a contrast ratio of at least 4.5:1 for normal text
   const minContrast = 4.5;
 
   if (protanopiaContrast < minContrast) {
     issues.push("Low contrast for red-blind (protanopia) users");
   }
-
   if (deuteranopiaContrast < minContrast) {
     issues.push("Low contrast for green-blind (deuteranopia) users");
   }
-
   if (tritanopiaContrast < minContrast) {
     issues.push("Low contrast for blue-blind (tritanopia) users");
   }
@@ -353,9 +355,111 @@ export function checkColorBlindAccessibility(
 }
 
 export function isValidHexColor(color: string): boolean {
-  // Remove the hash if it exists
   const hex = color.replace(/^#/, "");
-
-  // Check if it's a valid hex color (3 or 6 characters)
   return /^([0-9A-Fa-f]{3}){1,2}$/.test(hex);
+}
+
+// --- Types ---
+
+export type ColorFormat =
+  | "hex"
+  | "hexa"
+  | "rgb"
+  | "rgba"
+  | "hsl"
+  | "hsla"
+  | "named"
+  | "unknown";
+
+export interface ParsedColorResult {
+  input: string;
+  format: ColorFormat;
+  normalized: string; // normalized color string (hex by default)
+  valid: boolean;
+}
+
+// --- Main Color Parser/Normalizer ---
+
+/**
+ * Systematic color parser and normalizer.
+ * - Detects color format using shared regexes and matchColorString
+ * - Resolves named colors using nameToColor
+ * - Normalizes to hex (or other formats if needed)
+ */
+export async function parseAndNormalizeColor(
+  input: string,
+  normalizeTo: "hex" | "rgb" | "hsl" = "hex"
+): Promise<ParsedColorResult> {
+  const trimmed = input.trim();
+
+  // Try regex-based detection first
+  const match = matchColorString(trimmed);
+  if (match) {
+    const c = colord(match.match);
+    return {
+      input,
+      format: match.format as ColorFormat,
+      normalized: c.isValid()
+        ? normalizeTo === "hex"
+          ? c.toHex()
+          : normalizeTo === "rgb"
+            ? c.toRgbString()
+            : c.toHslString()
+        : "",
+      valid: c.isValid(),
+    };
+  }
+
+  // Try named color
+  const namedHex = nameToColor(trimmed);
+  if (namedHex) {
+    const c = colord(namedHex);
+    return {
+      input,
+      format: "named",
+      normalized: c.isValid()
+        ? normalizeTo === "hex"
+          ? c.toHex()
+          : normalizeTo === "rgb"
+            ? c.toRgbString()
+            : c.toHslString()
+        : "",
+      valid: c.isValid(),
+    };
+  }
+
+  // Try colord fallback (for any other valid CSS color)
+  const c = colord(trimmed);
+  if (c.isValid()) {
+    return {
+      input,
+      format: "unknown",
+      normalized:
+        normalizeTo === "hex"
+          ? c.toHex()
+          : normalizeTo === "rgb"
+            ? c.toRgbString()
+            : c.toHslString(),
+      valid: true,
+    };
+  }
+
+  // Not a valid color
+  return {
+    input,
+    format: "unknown",
+    normalized: "",
+    valid: false,
+  };
+}
+
+/**
+ * Returns a CSS color string with the given alpha (opacity).
+ * Supports hex, rgb(a), hsl(a), and named colors.
+ */
+export function buildColorWithAlpha(input: string, alpha: number): string {
+  const c = colord(input);
+  if (!c.isValid()) return input;
+  const { r, g, b } = c.toRgb();
+  return `rgba(${r},${g},${b},${alpha})`;
 }

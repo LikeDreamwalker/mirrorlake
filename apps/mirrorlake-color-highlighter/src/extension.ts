@@ -1,5 +1,9 @@
 import * as vscode from "vscode";
-import { isColorDark } from "@mirrorlake/color-tools";
+import {
+  COLOR_REGEXES,
+  parseAndNormalizeColor,
+  buildColorWithAlpha,
+} from "@mirrorlake/color-tools";
 
 let dynamicDecorationTypes: vscode.TextEditorDecorationType[] = [];
 let isEnabled = true;
@@ -38,6 +42,15 @@ export function activate(context: vscode.ExtensionContext) {
         }
       }
     )
+  );
+
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveColorTheme(() => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor && isEnabled) {
+        updateColorDecorations(editor);
+      }
+    })
   );
 
   // Register event handlers
@@ -265,26 +278,27 @@ function clearAllDecorations(editor: vscode.TextEditor) {
   dynamicDecorationTypes = [];
 }
 
-function updateColorDecorations(editor: vscode.TextEditor) {
+async function updateColorDecorations(editor: vscode.TextEditor) {
   const text = editor.document.getText();
 
   clearAllDecorations(editor);
 
-  // Tailwind theme backgrounds
-  const lightBg = "rgba(244,244,245,0.7)"; // --background
-  const darkBg = "rgba(35,38,42,0.7)"; // --foreground
+  // Tailwind theme backgrounds, borders, and foregrounds
+  const lightBg = "hsl(240, 4.8%, 95.9%)";
+  const darkBg = "hsl(240, 3.7%, 15.9%)";
+  const lightFg = "hsl(240, 5.9%, 10%)";
+  const darkFg = "hsl(0, 0%, 98%)";
+
+  // Detect user's current theme
+  const isEditorDark =
+    vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
+  const bg = isEditorDark ? darkBg : lightBg;
+  const fg = isEditorDark ? darkFg : lightFg;
 
   const colorRanges: Record<string, vscode.Range[]> = {};
 
-  const colorRegexes = [
-    /#([0-9A-Fa-f]{3}){1,2}\b/g,
-    /rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)/gi,
-    /rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/gi,
-    /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)/gi,
-    /hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/gi,
-  ];
-
-  for (const regex of colorRegexes) {
+  // Use shared regexes from color-tools
+  for (const { regex } of COLOR_REGEXES) {
     let match;
     while ((match = regex.exec(text)) !== null) {
       const color = match[0];
@@ -300,19 +314,26 @@ function updateColorDecorations(editor: vscode.TextEditor) {
   }
 
   for (const color in colorRanges) {
-    const isDark = isColorDark(color);
-    const bg = isDark ? darkBg : lightBg;
+    // Use color-tools to parse and normalize the color
+    const parsed = await parseAndNormalizeColor(color, "hex");
+    // Use color-tools to get the border color with 0.7 opacity
+    const borderColor = parsed.valid
+      ? buildColorWithAlpha(parsed.normalized, 0.3)
+      : color;
+
     const decoType = vscode.window.createTextEditorDecorationType({
       backgroundColor: bg,
-      color: color,
+      borderRadius: "0px 999px 999px 0px",
+      borderColor: borderColor,
+      borderStyle: "dashed",
+      borderWidth: "1px 1px 1px 0px",
+      color: fg,
       before: {
-        color,
-        contentText: "\u2009▰\u2009",
+        height: "100%",
         backgroundColor: bg,
-      },
-      after: {
-        backgroundColor: bg,
-        contentText: "\u2009\u2009",
+        color: parsed.valid ? parsed.normalized : color,
+        contentText: "\u2009●\u2009",
+        border: `1px dashed ${borderColor}`,
       },
     });
     dynamicDecorationTypes.push(decoType);
