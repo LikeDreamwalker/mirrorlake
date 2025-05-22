@@ -2,8 +2,8 @@
   "version": 2,
   "routes": [
     {
-      "src": "/api/(.*)\\.py",
-      "dest": "api/$1.py"
+      "src": "/api/py/(.*)",
+      "dest": "api/index.py"
     },
     {
       "src": "/(.*)",
