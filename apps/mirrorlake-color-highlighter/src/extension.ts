@@ -244,9 +244,9 @@ function createColorHover(color: string, range: vscode.Range): vscode.Hover {
   // Remove # if present and encode for URL
   const colorParam = encodeURIComponent(color.replace(/^#/, ""));
 
-  // Render your color card image from the API
+  // Render your color card image from the API with 2:1 aspect ratio (e.g., 300x150)
   content.appendMarkdown(
-    `![Color Card](https://mirrorlake.ldwid.com/api/color-card?color=${colorParam})\n\n`
+    `![Color Card](https://mirrorlake.ldwid.com/api/color-card?color=${colorParam}&width=600&theme=dark)\n\n`
   );
   content.appendMarkdown(`**MirrorLake Color**\n\n`);
   content.appendMarkdown(`**Color:** ${color}\n\n`);
