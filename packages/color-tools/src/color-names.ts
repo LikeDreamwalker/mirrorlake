@@ -82,29 +82,29 @@ export function colorToName(colorCode: string): string {
 /**
  * Convert a color name to its hex code
  * @param colorName - The name of the color
+ * @param exactOnly - If true, only return exact matches
  * @returns The hex code of the color, or empty string if not found
  */
-export function nameToColor(colorName: string): string {
+export function nameToColor(colorName: string, exactOnly = false): string {
   try {
     // Try to find an exact match (case insensitive)
     const exactMatch = colorDatabase.find(
       (color) => color.name.toLowerCase() === colorName.toLowerCase()
     );
-
     if (exactMatch) {
       return exactMatch.hex;
     }
+
+    if (exactOnly) return "";
 
     // If no exact match, try to find a partial match
     const partialMatches = colorDatabase.filter((color) =>
       color.name.toLowerCase().includes(colorName.toLowerCase())
     );
-
     if (partialMatches.length > 0) {
       return partialMatches[0].hex;
     }
 
-    // If no match found, return empty string
     return "";
   } catch (error) {
     console.error("Error in nameToColor:", error);

@@ -38,6 +38,11 @@ export const COLOR_REGEXES = [
     format: "hsl",
     regex: /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)/gi,
   },
+  {
+    format: "named",
+    // Matches CSS identifiers (words), not numbers, not followed by '(' (to avoid functions)
+    regex: /\b([a-zA-Z][a-zA-Z0-9-]*)\b(?!\s*\()/g,
+  },
 ];
 
 /**

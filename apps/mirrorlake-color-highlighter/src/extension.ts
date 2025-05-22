@@ -3,6 +3,7 @@ import {
   COLOR_REGEXES,
   parseAndNormalizeColor,
   buildColorWithAlpha,
+  nameToColor,
 } from "@mirrorlake/color-tools";
 
 let dynamicDecorationTypes: vscode.TextEditorDecorationType[] = [];
@@ -288,20 +289,27 @@ async function updateColorDecorations(editor: vscode.TextEditor) {
   const darkBg = "hsl(240, 3.7%, 15.9%)";
   const lightFg = "hsl(240, 5.9%, 10%)";
   const darkFg = "hsl(0, 0%, 98%)";
+  const lightBorder = "hsl(240, 5.9%, 90%)";
+  const darkBorder = "hsl(240, 3.7%, 15.9%)";
 
   // Detect user's current theme
   const isEditorDark =
     vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
-  const bg = isEditorDark ? darkBg : lightBg;
+  const borderColor = isEditorDark ? darkBorder : lightBorder;
   const fg = isEditorDark ? darkFg : lightFg;
 
   const colorRanges: Record<string, vscode.Range[]> = {};
 
-  // Use shared regexes from color-tools
-  for (const { regex } of COLOR_REGEXES) {
+  for (const { format, regex } of COLOR_REGEXES) {
     let match;
     while ((match = regex.exec(text)) !== null) {
       const color = match[0];
+
+      // Only highlight named colors if they are valid CSS color names
+      if (format === "named" && !nameToColor(color, true)) {
+        continue;
+      }
+
       const startPos = editor.document.positionAt(match.index);
       const endPos = editor.document.positionAt(match.index + color.length);
       const range = new vscode.Range(startPos, endPos);
@@ -317,23 +325,23 @@ async function updateColorDecorations(editor: vscode.TextEditor) {
     // Use color-tools to parse and normalize the color
     const parsed = await parseAndNormalizeColor(color, "hex");
     // Use color-tools to get the border color with 0.7 opacity
-    const borderColor = parsed.valid
-      ? buildColorWithAlpha(parsed.normalized, 0.3)
-      : color;
+    const backgroundColor = parsed.valid
+      ? buildColorWithAlpha(parsed.normalized, 0.1) // adjust opacity as desired
+      : undefined;
 
     const decoType = vscode.window.createTextEditorDecorationType({
-      backgroundColor: bg,
+      backgroundColor: backgroundColor,
       borderRadius: "0px 999px 999px 0px",
       borderColor: borderColor,
-      borderStyle: "dashed",
+      borderStyle: "solid",
       borderWidth: "1px 1px 1px 0px",
       color: fg,
       before: {
         height: "100%",
-        backgroundColor: bg,
+        backgroundColor: backgroundColor,
         color: parsed.valid ? parsed.normalized : color,
         contentText: "\u2009●\u2009",
-        border: `1px dashed ${borderColor}`,
+        border: `1px solid ${borderColor}`,
       },
     });
     dynamicDecorationTypes.push(decoType);
