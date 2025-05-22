@@ -330,7 +330,7 @@ async function updateColorDecorations(editor: vscode.TextEditor) {
         height: "100%",
         backgroundColor: backgroundColor,
         color: parsed.valid ? parsed.normalized : color,
-        contentText: "\u2009●\u2009",
+        contentText: "\u2009■\u2009",
         border: `1px solid ${borderColor}`,
       },
     });
