@@ -240,16 +240,18 @@ export function activate(context: vscode.ExtensionContext) {
 function createColorHover(color: string, range: vscode.Range): vscode.Hover {
   const content = new vscode.MarkdownString();
   content.isTrusted = true;
-  content.supportHtml = true;
 
-  // Add color preview with border
+  // Remove # if present and encode for URL
+  const colorParam = encodeURIComponent(color.replace(/^#/, ""));
+
+  // Render your color card image from the API
   content.appendMarkdown(
-    `<div style="background-color: ${color}; width: 100px; height: 50px; border-radius: 4px; margin-bottom: 10px; border: 1px solid rgba(128, 128, 128, 0.3);"></div>\n\n`
+    `![Color Card](https://mirrorlake.ldwid.com/api/color-card?color=${colorParam})\n\n`
   );
   content.appendMarkdown(`**MirrorLake Color**\n\n`);
   content.appendMarkdown(`**Color:** ${color}\n\n`);
 
-  // Add link to open in WebView
+  // Add link to open in Color Editor WebView
   content.appendMarkdown(
     `[Open in Color Editor](command:mirrorlake-color-highlighter.openColorInWebView?${encodeURIComponent(
       JSON.stringify({ color })
