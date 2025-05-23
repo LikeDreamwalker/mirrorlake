@@ -43,6 +43,12 @@ export const COLOR_REGEXES = [
     // Matches CSS identifiers (words), not numbers, not followed by '(' (to avoid functions)
     regex: /\b([a-zA-Z][a-zA-Z0-9-]*)\b(?!\s*\()/g,
   },
+  {
+    format: "hsl4",
+    // Matches: 240 3.7% 15.9% / 0.7 or hsl(240 3.7% 15.9% / 0.7)
+    regex:
+      /(?:hsl[a]?\()?(\d{1,3})\s+(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%(?:\s*\/\s*(\d*\.?\d+))?\)?/gi,
+  },
 ];
 
 /**
@@ -364,6 +370,32 @@ export function isValidHexColor(color: string): boolean {
   return /^([0-9A-Fa-f]{3}){1,2}$/.test(hex);
 }
 
+export function parseHsl4(
+  str: string
+): { h: number; s: number; l: number; a: number } | null {
+  // Matches: 240 3.7% 15.9% / 0.7 or hsl(240 3.7% 15.9% / 0.7)
+  const match =
+    /(?:hsl[a]?\()?(\d{1,3})\s+(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%(?:\s*\/\s*(\d*\.?\d+))?\)?/.exec(
+      str
+    );
+  if (!match) return null;
+  return {
+    h: Number(match[1]),
+    s: Number(match[2]),
+    l: Number(match[3]),
+    a: match[4] !== undefined ? Number(match[4]) : 1,
+  };
+}
+
+export function toHsl4String(
+  h: number,
+  s: number,
+  l: number,
+  a: number = 1
+): string {
+  return `${h} ${s}% ${l}%${a < 1 ? ` / ${a}` : ""}`;
+}
+
 // --- Types ---
 
 export type ColorFormat =
@@ -374,7 +406,8 @@ export type ColorFormat =
   | "hsl"
   | "hsla"
   | "named"
-  | "unknown";
+  | "unknown"
+  | "hsl4";
 
 export interface ParsedColorResult {
   input: string;
@@ -400,6 +433,27 @@ export async function parseAndNormalizeColor(
   // Try regex-based detection first
   const match = matchColorString(trimmed);
   if (match) {
+    // Special handling for hsl4 (space-separated HSL/alpha)
+    if (match.format === "hsl4") {
+      const hsl = parseHsl4(match.match);
+      if (hsl) {
+        // Use colord to convert to other formats
+        const c = colord({ h: hsl.h, s: hsl.s, l: hsl.l, a: hsl.a });
+        return {
+          input,
+          format: "hsl4",
+          normalized:
+            normalizeTo === "hex"
+              ? c.toHex()
+              : normalizeTo === "rgb"
+                ? c.toRgbString()
+                : toHsl4String(hsl.h, hsl.s, hsl.l, hsl.a),
+          valid: c.isValid(),
+        };
+      }
+    }
+
+    // All other formats: let colord handle
     const c = colord(match.match);
     return {
       input,
@@ -467,4 +521,10 @@ export function buildColorWithAlpha(input: string, alpha: number): string {
   if (!c.isValid()) return input;
   const { r, g, b } = c.toRgb();
   return `rgba(${r},${g},${b},${alpha})`;
+}
+
+export function getAlphaFromColorString(color: string): number {
+  const c = colord(color);
+  if (!c.isValid()) return 1;
+  return c.alpha();
 }

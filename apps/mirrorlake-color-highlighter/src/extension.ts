@@ -4,6 +4,17 @@ import {
   parseAndNormalizeColor,
   buildColorWithAlpha,
   nameToColor,
+  calculateAnalogous,
+  calculateComplementary,
+  getColorName,
+  hexToHsl,
+  hexToRgb,
+  getColorAttributes,
+  getColorTints,
+  getContrastRatio,
+  simulateColorBlindness,
+  getAlphaFromColorString,
+  toHsl4String,
 } from "@mirrorlake/color-tools";
 
 let dynamicDecorationTypes: vscode.TextEditorDecorationType[] = [];
@@ -12,14 +23,12 @@ let isEnabled = true;
 export function activate(context: vscode.ExtensionContext) {
   console.log("Color highlighter extension is now active!");
 
-  // Register command to toggle between our extension and VSCode's built-in highlighting
+  // Toggle highlighting command
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "mirrorlake-color-highlighter.toggleHighlighting",
       async () => {
         isEnabled = !isEnabled;
-
-        // Toggle VSCode's built-in color decorators
         await vscode.workspace
           .getConfiguration()
           .update(
@@ -27,12 +36,9 @@ export function activate(context: vscode.ExtensionContext) {
             !isEnabled,
             vscode.ConfigurationTarget.Global
           );
-
         vscode.window.showInformationMessage(
           `MirrorLake Color highlighting: ${isEnabled ? "Enabled" : "Disabled"}`
         );
-
-        // Update decorations in the active editor
         const editor = vscode.window.activeTextEditor;
         if (editor) {
           if (isEnabled) {
@@ -45,6 +51,36 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  // Replace color command (for clickable hover links)
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "mirrorlake-color-highlighter.replaceColor",
+      async (args) => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || !args?.value) {
+          return;
+        }
+        await editor.edit((editBuilder) => {
+          // Use the range if provided, otherwise replace selection
+          const range = args.range
+            ? new vscode.Range(
+                new vscode.Position(
+                  args.range.start.line,
+                  args.range.start.character
+                ),
+                new vscode.Position(
+                  args.range.end.line,
+                  args.range.end.character
+                )
+              )
+            : editor.selection;
+          editBuilder.replace(range, args.value);
+        });
+      }
+    )
+  );
+
+  // Theme change
   context.subscriptions.push(
     vscode.window.onDidChangeActiveColorTheme(() => {
       const editor = vscode.window.activeTextEditor;
@@ -54,7 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Register event handlers
+  // Editor events
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor && isEnabled) {
@@ -62,7 +98,6 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
-
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((event) => {
       const editor = vscode.window.activeTextEditor;
@@ -72,46 +107,23 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Add hover provider for more information
+  // Hover provider
   context.subscriptions.push(
     vscode.languages.registerHoverProvider("*", {
       provideHover(document, position, token) {
-        // Check if we're hovering over a color
-        const hexRange = document.getWordRangeAtPosition(
-          position,
-          /#([0-9A-Fa-f]{3}){1,2}\b/
-        );
-        if (hexRange) {
-          const color = document.getText(hexRange);
-          return createColorHover(color, hexRange);
+        for (const { regex } of COLOR_REGEXES) {
+          const range = document.getWordRangeAtPosition(position, regex);
+          if (range) {
+            const color = document.getText(range);
+            return createColorHover(color, range);
+          }
         }
-
-        // Check for rgb/rgba colors
-        const rgbRange = document.getWordRangeAtPosition(
-          position,
-          /rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)|rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/
-        );
-        if (rgbRange) {
-          const color = document.getText(rgbRange);
-          return createColorHover(color, rgbRange);
-        }
-
-        // Check for hsl/hsla colors
-        const hslRange = document.getWordRangeAtPosition(
-          position,
-          /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)|hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/
-        );
-        if (hslRange) {
-          const color = document.getText(hslRange);
-          return createColorHover(color, hslRange);
-        }
-
         return null;
       },
     })
   );
 
-  // Register command to open color in WebView
+  // WebView command
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "mirrorlake-color-highlighter.openColorInWebView",
@@ -125,8 +137,6 @@ export function activate(context: vscode.ExtensionContext) {
             retainContextWhenHidden: true,
           }
         );
-
-        // Create a more attractive WebView
         panel.webview.html = `
         <!DOCTYPE html>
         <html>
@@ -236,26 +246,63 @@ export function activate(context: vscode.ExtensionContext) {
   }
 }
 
-// Helper function to create color hover
-function createColorHover(color: string, range: vscode.Range): vscode.Hover {
+async function createColorHover(
+  color: string,
+  range: vscode.Range
+): Promise<vscode.Hover> {
   const content = new vscode.MarkdownString();
   content.isTrusted = true;
 
-  // Remove # if present and encode for URL
-  const colorParam = encodeURIComponent(color.replace(/^#/, ""));
+  // Parse and normalize color (get all formats)
+  const parsedHex = await parseAndNormalizeColor(color, "hex");
+  const parsedRgb = await parseAndNormalizeColor(color, "rgb");
+  const parsedHsl = await parseAndNormalizeColor(color, "hsl");
+  const parsedHsl4 = await parseAndNormalizeColor(color, "hsl"); // We'll format hsl4 below
 
-  // Render your color card image from the API with 2:1 aspect ratio (e.g., 300x150)
-  content.appendMarkdown(
-    `![Color Card](https://mirrorlake.ldwid.com/api/color-card?color=${colorParam}&width=600&theme=dark)\n\n`
+  if (!parsedHex.valid) {
+    content.appendMarkdown(`**Invalid color:** \`${color}\``);
+    return new vscode.Hover(content, range);
+  }
+
+  // Get color info
+  const hex = parsedHex.normalized.toUpperCase();
+  const rgbObj = hexToRgb(hex);
+  const rgb = parsedRgb.normalized;
+  const hslObj = hexToHsl(hex);
+  const hsl = parsedHsl.normalized;
+
+  // Always generate HSL4 string from parsed values
+  const hsl4 = toHsl4String(
+    Math.round(hslObj.h),
+    Math.round(hslObj.s * 100) / 100,
+    Math.round(hslObj.l * 100) / 100,
+    rgbObj.a
   );
-  content.appendMarkdown(`**MirrorLake Color**\n\n`);
-  content.appendMarkdown(`**Color:** ${color}\n\n`);
+  const colorName = (await getColorName(hex)) || "Unknown";
 
-  // Add link to open in Color Editor WebView
+  const rangeObj = {
+    start: { line: range.start.line, character: range.start.character },
+    end: { line: range.end.line, character: range.end.character },
+  };
+
+  // Swatch + name
   content.appendMarkdown(
-    `[Open in Color Editor](command:mirrorlake-color-highlighter.openColorInWebView?${encodeURIComponent(
-      JSON.stringify({ color })
-    )})`
+    `![](https://singlecolorimage.com/get/${hex.replace("#", "").slice(0, 6)}/16x16) **${colorName}**\n\n`
+  );
+
+  // Clickable conversions
+  content.appendMarkdown(
+    `[HEX: *\`${hex}\`*](command:mirrorlake-color-highlighter.replaceColor?${encodeURIComponent(JSON.stringify({ value: hex, range: rangeObj }))})   ` +
+      `[RGB: *\`${rgb}\`*](command:mirrorlake-color-highlighter.replaceColor?${encodeURIComponent(JSON.stringify({ value: rgb, range: rangeObj }))})   ` +
+      "\n\n" +
+      `[HSL: *\`${hsl}\`*](command:mirrorlake-color-highlighter.replaceColor?${encodeURIComponent(JSON.stringify({ value: hsl, range: rangeObj }))})   ` +
+      `[HSL4: *\`${hsl4}\`*](command:mirrorlake-color-highlighter.replaceColor?${encodeURIComponent(JSON.stringify({ value: hsl4, range: rangeObj }))})` +
+      `\n\n`
+  );
+
+  // More info link
+  content.appendMarkdown(
+    `[More on MirrorLake](command:mirrorlake-color-highlighter.openColorInWebView?${encodeURIComponent(JSON.stringify({ color: hex }))})`
   );
 
   return new vscode.Hover(content, range);
@@ -314,9 +361,26 @@ async function updateColorDecorations(editor: vscode.TextEditor) {
   for (const color in colorRanges) {
     // Use color-tools to parse and normalize the color
     const parsed = await parseAndNormalizeColor(color, "hex");
-    // Use color-tools to get the border color with 0.7 opacity
+    // Get alpha from color (default 1)
+    let colorAlpha = 1;
+    if (parsed.valid) {
+      // Try to get alpha from hex, rgb, hsl, hsl4, etc.
+      if (parsed.format === "hexa") {
+        colorAlpha = parseInt(color.slice(-2), 16) / 255;
+      } else if (
+        parsed.format === "rgba" ||
+        parsed.format === "hsla" ||
+        parsed.format === "hsl4"
+      ) {
+        colorAlpha = getAlphaFromColorString(color);
+      }
+    }
+    // Multiply by default opacity
+    const defaultOpacity = 0.3;
+    const finalOpacity = colorAlpha * defaultOpacity;
+
     const backgroundColor = parsed.valid
-      ? buildColorWithAlpha(parsed.normalized, 0.1) // adjust opacity as desired
+      ? buildColorWithAlpha(parsed.normalized, finalOpacity)
       : undefined;
 
     const decoType = vscode.window.createTextEditorDecorationType({
