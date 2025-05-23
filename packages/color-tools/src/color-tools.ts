@@ -49,6 +49,22 @@ export const COLOR_REGEXES = [
     regex:
       /(?:hsl[a]?\()?(\d{1,3})\s+(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%(?:\s*\/\s*(\d*\.?\d+))?\)?/gi,
   },
+  {
+    format: "rgb4",
+    // Matches: 0 170 255 or 0 170 255 / 0.5 or rgb(0 170 255 / 0.5)
+    regex:
+      /(?:rgb[a]?\()?(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s*\/\s*(\d*\.?\d+))?\)?/gi,
+  },
+  {
+    format: "rgb-comma",
+    // Matches: 0, 170, 255 or 0,170,255 (for custom props)
+    regex: /(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})/g,
+  },
+  {
+    format: "hsl-comma",
+    // Matches: 195, 100%, 50% or 195,100%,50% (for custom props)
+    regex: /(\d{1,3}),\s*(\d{1,3})%,\s*(\d{1,3})%/g,
+  },
 ];
 
 /**
@@ -407,7 +423,10 @@ export type ColorFormat =
   | "hsla"
   | "named"
   | "unknown"
-  | "hsl4";
+  | "hsl4"
+  | "rgb4"
+  | "rgb-comma"
+  | "hsl-comma";
 
 export interface ParsedColorResult {
   input: string;
@@ -437,7 +456,6 @@ export async function parseAndNormalizeColor(
     if (match.format === "hsl4") {
       const hsl = parseHsl4(match.match);
       if (hsl) {
-        // Use colord to convert to other formats
         const c = colord({ h: hsl.h, s: hsl.s, l: hsl.l, a: hsl.a });
         return {
           input,
@@ -448,6 +466,81 @@ export async function parseAndNormalizeColor(
               : normalizeTo === "rgb"
                 ? c.toRgbString()
                 : toHsl4String(hsl.h, hsl.s, hsl.l, hsl.a),
+          valid: c.isValid(),
+        };
+      }
+    }
+
+    // --- Special handling for rgb4 (space-separated RGB/alpha) ---
+    if (match.format === "rgb4") {
+      // Match: 0 170 255 or 0 170 255 / 0.5 or rgb(0 170 255 / 0.5)
+      // Extract numbers
+      const rgb4Regex =
+        /(?:rgb[a]?\()?(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s*\/\s*(\d*\.?\d+))?\)?/i;
+      const m = rgb4Regex.exec(match.match);
+      if (m) {
+        const r = Number(m[1]);
+        const g = Number(m[2]);
+        const b = Number(m[3]);
+        const a = m[4] !== undefined ? Number(m[4]) : 1;
+        const c = colord({ r, g, b, a });
+        return {
+          input,
+          format: "rgb4",
+          normalized:
+            normalizeTo === "hex"
+              ? c.toHex()
+              : normalizeTo === "rgb"
+                ? c.toRgbString()
+                : c.toHslString(),
+          valid: c.isValid(),
+        };
+      }
+    }
+
+    // --- Special handling for rgb-comma (comma-separated RGB) ---
+    if (match.format === "rgb-comma") {
+      // Match: 0, 170, 255
+      const rgbCommaRegex = /(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})/;
+      const m = rgbCommaRegex.exec(match.match);
+      if (m) {
+        const r = Number(m[1]);
+        const g = Number(m[2]);
+        const b = Number(m[3]);
+        const c = colord({ r, g, b });
+        return {
+          input,
+          format: "rgb",
+          normalized:
+            normalizeTo === "hex"
+              ? c.toHex()
+              : normalizeTo === "rgb"
+                ? c.toRgbString()
+                : c.toHslString(),
+          valid: c.isValid(),
+        };
+      }
+    }
+
+    // --- Special handling for hsl-comma (comma-separated HSL) ---
+    if (match.format === "hsl-comma") {
+      // Match: 195, 100%, 50%
+      const hslCommaRegex = /(\d{1,3}),\s*(\d{1,3})%,\s*(\d{1,3})%/;
+      const m = hslCommaRegex.exec(match.match);
+      if (m) {
+        const h = Number(m[1]);
+        const s = Number(m[2]);
+        const l = Number(m[3]);
+        const c = colord({ h, s, l });
+        return {
+          input,
+          format: "hsl",
+          normalized:
+            normalizeTo === "hex"
+              ? c.toHex()
+              : normalizeTo === "rgb"
+                ? c.toRgbString()
+                : c.toHslString(),
           valid: c.isValid(),
         };
       }
@@ -469,8 +562,9 @@ export async function parseAndNormalizeColor(
     };
   }
 
+  // NOTE Should we remove it?
   // Try named color
-  const namedHex = nameToColor(trimmed);
+  const namedHex = nameToColor(trimmed, true);
   if (namedHex) {
     const c = colord(namedHex);
     return {
