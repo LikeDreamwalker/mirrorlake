@@ -111,11 +111,30 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.languages.registerHoverProvider("*", {
       provideHover(document, position, token) {
-        for (const { regex } of COLOR_REGEXES) {
-          const range = document.getWordRangeAtPosition(position, regex);
-          if (range) {
-            const color = document.getText(range);
-            return createColorHover(color, range);
+        for (const { format, regex } of COLOR_REGEXES) {
+          let match;
+          while ((match = regex.exec(document.getText())) !== null) {
+            let color = match[0];
+            const startPos = document.positionAt(match.index);
+            const endPos = document.positionAt(match.index + color.length);
+            const range = new vscode.Range(startPos, endPos);
+            // Only highlight named colors if they are valid CSS color names
+            if (format === "named") {
+              const namedColor = nameToColor(color, true);
+              if (namedColor) {
+                color = namedColor;
+              } else {
+                continue;
+              }
+            }
+            if (
+              position.line >= range.start.line &&
+              position.line <= range.end.line &&
+              position.character >= range.start.character &&
+              position.character <= range.end.character
+            ) {
+              return createColorHover(color, range);
+            }
           }
         }
         return null;
