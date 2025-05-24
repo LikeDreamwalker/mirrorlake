@@ -74,32 +74,20 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({
   children,
-  searchParams,
 }: Readonly<{
   children: React.ReactNode;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }>) {
-  const resolvedSearchParams = await searchParams;
-  const colorParam =
-    typeof resolvedSearchParams?.color === "string"
-      ? resolvedSearchParams.color
-      : Array.isArray(resolvedSearchParams?.color)
-        ? resolvedSearchParams.color[0]
-        : undefined;
-
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="dark">
-          <ColorStoreProvider initialColor={colorParam}>
-            <Suspense>
-              <div className="flex justify-center h-screen w-screen">
-                {children}
-                <Analytics />
-              </div>
-            </Suspense>
-            <Toaster />
-          </ColorStoreProvider>
+          <Suspense>
+            <div className="flex justify-center h-screen w-screen">
+              {children}
+              <Analytics />
+            </div>
+          </Suspense>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

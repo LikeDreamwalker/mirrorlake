@@ -24,6 +24,7 @@ export function ColorStoreProvider({
   const storeRef = useRef<ReturnType<typeof createColorStore> | null>(null);
 
   if (!storeRef.current) {
+    console.log(initialColor, "?>?>?>1234");
     storeRef.current = createColorStore(initialColor);
   }
 
@@ -47,7 +48,6 @@ function ColorProviderInner({
   useColorThemeSwitcher();
 
   const setColorFromHex = useStore(store, (s) => s.setColorFromHex);
-  const setState = useStore(store, (s) => s);
 
   useEffect(() => {
     function handleVSCodeMessage(event: MessageEvent) {

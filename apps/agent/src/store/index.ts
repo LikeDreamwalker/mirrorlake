@@ -51,6 +51,15 @@ export const createColorItem = (
   };
 };
 
+function getInitialColor(providedColor?: string): string {
+  console.log("Provided color:", providedColor);
+  // Use provided color from server (search params) or fallback
+  if (providedColor && /^#?[0-9A-Fa-f]{6}$/.test(providedColor)) {
+    return providedColor.startsWith("#") ? providedColor : `#${providedColor}`;
+  }
+  return defaultBlueRibbonColor; // fallback
+}
+
 // Default color values
 const defaultBlueRibbonColor = "#0066ff";
 const defaultOrangeRedColor = "#FF4500";
@@ -173,8 +182,8 @@ interface StoreActions {
 export type ColorStore = StoreState & StoreActions;
 
 export const createColorStore = (initialColor?: string) => {
-  // Use provided initial color or fallback to default
-  const color = initialColor || defaultBlueRibbonColor;
+  // Use provided initial color or get from URL/fallback
+  const color = getInitialColor(initialColor);
   const initialColorItem = createColorItem(
     color,
     color === defaultBlueRibbonColor ? "Blue Ribbon" : color,
