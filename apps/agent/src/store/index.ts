@@ -10,8 +10,9 @@ import {
   rgbToHex,
   hslToHex,
   hslToRgb,
+  generateSimplePalette,
 } from "@mirrorlake/color-tools";
-import { colorToName } from "@/app/actions/color";
+import { colorToName, colorsToNames } from "@/app/actions/color";
 
 export type ColorFormat = "hex" | "rgb" | "hsl";
 
@@ -52,46 +53,11 @@ export const createColorItem = (
 };
 
 function getInitialColor(providedColor?: string): string {
-  console.log("Provided color:", providedColor);
-  // Use provided color from server (search params) or fallback
   if (providedColor && /^#?[0-9A-Fa-f]{6}$/.test(providedColor)) {
     return providedColor.startsWith("#") ? providedColor : `#${providedColor}`;
   }
-  return defaultBlueRibbonColor; // fallback
+  return "#0066ff"; // fallback
 }
-
-// Default color values
-const defaultBlueRibbonColor = "#0066ff";
-const defaultOrangeRedColor = "#FF4500";
-const defaultElectricBlueColor = "#00BBFF";
-const defaultDeepBlackColor = "#121212";
-const defaultPureWhiteColor = "#FFFFFF";
-
-const blueRibbonItem = createColorItem(
-  defaultBlueRibbonColor,
-  "Blue Ribbon",
-  "Default blue color"
-);
-const orangeRedItem = createColorItem(
-  defaultOrangeRedColor,
-  "Red Dit",
-  "Vibrant orange-red color"
-);
-const electricBlueItem = createColorItem(
-  defaultElectricBlueColor,
-  "Hawaii Morning",
-  "Bright electric blue color"
-);
-const deepBlackItem = createColorItem(
-  defaultDeepBlackColor,
-  "Dark Tone Ink",
-  "Rich deep black color"
-);
-const pureWhiteItem = createColorItem(
-  defaultPureWhiteColor,
-  "White",
-  "Clean pure white color"
-);
 
 interface StoreState {
   currentColorInfo: ColorItem;
@@ -162,50 +128,29 @@ interface StoreActions {
   resetTheme: () => void;
   removeColorsFromTheme: (params: { colorNames: string[] }) => void;
   markColorAsFavorite: (params: { colorName: string }) => void;
-  generateColorPalette: (params: {
-    baseColor: string;
-    paletteType:
-      | "analogous"
-      | "complementary"
-      | "triadic"
-      | "tetradic"
-      | "monochromatic";
-    count?: number;
-  }) => Promise<{
-    success: boolean;
-    baseColor: string;
-    paletteType: string;
-    palette: Array<{ color: string; name: string }>;
-  }>;
 }
 
 export type ColorStore = StoreState & StoreActions;
 
-export const createColorStore = (initialColor?: string) => {
-  // Use provided initial color or get from URL/fallback
-  const color = getInitialColor(initialColor);
-  const initialColorItem = createColorItem(
-    color,
-    color === defaultBlueRibbonColor ? "Blue Ribbon" : color,
-    color === defaultBlueRibbonColor
-      ? "Default blue color"
-      : "Color from search param"
+export const createColorStore = (
+  initialColor?: string,
+  initialTheme?: Array<{ color: string; name: string }>
+) => {
+  const palette = (initialTheme || []).map((c) =>
+    createColorItem(c.color, c.name)
   );
+  const initialItem =
+    palette[0] || createColorItem(initialColor || "#0066ff", "Default");
 
-  return createStore<ColorStore>((set, get) => ({
-    currentColorInfo: initialColorItem,
-    currentColor: color.toUpperCase(),
+  const store = createStore<ColorStore>((set, get) => ({
+    currentColorInfo: initialItem,
+    currentColor: initialItem.color,
     format: "hex" as ColorFormat,
-    isDark: isColorDark(color),
+    isDark: isColorDark(initialItem.color),
     hslChanged: false,
     autoSwitchTheme: true,
-    colors: [
-      initialColorItem,
-      ...(color === defaultBlueRibbonColor
-        ? [orangeRedItem, electricBlueItem, deepBlackItem, pureWhiteItem]
-        : []),
-    ],
-    recentColors: [color.toUpperCase()],
+    colors: palette.length > 0 ? palette : [initialItem],
+    recentColors: [initialItem.color],
 
     convertColor: (params: ColorConversionParams) => {
       if (params.hex) {
@@ -626,111 +571,7 @@ export const createColorStore = (initialColor?: string) => {
         }
       }
     },
-
-    generateColorPalette: async (params) => {
-      const { baseColor, paletteType, count = 5 } = params;
-      const store = get();
-      const normalizedBaseColor = baseColor.toUpperCase();
-      const rgb = hexToRgb(normalizedBaseColor);
-      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-      let palette: Array<{ color: string; name: string }> = [];
-
-      switch (paletteType) {
-        case "analogous": {
-          const colors = [];
-          for (let i = -2; i <= 2; i++) {
-            if (i === 0) continue;
-            const newHue = (hsl.h + i * 30 + 360) % 360;
-            const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
-            const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b).toUpperCase();
-            const name = await colorToName(newHex);
-            colors.push({ color: newHex, name: name || `Color ${newHex}` });
-          }
-          palette = colors;
-          break;
-        }
-        case "complementary": {
-          const complementaryHue = (hsl.h + 180) % 360;
-          const complementaryRgb = hslToRgb(complementaryHue, hsl.s, hsl.l);
-          const complementaryHex = rgbToHex(
-            complementaryRgb.r,
-            complementaryRgb.g,
-            complementaryRgb.b
-          ).toUpperCase();
-          const name = await colorToName(complementaryHex);
-          palette = [
-            {
-              color: complementaryHex,
-              name: name || `Color ${complementaryHex}`,
-            },
-          ];
-          break;
-        }
-        case "triadic": {
-          const colors = [];
-          for (let i = 1; i <= 2; i++) {
-            const newHue = (hsl.h + i * 120) % 360;
-            const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
-            const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b).toUpperCase();
-            const name = await colorToName(newHex);
-            colors.push({ color: newHex, name: name || `Color ${newHex}` });
-          }
-          palette = colors;
-          break;
-        }
-        case "tetradic": {
-          const colors = [];
-          for (let i = 1; i <= 3; i++) {
-            const newHue = (hsl.h + i * 90) % 360;
-            const newRgb = hslToRgb(newHue, hsl.s, hsl.l);
-            const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b).toUpperCase();
-            const name = await colorToName(newHex);
-            colors.push({ color: newHex, name: name || `Color ${newHex}` });
-          }
-          palette = colors;
-          break;
-        }
-        case "monochromatic": {
-          const colors = [];
-          for (let i = 1; i <= Math.min(count, 4); i++) {
-            const newLightness = Math.max(
-              10,
-              Math.min(90, hsl.l + (i % 2 === 0 ? i * 10 : -i * 10))
-            );
-            const newRgb = hslToRgb(hsl.h, hsl.s, newLightness);
-            const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b).toUpperCase();
-            const name = await colorToName(newHex);
-            colors.push({ color: newHex, name: name || `Color ${newHex}` });
-          }
-          palette = colors;
-          break;
-        }
-      }
-
-      const baseName = await colorToName(normalizedBaseColor);
-      palette.unshift({
-        color: normalizedBaseColor,
-        name: baseName || `Color ${normalizedBaseColor}`,
-      });
-
-      palette = palette.slice(0, count);
-
-      for (const colorItem of palette) {
-        await store.addColor(colorItem.color, colorItem.name);
-      }
-
-      if (typeof toast !== "undefined") {
-        toast.success(
-          `Generated ${palette.length} colors for ${paletteType} palette`
-        );
-      }
-
-      return {
-        success: true,
-        baseColor: normalizedBaseColor,
-        paletteType,
-        palette,
-      };
-    },
   }));
+
+  return store;
 };

@@ -94,7 +94,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     resetTheme,
     removeColorsFromTheme,
     markColorAsFavorite,
-    generateColorPalette,
   } = useColorStore((state) => ({
     // Color picker state
     currentColorInfo: state.currentColorInfo,
@@ -127,7 +126,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     resetTheme: state.resetTheme,
     removeColorsFromTheme: state.removeColorsFromTheme,
     markColorAsFavorite: state.markColorAsFavorite,
-    generateColorPalette: state.generateColorPalette,
   }));
 
   const [isProcessingColor, setIsProcessingColor] = useState(false);
@@ -230,10 +228,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             markColorAsFavorite(params);
             break;
 
-          case "generateColorPalette":
-            generateColorPalette(params);
-            break;
-
           case "setColorFromHex":
             setColorFromHex(params.hex);
             break;
@@ -282,7 +276,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     resetTheme,
     removeColorsFromTheme,
     markColorAsFavorite,
-    generateColorPalette,
     setColorFromHex,
     setColorFromRgb,
     setColorFromHsl,

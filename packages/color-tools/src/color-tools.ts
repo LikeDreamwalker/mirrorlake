@@ -622,3 +622,64 @@ export function getAlphaFromColorString(color: string): number {
   if (!c.isValid()) return 1;
   return c.alpha();
 }
+
+export function generateThemePalette(baseColor: string): string[] {
+  // Normalize to #HEX
+  const hex = baseColor.startsWith("#")
+    ? baseColor.toUpperCase()
+    : `#${baseColor.toUpperCase()}`;
+  const c = colord(hex);
+
+  // Analogous colors
+  const analogous = c
+    .harmonies("analogous")
+    .map((col) => col.toHex().toUpperCase());
+
+  // Complementary color
+  const complementary = c.rotate(180).toHex().toUpperCase();
+
+  // Triadic colors
+  const triadic = c
+    .harmonies("triadic")
+    .map((col) => col.toHex().toUpperCase());
+
+  // Tint (lighter)
+  const tint = c.mix("#FFFFFF", 0.7).toHex().toUpperCase();
+
+  // Shade (darker)
+  const shade = c.mix("#000000", 0.7).toHex().toUpperCase();
+
+  // Build palette: base, analogous, complementary, triadic, tint, shade
+  let palette = [
+    ...analogous.filter((col) => col !== hex),
+    complementary,
+    ...triadic.filter((col) => col !== hex),
+    tint,
+    shade,
+  ];
+
+  // Remove duplicates
+  palette = [...new Set(palette)];
+
+  // Shuffle the palette (Fisher-Yates)
+  for (let i = palette.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [palette[i], palette[j]] = [palette[j], palette[i]];
+  }
+
+  // Soften the palette: randomly lighten or darken each color a bit
+  palette = palette.map((col) => {
+    const c = colord(col);
+    // Randomly choose lighten or darken, and by how much (0.08 ~ 0.18)
+    const amt = 0.08 + Math.random() * 0.1;
+    return Math.random() > 0.5
+      ? c.lighten(amt).toHex().toUpperCase()
+      : c.darken(amt).toHex().toUpperCase();
+  });
+
+  // Always put the base color first (unmodified)
+  palette.unshift(hex);
+
+  // Limit to 7 colors
+  return palette.slice(0, 7);
+}

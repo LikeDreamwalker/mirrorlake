@@ -166,7 +166,10 @@ export function ColorWheel() {
     const x = 50 + Math.cos(hueRadians) * saturationPercent * 50;
     const y = 50 + Math.sin(hueRadians) * saturationPercent * 50;
 
-    return { x, y };
+    return {
+      x: Number(x.toFixed(2)),
+      y: Number(y.toFixed(2)),
+    };
   };
 
   // Get marker position

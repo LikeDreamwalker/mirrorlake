@@ -7,19 +7,29 @@ import { GradientBackground } from "@/components/gradient-background";
 import StructuredData from "@/components/structured-data";
 import InvisibleSEOHeading from "@/components/invisible-seo-heading";
 import { ColorStoreProvider } from "@/provider";
-
+import { generateThemePalette } from "@mirrorlake/color-tools";
+import { colorsToNames } from "@/app/actions/color";
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function Page(props: { searchParams: SearchParams }) {
   const searchParams = await props.searchParams;
-  let color = searchParams.color;
+  let color = searchParams.color || "#0066ff";
   if (Array.isArray(color)) {
     color = color[0];
   }
   console.log(color, "color");
 
+  const paletteHex = generateThemePalette(color);
+  console.log(paletteHex, "paletteHex");
+  const colorNames = await colorsToNames(paletteHex);
+  const initialTheme = paletteHex.map((hex, i) => ({
+    color: hex,
+    name: colorNames[i] || `Color ${hex}`,
+  }));
+  console.log(initialTheme, "initialTheme");
+
   return (
-    <ColorStoreProvider initialColor={color}>
+    <ColorStoreProvider initialColor={color} initialTheme={initialTheme}>
       <main className="flex flex-col h-full w-full overflow-hidden max-w-screen-2xl mx-auto p-2">
         <StructuredData />
         <InvisibleSEOHeading title="Mirrorlake - Color Agent" level={1} />

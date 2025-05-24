@@ -15,22 +15,26 @@ export const ColorStoreContext = createContext<ReturnType<
 interface ColorStoreProviderProps {
   children: React.ReactNode;
   initialColor?: string;
+  initialTheme: Array<{ color: string; name: string }>;
 }
 
 export function ColorStoreProvider({
   children,
   initialColor,
+  initialTheme,
 }: ColorStoreProviderProps) {
   const storeRef = useRef<ReturnType<typeof createColorStore> | null>(null);
 
   if (!storeRef.current) {
-    console.log(initialColor, "?>?>?>1234");
-    storeRef.current = createColorStore(initialColor);
+    storeRef.current = createColorStore(initialColor, initialTheme);
   }
 
   return (
     <ColorStoreContext.Provider value={storeRef.current}>
-      <ColorProviderInner initialColor={initialColor}>
+      <ColorProviderInner
+        initialColor={initialColor}
+        initialTheme={initialTheme}
+      >
         {children}
       </ColorProviderInner>
     </ColorStoreContext.Provider>

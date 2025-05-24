@@ -215,45 +215,6 @@ export async function POST(req: Request) {
             },
           }),
 
-          generateColorPalette: tool({
-            description: "Generate a color palette based on a base color",
-            parameters: z.object({
-              baseColor: z
-                .string()
-                .describe("Base color in hex format (e.g., #FF5733)"),
-              paletteType: z
-                .enum([
-                  "analogous",
-                  "complementary",
-                  "triadic",
-                  "tetradic",
-                  "monochromatic",
-                ])
-                .describe("Type of color palette to generate"),
-              count: z
-                .number()
-                .optional()
-                .describe("Number of colors to generate (default: 5)"),
-            }),
-            execute: async (params) => {
-              // Send a client action through the data stream
-              dataStream.writeData({
-                type: "client-action",
-                action: "generateColorPalette",
-                params,
-              });
-
-              // Return a status object instead of calling the handler
-              return {
-                success: true,
-                message: `Generated ${params.paletteType} color palette based on ${params.baseColor}`,
-                baseColor: params.baseColor,
-                paletteType: params.paletteType,
-                count: params.count || 5,
-              };
-            },
-          }),
-
           // New tool to get color names from the server-side function
           getColorName: tool({
             description:
