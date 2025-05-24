@@ -10,16 +10,11 @@ import { AlertCircle, Copy, Plus, Trash2, Dices } from "lucide-react";
 import { toast } from "sonner";
 import { useColorPicker } from "./context";
 import { DetailItem } from "./detail-item";
+import { useColorStore } from "@/provider";
 
 export function ColorDetails() {
-  const {
-    hexValue,
-    hexError,
-    setHexValue,
-    setHexError,
-    colorName,
-    storeValues,
-  } = useColorPicker();
+  const { hexValue, hexError, setHexValue, setHexError, colorName } =
+    useColorPicker();
 
   const {
     currentColorInfo,
@@ -30,7 +25,16 @@ export function ColorDetails() {
     colors,
     removeColor,
     addColor,
-  } = storeValues;
+  } = useColorStore((state) => ({
+    currentColorInfo: state.currentColorInfo,
+    currentColor: state.currentColor,
+    getFullColor: state.getFullColor,
+    setColorFromHex: state.setColorFromHex,
+    generateRandomColor: state.generateRandomColor,
+    colors: state.colors,
+    removeColor: state.removeColor,
+    addColor: state.addColor,
+  }));
 
   // Memoize values from currentColorInfo to avoid unnecessary re-renders
   const color = useMemo(() => currentColorInfo.color, [currentColorInfo.color]);

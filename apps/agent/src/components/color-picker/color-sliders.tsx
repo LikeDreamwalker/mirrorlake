@@ -6,23 +6,25 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useColorPicker } from "./context";
 import { debounce } from "@/lib/utils";
+import { useColorStore } from "@/provider";
 
 // Debounce timeout in milliseconds
 const DEBOUNCE_TIMEOUT = 50;
 
 export function ColorSliders() {
-  const {
-    localLightness,
-    localAlpha,
-    setLocalLightness,
-    setLocalAlpha,
-    storeValues,
-  } = useColorPicker();
+  const { localLightness, localAlpha, setLocalLightness, setLocalAlpha } =
+    useColorPicker();
 
   // Track if user is currently sliding
   const [isSliding, setIsSliding] = useState(false);
 
-  const { currentColorInfo, updateColorValues } = storeValues;
+  const { currentColorInfo, updateColorValues, setColorFromHex, colors } =
+    useColorStore((state) => ({
+      currentColorInfo: state.currentColorInfo,
+      updateColorValues: state.updateColorValues,
+      setColorFromHex: state.setColorFromHex,
+      colors: state.colors,
+    }));
 
   // Memoize values from currentColorInfo to avoid unnecessary re-renders
   const rgb = useMemo(() => currentColorInfo.rgb, [currentColorInfo.rgb]);

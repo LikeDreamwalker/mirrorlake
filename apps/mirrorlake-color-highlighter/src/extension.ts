@@ -150,6 +150,11 @@ export function activate(context: vscode.ExtensionContext) {
       (args) => {
         if (mirrorLakePanel) {
           mirrorLakePanel.reveal(vscode.ViewColumn.Beside);
+          // Also send update if panel already exists
+          mirrorLakePanel.webview.postMessage({
+            type: "update",
+            color: args.color,
+          });
           return;
         }
         mirrorLakePanel = vscode.window.createWebviewPanel(
@@ -174,9 +179,19 @@ export function activate(context: vscode.ExtensionContext) {
             </head>
             <body>
               <iframe
-                src="https://mirrorlake.ldwid.com"
+                id="mirrorlake-iframe"
+                src="http://localhost:3000/?color=${encodeURIComponent(args.color)}"
                 sandbox="allow-scripts allow-same-origin allow-forms"
               ></iframe>
+              <script>
+                // Listen for VSCode postMessage and forward to iframe
+                window.addEventListener('message', (event) => {
+                  const iframe = document.getElementById('mirrorlake-iframe');
+                  if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.postMessage(event.data, '*');
+                  }
+                });
+              </script>
             </body>
           </html>
         `;

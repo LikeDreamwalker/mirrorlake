@@ -1,9 +1,12 @@
+import type React from "react";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ColorProvider } from "@/provider";
+import { ColorStoreProvider } from "@/provider";
 import { Analytics } from "@vercel/analytics/next";
+import { Suspense } from "react";
+
 export const viewport: Viewport = {
   themeColor: "#0066FF",
   width: "device-width",
@@ -71,20 +74,32 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({
   children,
+  searchParams,
 }: Readonly<{
   children: React.ReactNode;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }>) {
+  const resolvedSearchParams = await searchParams;
+  const colorParam =
+    typeof resolvedSearchParams?.color === "string"
+      ? resolvedSearchParams.color
+      : Array.isArray(resolvedSearchParams?.color)
+        ? resolvedSearchParams.color[0]
+        : undefined;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="dark">
-          <ColorProvider>
-            <div className="flex justify-center h-screen w-screen">
-              {children}
-              <Analytics />
-            </div>
+          <ColorStoreProvider initialColor={colorParam}>
+            <Suspense>
+              <div className="flex justify-center h-screen w-screen">
+                {children}
+                <Analytics />
+              </div>
+            </Suspense>
             <Toaster />
-          </ColorProvider>
+          </ColorStoreProvider>
         </ThemeProvider>
       </body>
     </html>

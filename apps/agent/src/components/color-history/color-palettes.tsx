@@ -1,6 +1,6 @@
 "use client";
 
-import { useStore } from "@/store";
+import { useColorStore } from "@/provider";
 import { tailwindColors } from "@/lib/tailwind-colors";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -14,7 +14,9 @@ import ColorBlock from "./color-block";
 import ColorGrid from "./color-grid";
 
 export default function ColorPalettes() {
-  const { setColorFromHex } = useStore();
+  const { setColorFromHex } = useColorStore((state) => ({
+    setColorFromHex: state.setColorFromHex,
+  }));
 
   const handleSelectColor = (hex: string) => {
     setColorFromHex(hex);

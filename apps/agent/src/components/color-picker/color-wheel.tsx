@@ -3,6 +3,7 @@
 import type React from "react";
 import { useRef, useCallback, useEffect, useMemo } from "react";
 import { useColorPicker } from "./context";
+import { useColorStore } from "@/provider";
 
 export function ColorWheel() {
   const {
@@ -12,10 +13,15 @@ export function ColorWheel() {
     setLocalSaturation,
     isDragging,
     setIsDragging,
-    storeValues,
   } = useColorPicker();
 
-  const { currentColorInfo, currentColor, updateColorValues } = storeValues;
+  const { currentColorInfo, currentColor, updateColorValues, setColorFromHex } =
+    useColorStore((state) => ({
+      currentColorInfo: state.currentColorInfo,
+      currentColor: state.currentColor,
+      updateColorValues: state.updateColorValues,
+      setColorFromHex: state.setColorFromHex,
+    }));
 
   // Memoize the color value to avoid unnecessary re-renders
   const color = useMemo(() => currentColorInfo.color, [currentColorInfo.color]);

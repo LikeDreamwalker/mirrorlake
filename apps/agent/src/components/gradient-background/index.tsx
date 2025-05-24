@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/store";
+import { useColorStore } from "@/provider";
 
 interface GradientBackgroundProps {
   className?: string;
@@ -72,7 +72,10 @@ export function GradientBackground({
   className,
   transitionSpeed = 10,
 }: GradientBackgroundProps) {
-  const { colors } = useStore();
+  // Color state
+  const { colors } = useColorStore((state) => ({
+    colors: state.colors,
+  }));
   const [progress, setProgress] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 

@@ -10,7 +10,7 @@ import {
   useMemo,
 } from "react";
 import { useChat, type Message } from "@ai-sdk/react";
-import { useStore } from "@/store";
+import { useColorStore } from "@/provider";
 import { getColorAdvice } from "@/app/actions/color-advice";
 import { toast } from "sonner";
 
@@ -95,7 +95,40 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     removeColorsFromTheme,
     markColorAsFavorite,
     generateColorPalette,
-  } = useStore();
+  } = useColorStore((state) => ({
+    // Color picker state
+    currentColorInfo: state.currentColorInfo,
+    currentColor: state.currentColor,
+    format: state.format,
+    isDark: state.isDark,
+
+    // Color picker actions
+    setBaseColor: state.setBaseColor,
+    getFullColor: state.getFullColor,
+    generateRandomColor: state.generateRandomColor,
+    setColorFromHex: state.setColorFromHex,
+    setColorFromRgb: state.setColorFromRgb,
+    setColorFromHsl: state.setColorFromHsl,
+    updateColorValues: state.updateColorValues,
+    getColorName: state.getColorName,
+
+    // Theme actions
+    colors: state.colors,
+    addColor: state.addColor,
+    removeColor: state.removeColor,
+    updateColor: state.updateColor,
+    toggleFavorite: state.toggleFavorite,
+    getColorById: state.getColorById,
+    setCurrentColorFromItem: state.setCurrentColorFromItem,
+
+    // Theme management actions
+    addColorsToTheme: state.addColorsToTheme,
+    updateTheme: state.updateTheme,
+    resetTheme: state.resetTheme,
+    removeColorsFromTheme: state.removeColorsFromTheme,
+    markColorAsFavorite: state.markColorAsFavorite,
+    generateColorPalette: state.generateColorPalette,
+  }));
 
   const [isProcessingColor, setIsProcessingColor] = useState(false);
   const lastProcessedColor = useRef<string | null>(null);

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useStore } from "@/store";
+import { useColorStore } from "@/provider";
 import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
 import { colord, extend } from "colord";
@@ -34,7 +34,13 @@ export function ColorPreview({
     addColor,
     removeColor,
     colors = [],
-  } = useStore();
+  } = useColorStore((state) => ({
+    setColorFromHex: state.setColorFromHex,
+    getColorName: state.getColorName,
+    addColor: state.addColor,
+    removeColor: state.removeColor,
+    colors: state.colors,
+  }));
   const [hexColor, setHexColor] = useState("");
   const [isValidColor, setIsValidColor] = useState(true);
   const [colorName, setColorName] = useState("");
