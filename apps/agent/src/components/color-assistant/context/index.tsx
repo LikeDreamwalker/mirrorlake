@@ -282,21 +282,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Initialize with default color and first user message
   useEffect(() => {
     if (isFirstLoad.current && !hasInitialized.current) {
-      const defaultColor = "#0066ff";
-      setBaseColor(defaultColor);
-
       setMessages([
         {
           id: "initial-color-selection",
           role: "user",
-          content: `I just selected the color \`<ColorPreview>${defaultColor}</ColorPreview>\`.`,
+          content: `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`,
         },
       ]);
-
       isFirstLoad.current = false;
       hasInitialized.current = true;
     }
-  }, [setBaseColor, setMessages]);
+  }, [setMessages, currentColor]);
 
   // Process color changes
   useEffect(() => {

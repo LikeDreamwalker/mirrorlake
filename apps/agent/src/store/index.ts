@@ -92,7 +92,7 @@ const createColorItem = (color: string, name = "", info = ""): ColorItem => {
 };
 
 // Default color values
-const defaultBlueRibbonColor = "#0066FF";
+const defaultBlueRibbonColor = "#0066ff";
 const defaultOrangeRedColor = "#FF4500";
 const defaultElectricBlueColor = "#00BBFF";
 const defaultDeepBlackColor = "#121212";
@@ -1083,16 +1083,9 @@ export const useStore = create<StoreState & StoreActions>((set, get) => ({
  * Hook to handle theme switching based on color
  * @param initialColor - Initial color to set
  */
-export function useColorThemeSwitcher(initialColor = "#0066FF") {
+export function useColorThemeSwitcher() {
   const { setTheme } = useTheme();
-  const { isDark, setColorFromHex, autoSwitchTheme } = useStore();
-
-  // Initialize from initialColor
-  useEffect(() => {
-    if (initialColor) {
-      setColorFromHex(initialColor);
-    }
-  }, [initialColor, setColorFromHex]);
+  const { isDark, autoSwitchTheme } = useStore();
 
   // Handle theme switching
   useEffect(() => {

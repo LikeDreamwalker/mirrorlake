@@ -78,7 +78,7 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="dark">
-          <ColorProvider initialColor="#0066FF">
+          <ColorProvider>
             <div className="flex justify-center h-screen w-screen">
               {children}
               <Analytics />
