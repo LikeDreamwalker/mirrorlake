@@ -180,7 +180,7 @@ export function activate(context: vscode.ExtensionContext) {
             <body>
               <iframe
                 id="mirrorlake-iframe"
-                src="http://localhost:3000/?color=${encodeURIComponent(args.color)}"
+                src="https://mirrorlake.ldwid.com?color=${encodeURIComponent(args.color)}"
                 sandbox="allow-scripts allow-same-origin allow-forms"
               ></iframe>
               <script>
