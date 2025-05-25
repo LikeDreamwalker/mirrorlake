@@ -3,7 +3,7 @@
   "publisher": "mirrorlake",
   "displayName": "mirrorlake-color-highlighter",
   "description": "Highlight HSL, HEX and so on color codes.",
-  "version": "0.0.1",
+  "version": "0.0.1-beta.1",
   "engines": {
     "vscode": "^1.100.0"
   },
