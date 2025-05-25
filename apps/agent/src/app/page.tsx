@@ -17,20 +17,16 @@ export default async function Page(props: { searchParams: SearchParams }) {
   if (Array.isArray(color)) {
     color = color[0];
   }
-  console.log(color, "color");
-
   const paletteHex = generateThemePalette(color);
-  console.log(paletteHex, "paletteHex");
   const colorNames = await colorsToNames(paletteHex);
   const initialTheme = paletteHex.map((hex, i) => ({
     color: hex,
     name: colorNames[i] || `Color ${hex}`,
   }));
-  console.log(initialTheme, "initialTheme");
 
   return (
     <ColorStoreProvider initialColor={color} initialTheme={initialTheme}>
-      <main className="flex flex-col h-full w-full overflow-hidden max-w-screen-2xl mx-auto p-2">
+      <main className="flex flex-col h-full w-full overflow-hidden sm:max-w-screen-sm md:max-w-screen-md lg:max-w-screen-2xl mx-auto p-2">
         <StructuredData />
         <InvisibleSEOHeading title="Mirrorlake - Color Agent" level={1} />
         <GradientBackground className="fixed inset-0 -z-10" />
@@ -55,7 +51,7 @@ export default async function Page(props: { searchParams: SearchParams }) {
         </div>
 
         {/* Bottom navigation with static height */}
-        <div className="h-16 pt-2 px-2 sm:hidden">
+        <div className="h-16 pt-2 px-2 lg:hidden">
           <NavigationControls />
         </div>
       </main>
