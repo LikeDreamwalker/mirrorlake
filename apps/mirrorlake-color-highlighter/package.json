@@ -1,9 +1,13 @@
 {
   "name": "mirrorlake-color-highlighter",
-  "publisher": "mirrorlake",
+  "publisher": "LikeDreamwalker",
   "displayName": "mirrorlake-color-highlighter",
   "description": "Highlight HSL, HEX and so on color codes.",
-  "version": "0.0.1-beta.1",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LikeDreamwalker/mirrorlake/tree/main/apps/mirrorlake-color-highlighter"
+  },
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -41,7 +45,7 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vscode-test",
-    "vsce:package": "vsce package"
+    "vsce:package": "vsce package --no-dependencies"
   },
   "dependencies": {
     "@mirrorlake/color-tools": "workspace:*"
