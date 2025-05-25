@@ -3,6 +3,7 @@
 import type React from "react";
 import { useRef, useCallback, useEffect, useMemo } from "react";
 import { useColorPicker } from "./context";
+import { useColorStore } from "@/provider";
 
 export function ColorWheel() {
   const {
@@ -12,10 +13,15 @@ export function ColorWheel() {
     setLocalSaturation,
     isDragging,
     setIsDragging,
-    storeValues,
   } = useColorPicker();
 
-  const { currentColorInfo, currentColor, updateColorValues } = storeValues;
+  const { currentColorInfo, currentColor, updateColorValues, setColorFromHex } =
+    useColorStore((state) => ({
+      currentColorInfo: state.currentColorInfo,
+      currentColor: state.currentColor,
+      updateColorValues: state.updateColorValues,
+      setColorFromHex: state.setColorFromHex,
+    }));
 
   // Memoize the color value to avoid unnecessary re-renders
   const color = useMemo(() => currentColorInfo.color, [currentColorInfo.color]);
@@ -160,7 +166,10 @@ export function ColorWheel() {
     const x = 50 + Math.cos(hueRadians) * saturationPercent * 50;
     const y = 50 + Math.sin(hueRadians) * saturationPercent * 50;
 
-    return { x, y };
+    return {
+      x: Number(x.toFixed(2)),
+      y: Number(y.toFixed(2)),
+    };
   };
 
   // Get marker position

@@ -16,7 +16,7 @@ export default function CardContainer({
   return (
     <Card
       id={id}
-      className="h-full min-w-full w-full flex-shrink-0 snap-center lg:min-w-0 lg:w-1/3 lg:flex-1 border-dashed shadow-sm"
+      className="h-full min-w-full w-full flex-shrink-0 snap-center md:min-w-0 md:w-1/2 lg:min-w-0 lg:w-1/3 lg:flex-1 border-dashed shadow-sm"
     >
       <CardContent className="h-full p-2">
         {needScroll ? (

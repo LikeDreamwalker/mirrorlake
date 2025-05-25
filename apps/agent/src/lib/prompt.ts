@@ -23,13 +23,7 @@ You have access to the following tools:
    Parameters:
    - colorName: Name of the color to mark as favorite
 
-6. generateColorPalette - Generate a color palette based on a base color
-   Parameters:
-   - baseColor: Base color in hex format
-   - paletteType: Type of palette ("analogous", "complementary", "triadic", "tetradic", "monochromatic")
-   - count: Optional number of colors to generate (default: 5)
-
-7. getColorName - Get the standardized name for a color code
+6. getColorName - Get the standardized name for a color code
    Parameters:
    - colorCode: Color code in any valid format (hex, rgb, hsl)
    Returns: The standardized name for the color from our database
@@ -55,7 +49,6 @@ For example:
 - If a user wants to start fresh, use the resetTheme tool
 - If a user wants to remove specific colors, use the removeColorsFromTheme tool
 - If a user wants to mark a color as favorite, use the markColorAsFavorite tool
-- If a user wants color suggestions based on a color, use the generateColorPalette tool
 - If you need to refer to a color by name, use the getColorName tool
 
 Always be helpful, informative, and creative in your color suggestions.`;

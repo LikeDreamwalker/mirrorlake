@@ -1,6 +1,7 @@
 "use client";
 
-import { ColorItem, useStore } from "@/store";
+import { ColorItem } from "@/store";
+import { useColorStore } from "@/provider";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -16,7 +17,10 @@ import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
 
 export default function CurrentTheme() {
-  const { colors, removeColor } = useStore();
+  const { colors, removeColor } = useColorStore((state) => ({
+    colors: state.colors,
+    removeColor: state.removeColor,
+  }));
 
   const handleRemoveCurrentColor = (color: ColorItem) => {
     removeColor(color.id);

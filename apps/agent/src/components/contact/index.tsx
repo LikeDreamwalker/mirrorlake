@@ -6,10 +6,12 @@ import { ExternalLink, Github } from "lucide-react";
 import Logo from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { useStore } from "@/store";
+import { useColorStore } from "@/provider";
 
 export default function Contact() {
-  const { currentColor } = useStore();
+  const { currentColor } = useColorStore((state) => ({
+    currentColor: state.currentColor,
+  }));
   return (
     <Card className="w-full p-2" style={{ color: currentColor }}>
       <CardContent className="w-full gap-2 p-2 flex items-center justify-between flex-wrap">

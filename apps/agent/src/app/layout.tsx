@@ -1,9 +1,12 @@
+import type React from "react";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ColorProvider } from "@/provider";
+import { ColorStoreProvider } from "@/provider";
 import { Analytics } from "@vercel/analytics/next";
+import { Suspense } from "react";
+
 export const viewport: Viewport = {
   themeColor: "#0066FF",
   width: "device-width",
@@ -78,13 +81,13 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="dark">
-          <ColorProvider initialColor="#0066FF">
+          <Suspense>
             <div className="flex justify-center h-screen w-screen">
               {children}
               <Analytics />
             </div>
-            <Toaster />
-          </ColorProvider>
+          </Suspense>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

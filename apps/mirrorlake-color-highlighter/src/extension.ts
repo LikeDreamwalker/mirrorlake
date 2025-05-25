@@ -4,22 +4,32 @@ import {
   parseAndNormalizeColor,
   buildColorWithAlpha,
   nameToColor,
+  calculateAnalogous,
+  calculateComplementary,
+  getColorName,
+  hexToHsl,
+  hexToRgb,
+  getColorAttributes,
+  getColorTints,
+  getContrastRatio,
+  simulateColorBlindness,
+  getAlphaFromColorString,
+  toHsl4String,
 } from "@mirrorlake/color-tools";
 
 let dynamicDecorationTypes: vscode.TextEditorDecorationType[] = [];
 let isEnabled = true;
+let mirrorLakePanel: vscode.WebviewPanel | undefined = undefined;
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("Color highlighter extension is now active!");
 
-  // Register command to toggle between our extension and VSCode's built-in highlighting
+  // Toggle highlighting command
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "mirrorlake-color-highlighter.toggleHighlighting",
       async () => {
         isEnabled = !isEnabled;
-
-        // Toggle VSCode's built-in color decorators
         await vscode.workspace
           .getConfiguration()
           .update(
@@ -27,12 +37,9 @@ export function activate(context: vscode.ExtensionContext) {
             !isEnabled,
             vscode.ConfigurationTarget.Global
           );
-
         vscode.window.showInformationMessage(
           `MirrorLake Color highlighting: ${isEnabled ? "Enabled" : "Disabled"}`
         );
-
-        // Update decorations in the active editor
         const editor = vscode.window.activeTextEditor;
         if (editor) {
           if (isEnabled) {
@@ -45,6 +52,36 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  // Replace color command (for clickable hover links)
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "mirrorlake-color-highlighter.replaceColor",
+      async (args) => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || !args?.value) {
+          return;
+        }
+        await editor.edit((editBuilder) => {
+          // Use the range if provided, otherwise replace selection
+          const range = args.range
+            ? new vscode.Range(
+                new vscode.Position(
+                  args.range.start.line,
+                  args.range.start.character
+                ),
+                new vscode.Position(
+                  args.range.end.line,
+                  args.range.end.character
+                )
+              )
+            : editor.selection;
+          editBuilder.replace(range, args.value);
+        });
+      }
+    )
+  );
+
+  // Theme change
   context.subscriptions.push(
     vscode.window.onDidChangeActiveColorTheme(() => {
       const editor = vscode.window.activeTextEditor;
@@ -54,7 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Register event handlers
+  // Editor events
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor && isEnabled) {
@@ -62,7 +99,6 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
-
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((event) => {
       const editor = vscode.window.activeTextEditor;
@@ -72,51 +108,56 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Add hover provider for more information
+  // Hover provider
   context.subscriptions.push(
     vscode.languages.registerHoverProvider("*", {
       provideHover(document, position, token) {
-        // Check if we're hovering over a color
-        const hexRange = document.getWordRangeAtPosition(
-          position,
-          /#([0-9A-Fa-f]{3}){1,2}\b/
-        );
-        if (hexRange) {
-          const color = document.getText(hexRange);
-          return createColorHover(color, hexRange);
+        for (const { format, regex } of COLOR_REGEXES) {
+          let match;
+          while ((match = regex.exec(document.getText())) !== null) {
+            let color = match[0];
+            const startPos = document.positionAt(match.index);
+            const endPos = document.positionAt(match.index + color.length);
+            const range = new vscode.Range(startPos, endPos);
+            // Only highlight named colors if they are valid CSS color names
+            if (format === "named") {
+              const namedColor = nameToColor(color, true);
+              if (namedColor) {
+                color = namedColor;
+              } else {
+                continue;
+              }
+            }
+            if (
+              position.line >= range.start.line &&
+              position.line <= range.end.line &&
+              position.character >= range.start.character &&
+              position.character <= range.end.character
+            ) {
+              return createColorHover(color, range);
+            }
+          }
         }
-
-        // Check for rgb/rgba colors
-        const rgbRange = document.getWordRangeAtPosition(
-          position,
-          /rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)|rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/
-        );
-        if (rgbRange) {
-          const color = document.getText(rgbRange);
-          return createColorHover(color, rgbRange);
-        }
-
-        // Check for hsl/hsla colors
-        const hslRange = document.getWordRangeAtPosition(
-          position,
-          /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)|hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/
-        );
-        if (hslRange) {
-          const color = document.getText(hslRange);
-          return createColorHover(color, hslRange);
-        }
-
         return null;
       },
     })
   );
 
-  // Register command to open color in WebView
+  // WebView command
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "mirrorlake-color-highlighter.openColorInWebView",
       (args) => {
-        const panel = vscode.window.createWebviewPanel(
+        if (mirrorLakePanel) {
+          mirrorLakePanel.reveal(vscode.ViewColumn.Beside);
+          // Also send update if panel already exists
+          mirrorLakePanel.webview.postMessage({
+            type: "update",
+            color: args.color,
+          });
+          return;
+        }
+        mirrorLakePanel = vscode.window.createWebviewPanel(
           "colorAgent",
           `MirrorLake Color: ${args.color}`,
           vscode.ViewColumn.Beside,
@@ -125,102 +166,60 @@ export function activate(context: vscode.ExtensionContext) {
             retainContextWhenHidden: true,
           }
         );
-
-        // Create a more attractive WebView
-        panel.webview.html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>MirrorLake Color</title>
-          <style>
-            body { 
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-              margin: 0; 
-              padding: 0;
-              background-color: #1e1e1e;
-              color: #e0e0e0;
-            }
-            .container {
-              max-width: 800px;
-              margin: 0 auto;
-              padding: 20px;
-            }
-            .color-card {
-              background-color: #252525;
-              border-radius: 8px;
-              overflow: hidden;
-              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-              margin-bottom: 20px;
-            }
-            .color-preview { 
-              width: 100%; 
-              height: 200px; 
-              background-color: ${args.color}; 
-            }
-            .color-info {
-              padding: 20px;
-            }
-            h1 { 
-              margin-top: 0;
-              font-size: 24px;
-              font-weight: 500;
-            }
-            .color-value {
-              font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-              background-color: #333;
-              padding: 4px 8px;
-              border-radius: 4px;
-              font-size: 14px;
-            }
-            .color-formats {
-              display: grid;
-              grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-              gap: 10px;
-              margin-top: 20px;
-            }
-            .format-card {
-              background-color: #333;
-              padding: 10px;
-              border-radius: 4px;
-            }
-            .format-name {
-              font-size: 12px;
-              color: #aaa;
-              margin-bottom: 5px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>MirrorLake Color</h1>
-            <div class="color-card">
-              <div class="color-preview"></div>
-              <div class="color-info">
-                <h2>Color: <span class="color-value">${args.color}</span></h2>
-                <div class="color-formats">
-                  <div class="format-card">
-                    <div class="format-name">HEX</div>
-                    <div class="color-value">${args.color}</div>
-                  </div>
-                  <div class="format-card">
-                    <div class="format-name">RGB</div>
-                    <div class="color-value">rgb(---, ---, ---)</div>
-                  </div>
-                  <div class="format-card">
-                    <div class="format-name">HSL</div>
-                    <div class="color-value">hsl(---, ---%, ---%)</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <p>This is a placeholder for the MirrorLake Color WebView.</p>
-            <p>In the future, this will connect to your Next.js color agent app.</p>
-          </div>
-        </body>
-        </html>
-      `;
+        mirrorLakePanel.webview.html = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="UTF-8">
+              <title>MirrorLake Color</title>
+              <style>
+                html, body { height: 100%; margin: 0; padding: 0; }
+                iframe { width: 100vw; height: 100vh; border: none; }
+              </style>
+            </head>
+            <body>
+              <iframe
+                id="mirrorlake-iframe"
+                src="https://mirrorlake.ldwid.com?color=${encodeURIComponent(args.color)}"
+                sandbox="allow-scripts allow-same-origin allow-forms"
+              ></iframe>
+              <script>
+                window.vscodeApi = acquireVsCodeApi();
+              </script>
+              <script>
+                // Listen for VSCode postMessage and forward to iframe
+                window.addEventListener('message', (event) => {
+                  const iframe = document.getElementById('mirrorlake-iframe');
+                  if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.postMessage(event.data, '*');
+                  }
+                });
+              </script>
+              <script>
+                window.addEventListener('message', (event) => {
+                  const data = event.data;
+                  if (data && data.type === "copy-to-clipboard") {
+                    // Forward to VS Code extension host
+                    window.vscodeApi?.postMessage(data);
+                  }
+                });
+              </script>
+            </body>
+          </html>
+        `;
+        mirrorLakePanel.webview.onDidReceiveMessage((message) => {
+          if (message.type === "copy-to-clipboard" && message.text) {
+            vscode.env.clipboard.writeText(message.text);
+            vscode.window.showInformationMessage(`Copied: ${message.text}`);
+          }
+        });
+        mirrorLakePanel.onDidDispose(
+          () => {
+            mirrorLakePanel = undefined;
+          },
+          null,
+          context.subscriptions
+        );
       }
     )
   );
@@ -236,26 +235,61 @@ export function activate(context: vscode.ExtensionContext) {
   }
 }
 
-// Helper function to create color hover
-function createColorHover(color: string, range: vscode.Range): vscode.Hover {
+async function createColorHover(
+  color: string,
+  range: vscode.Range
+): Promise<vscode.Hover> {
   const content = new vscode.MarkdownString();
   content.isTrusted = true;
 
-  // Remove # if present and encode for URL
-  const colorParam = encodeURIComponent(color.replace(/^#/, ""));
+  // Parse and normalize color (get all formats)
+  const parsedHex = await parseAndNormalizeColor(color, "hex");
+  const parsedRgb = await parseAndNormalizeColor(color, "rgb");
+  const parsedHsl = await parseAndNormalizeColor(color, "hsl");
+  const parsedHsl4 = await parseAndNormalizeColor(color, "hsl"); // We'll format hsl4 below
 
-  // Render your color card image from the API
-  content.appendMarkdown(
-    `![Color Card](https://mirrorlake.ldwid.com/api/color-card?color=${colorParam})\n\n`
+  if (!parsedHex.valid) {
+    content.appendMarkdown(`**Invalid color:** \`${color}\``);
+    return new vscode.Hover(content, range);
+  }
+
+  // Get color info
+  const hex = parsedHex.normalized.toUpperCase();
+  const rgbObj = hexToRgb(hex);
+  const rgb = parsedRgb.normalized;
+  const hslObj = hexToHsl(hex);
+  const hsl = `hsl(${Math.round(hslObj.h)}, ${Math.round(hslObj.s)}%, ${Math.round(hslObj.l)}%)`;
+  const hsl4 = toHsl4String(
+    Math.round(hslObj.h),
+    Math.round(hslObj.s * 100) / 100,
+    Math.round(hslObj.l * 100) / 100,
+    rgbObj.a
   );
-  content.appendMarkdown(`**MirrorLake Color**\n\n`);
-  content.appendMarkdown(`**Color:** ${color}\n\n`);
+  const colorName = (await getColorName(hex)) || "Unknown";
 
-  // Add link to open in Color Editor WebView
+  const rangeObj = {
+    start: { line: range.start.line, character: range.start.character },
+    end: { line: range.end.line, character: range.end.character },
+  };
+
+  // Swatch + name
   content.appendMarkdown(
-    `[Open in Color Editor](command:mirrorlake-color-highlighter.openColorInWebView?${encodeURIComponent(
-      JSON.stringify({ color })
-    )})`
+    `![](https://singlecolorimage.com/get/${hex.replace("#", "").slice(0, 6)}/16x16) **${colorName}**\n\n`
+  );
+
+  // Clickable conversions
+  content.appendMarkdown(
+    `[HEX: *\`${hex}\`*](command:mirrorlake-color-highlighter.replaceColor?${encodeURIComponent(JSON.stringify({ value: hex, range: rangeObj }))})   ` +
+      `[RGB: *\`${rgb}\`*](command:mirrorlake-color-highlighter.replaceColor?${encodeURIComponent(JSON.stringify({ value: rgb, range: rangeObj }))})   ` +
+      "\n\n" +
+      `[HSL: *\`${hsl}\`*](command:mirrorlake-color-highlighter.replaceColor?${encodeURIComponent(JSON.stringify({ value: hsl, range: rangeObj }))})   ` +
+      `[HSL4: *\`${hsl4}\`*](command:mirrorlake-color-highlighter.replaceColor?${encodeURIComponent(JSON.stringify({ value: hsl4, range: rangeObj }))})` +
+      `\n\n`
+  );
+
+  // More info link
+  content.appendMarkdown(
+    `[More on MirrorLake](command:mirrorlake-color-highlighter.openColorInWebView?${encodeURIComponent(JSON.stringify({ color: hex }))})`
   );
 
   return new vscode.Hover(content, range);
@@ -289,6 +323,7 @@ async function updateColorDecorations(editor: vscode.TextEditor) {
   const fg = isEditorDark ? darkFg : lightFg;
 
   const colorRanges: Record<string, vscode.Range[]> = {};
+  const allRanges: vscode.Range[] = [];
 
   for (const { format, regex } of COLOR_REGEXES) {
     let match;
@@ -304,19 +339,42 @@ async function updateColorDecorations(editor: vscode.TextEditor) {
       const endPos = editor.document.positionAt(match.index + color.length);
       const range = new vscode.Range(startPos, endPos);
 
+      // Skip if overlaps with any already-highlighted range
+      if (rangeOverlaps(allRanges, range)) {
+        continue;
+      }
+
       if (!colorRanges[color]) {
         colorRanges[color] = [];
       }
       colorRanges[color].push(range);
+      allRanges.push(range);
     }
   }
 
   for (const color in colorRanges) {
     // Use color-tools to parse and normalize the color
     const parsed = await parseAndNormalizeColor(color, "hex");
-    // Use color-tools to get the border color with 0.7 opacity
+    // Get alpha from color (default 1)
+    let colorAlpha = 1;
+    if (parsed.valid) {
+      // Try to get alpha from hex, rgb, hsl, hsl4, etc.
+      if (parsed.format === "hexa") {
+        colorAlpha = parseInt(color.slice(-2), 16) / 255;
+      } else if (
+        parsed.format === "rgba" ||
+        parsed.format === "hsla" ||
+        parsed.format === "hsl4"
+      ) {
+        colorAlpha = getAlphaFromColorString(color);
+      }
+    }
+    // Multiply by default opacity
+    const defaultOpacity = 0.3;
+    const finalOpacity = colorAlpha * defaultOpacity;
+
     const backgroundColor = parsed.valid
-      ? buildColorWithAlpha(parsed.normalized, 0.1) // adjust opacity as desired
+      ? buildColorWithAlpha(parsed.normalized, finalOpacity)
       : undefined;
 
     const decoType = vscode.window.createTextEditorDecorationType({
@@ -348,4 +406,11 @@ export function deactivate() {
   if (vscode.window.activeTextEditor) {
     clearAllDecorations(vscode.window.activeTextEditor);
   }
+}
+
+function rangeOverlaps(
+  existing: vscode.Range[],
+  candidate: vscode.Range
+): boolean {
+  return existing.some((r) => candidate.intersection(r) !== undefined);
 }

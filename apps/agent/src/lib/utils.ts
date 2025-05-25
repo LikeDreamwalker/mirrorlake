@@ -29,3 +29,40 @@ export function debounce<T extends (...args: any[]) => any>(
     }, delay);
   };
 }
+
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (!text) return false;
+
+  // VS Code Webview
+  // If running inside an iframe (likely VS Code webview), always try to postMessage to parent
+  if (window.parent !== window) {
+    try {
+      window.parent.postMessage({ type: "copy-to-clipboard", text }, "*");
+      return true;
+    } catch {
+      // fallback below
+    }
+  }
+
+  // Modern Clipboard API
+  if (typeof navigator !== "undefined" && navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  try {
+    const input = document.createElement("input");
+    input.value = text;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    document.body.removeChild(input);
+    return true;
+  } catch {
+    return false;
+  }
+}

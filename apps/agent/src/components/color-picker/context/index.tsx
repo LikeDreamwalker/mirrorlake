@@ -2,33 +2,9 @@
 
 import type React from "react";
 import { createContext, useContext, useState, useEffect, useMemo } from "react";
-import { useStore } from "@/store";
+import { useColorStore } from "@/provider";
 import type { ColorItem } from "@/store";
 
-// Define the store type based on what's returned from useStore
-type StoreValues = {
-  currentColorInfo: ColorItem;
-  currentColor: string;
-  getFullColor: () => string;
-  generateRandomColor: () => void;
-  setColorFromHex: (hex: string) => void;
-  setColorFromRgb: (r: number, g: number, b: number) => void;
-  setColorFromHsl: (h: number, s: number, l: number) => void;
-  updateColorValues: (updates: {
-    hue?: number;
-    saturation?: number;
-    lightness?: number;
-    alpha?: number;
-    baseColor?: string;
-  }) => void;
-  getColorName: (params: { color?: string }) => Promise<string>;
-  colors: ColorItem[];
-  removeColor: (id: string) => void;
-  addColor: (color: string, name: string, info?: string) => Promise<void>;
-  setCurrentColorFromItem: (colorItem: ColorItem) => void;
-};
-
-// Update the ColorPickerContextType to use the StoreValues type
 type ColorPickerContextType = {
   // Local state for immediate UI feedback
   localHue: number;
@@ -79,9 +55,6 @@ type ColorPickerContextType = {
   // Wheel interaction state
   isDragging: boolean;
   setIsDragging: (value: boolean) => void;
-
-  // Store values (from Zustand)
-  storeValues: StoreValues;
 };
 
 // Create context with a default undefined value
@@ -95,8 +68,10 @@ export function ColorPickerProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const storeValues = useStore();
-  const { currentColorInfo, getFullColor } = storeValues;
+  const { currentColorInfo, getFullColor } = useColorStore((state) => ({
+    currentColorInfo: state.currentColorInfo,
+    getFullColor: state.getFullColor,
+  }));
   const { hsl, rgb, alpha } = currentColorInfo;
 
   // Local state for immediate UI feedback
@@ -216,8 +191,6 @@ export function ColorPickerProvider({
 
       isDragging,
       setIsDragging,
-
-      storeValues,
     }),
     [
       localHue,
@@ -240,7 +213,6 @@ export function ColorPickerProvider({
       lError,
       colorName,
       isDragging,
-      storeValues,
     ]
   );
 

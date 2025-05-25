@@ -43,6 +43,28 @@ export const COLOR_REGEXES = [
     // Matches CSS identifiers (words), not numbers, not followed by '(' (to avoid functions)
     regex: /\b([a-zA-Z][a-zA-Z0-9-]*)\b(?!\s*\()/g,
   },
+  {
+    format: "hsl4",
+    // Matches: 240 3.7% 15.9% / 0.7 or hsl(240 3.7% 15.9% / 0.7)
+    regex:
+      /(?:hsl[a]?\()?(\d{1,3})\s+(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%(?:\s*\/\s*(\d*\.?\d+))?\)?/gi,
+  },
+  {
+    format: "rgb4",
+    // Matches: 0 170 255 or 0 170 255 / 0.5 or rgb(0 170 255 / 0.5)
+    regex:
+      /(?:rgb[a]?\()?(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s*\/\s*(\d*\.?\d+))?\)?/gi,
+  },
+  {
+    format: "rgb-comma",
+    // Matches: 0, 170, 255 or 0,170,255 (for custom props)
+    regex: /(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})/g,
+  },
+  {
+    format: "hsl-comma",
+    // Matches: 195, 100%, 50% or 195,100%,50% (for custom props)
+    regex: /(\d{1,3}),\s*(\d{1,3})%,\s*(\d{1,3})%/g,
+  },
 ];
 
 /**
@@ -364,6 +386,32 @@ export function isValidHexColor(color: string): boolean {
   return /^([0-9A-Fa-f]{3}){1,2}$/.test(hex);
 }
 
+export function parseHsl4(
+  str: string
+): { h: number; s: number; l: number; a: number } | null {
+  // Matches: 240 3.7% 15.9% / 0.7 or hsl(240 3.7% 15.9% / 0.7)
+  const match =
+    /(?:hsl[a]?\()?(\d{1,3})\s+(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%(?:\s*\/\s*(\d*\.?\d+))?\)?/.exec(
+      str
+    );
+  if (!match) return null;
+  return {
+    h: Number(match[1]),
+    s: Number(match[2]),
+    l: Number(match[3]),
+    a: match[4] !== undefined ? Number(match[4]) : 1,
+  };
+}
+
+export function toHsl4String(
+  h: number,
+  s: number,
+  l: number,
+  a: number = 1
+): string {
+  return `${h} ${s}% ${l}%${a < 1 ? ` / ${a}` : ""}`;
+}
+
 // --- Types ---
 
 export type ColorFormat =
@@ -374,7 +422,11 @@ export type ColorFormat =
   | "hsl"
   | "hsla"
   | "named"
-  | "unknown";
+  | "unknown"
+  | "hsl4"
+  | "rgb4"
+  | "rgb-comma"
+  | "hsl-comma";
 
 export interface ParsedColorResult {
   input: string;
@@ -400,6 +452,101 @@ export async function parseAndNormalizeColor(
   // Try regex-based detection first
   const match = matchColorString(trimmed);
   if (match) {
+    // Special handling for hsl4 (space-separated HSL/alpha)
+    if (match.format === "hsl4") {
+      const hsl = parseHsl4(match.match);
+      if (hsl) {
+        const c = colord({ h: hsl.h, s: hsl.s, l: hsl.l, a: hsl.a });
+        return {
+          input,
+          format: "hsl4",
+          normalized:
+            normalizeTo === "hex"
+              ? c.toHex()
+              : normalizeTo === "rgb"
+                ? c.toRgbString()
+                : toHsl4String(hsl.h, hsl.s, hsl.l, hsl.a),
+          valid: c.isValid(),
+        };
+      }
+    }
+
+    // --- Special handling for rgb4 (space-separated RGB/alpha) ---
+    if (match.format === "rgb4") {
+      // Match: 0 170 255 or 0 170 255 / 0.5 or rgb(0 170 255 / 0.5)
+      // Extract numbers
+      const rgb4Regex =
+        /(?:rgb[a]?\()?(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s*\/\s*(\d*\.?\d+))?\)?/i;
+      const m = rgb4Regex.exec(match.match);
+      if (m) {
+        const r = Number(m[1]);
+        const g = Number(m[2]);
+        const b = Number(m[3]);
+        const a = m[4] !== undefined ? Number(m[4]) : 1;
+        const c = colord({ r, g, b, a });
+        return {
+          input,
+          format: "rgb4",
+          normalized:
+            normalizeTo === "hex"
+              ? c.toHex()
+              : normalizeTo === "rgb"
+                ? c.toRgbString()
+                : c.toHslString(),
+          valid: c.isValid(),
+        };
+      }
+    }
+
+    // --- Special handling for rgb-comma (comma-separated RGB) ---
+    if (match.format === "rgb-comma") {
+      // Match: 0, 170, 255
+      const rgbCommaRegex = /(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})/;
+      const m = rgbCommaRegex.exec(match.match);
+      if (m) {
+        const r = Number(m[1]);
+        const g = Number(m[2]);
+        const b = Number(m[3]);
+        const c = colord({ r, g, b });
+        return {
+          input,
+          format: "rgb",
+          normalized:
+            normalizeTo === "hex"
+              ? c.toHex()
+              : normalizeTo === "rgb"
+                ? c.toRgbString()
+                : c.toHslString(),
+          valid: c.isValid(),
+        };
+      }
+    }
+
+    // --- Special handling for hsl-comma (comma-separated HSL) ---
+    if (match.format === "hsl-comma") {
+      // Match: 195, 100%, 50%
+      const hslCommaRegex = /(\d{1,3}),\s*(\d{1,3})%,\s*(\d{1,3})%/;
+      const m = hslCommaRegex.exec(match.match);
+      if (m) {
+        const h = Number(m[1]);
+        const s = Number(m[2]);
+        const l = Number(m[3]);
+        const c = colord({ h, s, l });
+        return {
+          input,
+          format: "hsl",
+          normalized:
+            normalizeTo === "hex"
+              ? c.toHex()
+              : normalizeTo === "rgb"
+                ? c.toRgbString()
+                : c.toHslString(),
+          valid: c.isValid(),
+        };
+      }
+    }
+
+    // All other formats: let colord handle
     const c = colord(match.match);
     return {
       input,
@@ -415,8 +562,9 @@ export async function parseAndNormalizeColor(
     };
   }
 
+  // NOTE Should we remove it?
   // Try named color
-  const namedHex = nameToColor(trimmed);
+  const namedHex = nameToColor(trimmed, true);
   if (namedHex) {
     const c = colord(namedHex);
     return {
@@ -467,4 +615,71 @@ export function buildColorWithAlpha(input: string, alpha: number): string {
   if (!c.isValid()) return input;
   const { r, g, b } = c.toRgb();
   return `rgba(${r},${g},${b},${alpha})`;
+}
+
+export function getAlphaFromColorString(color: string): number {
+  const c = colord(color);
+  if (!c.isValid()) return 1;
+  return c.alpha();
+}
+
+export function generateThemePalette(baseColor: string): string[] {
+  // Normalize to #HEX
+  const hex = baseColor.startsWith("#")
+    ? baseColor.toUpperCase()
+    : `#${baseColor.toUpperCase()}`;
+  const c = colord(hex);
+
+  // Analogous colors
+  const analogous = c
+    .harmonies("analogous")
+    .map((col) => col.toHex().toUpperCase());
+
+  // Complementary color
+  const complementary = c.rotate(180).toHex().toUpperCase();
+
+  // Triadic colors
+  const triadic = c
+    .harmonies("triadic")
+    .map((col) => col.toHex().toUpperCase());
+
+  // Tint (lighter)
+  const tint = c.mix("#FFFFFF", 0.7).toHex().toUpperCase();
+
+  // Shade (darker)
+  const shade = c.mix("#000000", 0.7).toHex().toUpperCase();
+
+  // Build palette: base, analogous, complementary, triadic, tint, shade
+  let palette = [
+    ...analogous.filter((col) => col !== hex),
+    complementary,
+    ...triadic.filter((col) => col !== hex),
+    tint,
+    shade,
+  ];
+
+  // Remove duplicates
+  palette = [...new Set(palette)];
+
+  // Shuffle the palette (Fisher-Yates)
+  for (let i = palette.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [palette[i], palette[j]] = [palette[j], palette[i]];
+  }
+
+  // Soften the palette: randomly lighten or darken each color a bit
+  palette = palette.map((col) => {
+    const c = colord(col);
+    // Randomly choose lighten or darken, and by how much (0.08 ~ 0.18)
+    const amt = 0.08 + Math.random() * 0.1;
+    return Math.random() > 0.5
+      ? c.lighten(amt).toHex().toUpperCase()
+      : c.darken(amt).toHex().toUpperCase();
+  });
+
+  // Always put the base color first (unmodified)
+  palette.unshift(hex);
+
+  // Limit to 7 colors
+  return palette.slice(0, 7);
 }

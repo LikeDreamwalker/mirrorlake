@@ -10,7 +10,7 @@ import {
   useMemo,
 } from "react";
 import { useChat, type Message } from "@ai-sdk/react";
-import { useStore } from "@/store";
+import { useColorStore } from "@/provider";
 import { getColorAdvice } from "@/app/actions/color-advice";
 import { toast } from "sonner";
 
@@ -94,8 +94,39 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     resetTheme,
     removeColorsFromTheme,
     markColorAsFavorite,
-    generateColorPalette,
-  } = useStore();
+  } = useColorStore((state) => ({
+    // Color picker state
+    currentColorInfo: state.currentColorInfo,
+    currentColor: state.currentColor,
+    format: state.format,
+    isDark: state.isDark,
+
+    // Color picker actions
+    setBaseColor: state.setBaseColor,
+    getFullColor: state.getFullColor,
+    generateRandomColor: state.generateRandomColor,
+    setColorFromHex: state.setColorFromHex,
+    setColorFromRgb: state.setColorFromRgb,
+    setColorFromHsl: state.setColorFromHsl,
+    updateColorValues: state.updateColorValues,
+    getColorName: state.getColorName,
+
+    // Theme actions
+    colors: state.colors,
+    addColor: state.addColor,
+    removeColor: state.removeColor,
+    updateColor: state.updateColor,
+    toggleFavorite: state.toggleFavorite,
+    getColorById: state.getColorById,
+    setCurrentColorFromItem: state.setCurrentColorFromItem,
+
+    // Theme management actions
+    addColorsToTheme: state.addColorsToTheme,
+    updateTheme: state.updateTheme,
+    resetTheme: state.resetTheme,
+    removeColorsFromTheme: state.removeColorsFromTheme,
+    markColorAsFavorite: state.markColorAsFavorite,
+  }));
 
   const [isProcessingColor, setIsProcessingColor] = useState(false);
   const lastProcessedColor = useRef<string | null>(null);
@@ -197,10 +228,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             markColorAsFavorite(params);
             break;
 
-          case "generateColorPalette":
-            generateColorPalette(params);
-            break;
-
           case "setColorFromHex":
             setColorFromHex(params.hex);
             break;
@@ -249,7 +276,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     resetTheme,
     removeColorsFromTheme,
     markColorAsFavorite,
-    generateColorPalette,
     setColorFromHex,
     setColorFromRgb,
     setColorFromHsl,
@@ -282,21 +308,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Initialize with default color and first user message
   useEffect(() => {
     if (isFirstLoad.current && !hasInitialized.current) {
-      const defaultColor = "#0066ff";
-      setBaseColor(defaultColor);
-
       setMessages([
         {
           id: "initial-color-selection",
           role: "user",
-          content: `I just selected the color \`<ColorPreview>${defaultColor}</ColorPreview>\`.`,
+          content: `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`,
         },
       ]);
-
       isFirstLoad.current = false;
       hasInitialized.current = true;
     }
-  }, [setBaseColor, setMessages]);
+  }, [setMessages, currentColor]);
 
   // Process color changes
   useEffect(() => {
