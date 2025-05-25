@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, copyToClipboard } from "@/lib/utils";
 import { useColorStore } from "@/provider";
 import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
@@ -72,13 +72,16 @@ export function ColorPreview({
   // Copy color to clipboard
   const handleCopy = async () => {
     if (!isValidColor || !hexColor) return;
-    try {
-      await navigator.clipboard.writeText(hexColor);
-      toast.success("Copied!", {
-        description: `${hexColor} copied to clipboard.`,
+    const res = await copyToClipboard(hexColor);
+    if (res) {
+      toast("Copied!", {
+        description: `${hexColor} has been copied to clipboard`,
+        duration: 2000,
       });
-    } catch {
-      toast.error("Copy failed");
+    } else {
+      toast.error("Failed to copy", {
+        description: "Please try again",
+      });
     }
   };
 

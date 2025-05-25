@@ -184,6 +184,9 @@ export function activate(context: vscode.ExtensionContext) {
                 sandbox="allow-scripts allow-same-origin allow-forms"
               ></iframe>
               <script>
+                window.vscodeApi = acquireVsCodeApi();
+              </script>
+              <script>
                 // Listen for VSCode postMessage and forward to iframe
                 window.addEventListener('message', (event) => {
                   const iframe = document.getElementById('mirrorlake-iframe');
@@ -192,9 +195,24 @@ export function activate(context: vscode.ExtensionContext) {
                   }
                 });
               </script>
+              <script>
+                window.addEventListener('message', (event) => {
+                  const data = event.data;
+                  if (data && data.type === "copy-to-clipboard") {
+                    // Forward to VS Code extension host
+                    window.vscodeApi?.postMessage(data);
+                  }
+                });
+              </script>
             </body>
           </html>
         `;
+        mirrorLakePanel.webview.onDidReceiveMessage((message) => {
+          if (message.type === "copy-to-clipboard" && message.text) {
+            vscode.env.clipboard.writeText(message.text);
+            vscode.window.showInformationMessage(`Copied: ${message.text}`);
+          }
+        });
         mirrorLakePanel.onDidDispose(
           () => {
             mirrorLakePanel = undefined;

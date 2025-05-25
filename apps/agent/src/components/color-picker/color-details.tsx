@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useColorPicker } from "./context";
 import { DetailItem } from "./detail-item";
 import { useColorStore } from "@/provider";
+import { copyToClipboard as copyToClipboardOriginal } from "@/lib/utils";
 
 export function ColorDetails() {
   const { hexValue, hexError, setHexValue, setHexError, colorName } =
@@ -85,12 +86,18 @@ export function ColorDetails() {
   };
 
   // Copy color to clipboard
-  const copyToClipboard = (value: string) => {
-    navigator.clipboard.writeText(value);
-    toast("Copied!", {
-      description: `${value} has been copied to clipboard`,
-      duration: 2000,
-    });
+  const copyToClipboard = async (value: string) => {
+    const res = await copyToClipboardOriginal(value);
+    if (res) {
+      toast("Copied!", {
+        description: `${value} has been copied to clipboard`,
+        duration: 2000,
+      });
+    } else {
+      toast.error("Failed to copy", {
+        description: "Please try again",
+      });
+    }
   };
 
   // Helper to render error message
