@@ -10,7 +10,6 @@ import {
   rgbToHex,
   hslToHex,
   hslToRgb,
-  generateSimplePalette,
 } from "@mirrorlake/color-tools";
 import { colorToName, colorsToNames } from "@/app/actions/color";
 
