@@ -1,7 +1,7 @@
 # MirrorLake Color Highlighter
 
 A powerful VSCode extension that provides intelligent color highlighting and conversion tools for web developers. Connects with the [MirrorLake Color Agent](https://mirrorlake.ldwid.com/) to provider advanced color advices and color picker tools.
-![MirrorLake Color Highlighter Demo](./demo.png)
+![MirrorLake Color Highlighter Demo](https://raw.githubusercontent.com/LikeDreamwalker/mirrorlake/main/apps/mirrorlake-color-highlighter/demo.png)
 
 ## ✨ Features
 
