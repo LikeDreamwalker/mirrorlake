@@ -3,7 +3,7 @@
   "publisher": "LikeDreamwalker",
   "displayName": "MirrorLake Color Highlighter",
   "description": "Intelligent color highlighting and conversion tools for web developers. Supports HEX, RGB, HSL, named colors with hover info and MirrorLake integration.",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "icon": "icon.png",
   "repository": {
     "type": "git",
@@ -131,7 +131,7 @@
     "vsce:package": "vsce package --no-dependencies"
   },
   "dependencies": {
-    "@mirrorlake/color-tools": "^1.0.0",
+    "@mirrorlake/color-tools": "workspace:*",
     "minimatch": "^10.0.1"
   },
   "devDependencies": {
