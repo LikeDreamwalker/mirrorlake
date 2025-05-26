@@ -2,18 +2,48 @@
   "name": "mirrorlake-color-highlighter",
   "publisher": "LikeDreamwalker",
   "displayName": "MirrorLake Color Highlighter",
-  "description": "Highlight HSL, HEX and so on color codes.",
+  "description": "Intelligent color highlighting and conversion tools for web developers. Supports HEX, RGB, HSL, named colors with hover info and MirrorLake integration.",
   "version": "0.0.1",
+  "icon": "icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/LikeDreamwalker/mirrorlake/tree/main/apps/mirrorlake-color-highlighter"
   },
+  "bugs": {
+    "url": "https://github.com/LikeDreamwalker/mirrorlake/issues"
+  },
+  "homepage": "https://github.com/LikeDreamwalker/mirrorlake#readme",
+  "license": "MIT",
+  "author": {
+    "name": "LikeDreamwalker",
+    "url": "https://github.com/LikeDreamwalker"
+  },
+  "keywords": [
+    "color",
+    "highlighter",
+    "css",
+    "hex",
+    "rgb",
+    "hsl",
+    "color-picker",
+    "web-development",
+    "accessibility",
+    "color-theory",
+    "mirrorlake",
+    "design"
+  ],
   "engines": {
     "vscode": "^1.100.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Themes",
+    "Visualization"
   ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "activationEvents": [
     "onStartupFinished"
   ],
