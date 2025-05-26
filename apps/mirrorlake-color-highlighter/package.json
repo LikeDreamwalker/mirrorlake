@@ -27,12 +27,36 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "mirrorlake-color-highlighter.helloWorld",
-        "title": "Hello World"
+    "commands": [],
+    "configuration": {
+      "title": "MirrorLake Color Highlighter",
+      "properties": {
+        "mirrorlake-color-highlighter.supportedFileGlobs": {
+          "type": "array",
+          "default": [
+            "*.css",
+            "*.scss",
+            "*.sass",
+            "*.less",
+            "*.styl",
+            "*.pcss",
+            "*.html",
+            "*.htm",
+            "*.vue",
+            "*.jsx",
+            "*.tsx",
+            "*.js",
+            "*.ts"
+          ],
+          "description": "Glob patterns for files where MirrorLake Color Highlighter is enabled."
+        },
+        "mirrorlake-color-highlighter.enableNamedColors": {
+          "type": "boolean",
+          "default": false,
+          "description": "EXPERIMENTAL: Enable highlighting of named colors (e.g. 'red', 'Blue Ribbon'). May cause false positives."
+        }
       }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",
@@ -48,7 +72,8 @@
     "vsce:package": "vsce package --no-dependencies"
   },
   "dependencies": {
-    "@mirrorlake/color-tools": "workspace:*"
+    "@mirrorlake/color-tools": "workspace:*",
+    "minimatch": "^10.0.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

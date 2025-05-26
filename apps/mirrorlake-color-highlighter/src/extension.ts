@@ -1,18 +1,13 @@
 import * as vscode from "vscode";
+import { minimatch } from "minimatch";
 import {
   COLOR_REGEXES,
   parseAndNormalizeColor,
   buildColorWithAlpha,
   nameToColor,
-  calculateAnalogous,
-  calculateComplementary,
   getColorName,
   hexToHsl,
   hexToRgb,
-  getColorAttributes,
-  getColorTints,
-  getContrastRatio,
-  simulateColorBlindness,
   getAlphaFromColorString,
   toHsl4String,
 } from "@mirrorlake/color-tools";
@@ -120,7 +115,7 @@ export function activate(context: vscode.ExtensionContext) {
             const endPos = document.positionAt(match.index + color.length);
             const range = new vscode.Range(startPos, endPos);
             // Only highlight named colors if they are valid CSS color names
-            if (format === "named") {
+            if (format === "named" && isNamedColorEnabled()) {
               const namedColor = nameToColor(color, true);
               if (namedColor) {
                 color = namedColor;
@@ -304,6 +299,10 @@ function clearAllDecorations(editor: vscode.TextEditor) {
 }
 
 async function updateColorDecorations(editor: vscode.TextEditor) {
+  if (!isSupportedFile(editor.document)) {
+    return;
+  }
+
   const text = editor.document.getText();
 
   clearAllDecorations(editor);
@@ -331,10 +330,14 @@ async function updateColorDecorations(editor: vscode.TextEditor) {
       const color = match[0];
 
       // Only highlight named colors if they are valid CSS color names
-      if (format === "named" && !nameToColor(color, true)) {
-        continue;
+      if (format === "named") {
+        if (!isNamedColorEnabled()) {
+          continue;
+        }
+        if (!nameToColor(color, true)) {
+          continue;
+        }
       }
-
       const startPos = editor.document.positionAt(match.index);
       const endPos = editor.document.positionAt(match.index + color.length);
       const range = new vscode.Range(startPos, endPos);
@@ -413,4 +416,18 @@ function rangeOverlaps(
   candidate: vscode.Range
 ): boolean {
   return existing.some((r) => candidate.intersection(r) !== undefined);
+}
+
+function isSupportedFile(document: vscode.TextDocument): boolean {
+  const globs: string[] = vscode.workspace
+    .getConfiguration("mirrorlake-color-highlighter")
+    .get("supportedFileGlobs", []);
+  const fileName = document.fileName.split(/[/\\]/).pop() || "";
+  return globs.some((glob) => minimatch(fileName, glob));
+}
+
+function isNamedColorEnabled(): boolean {
+  return vscode.workspace
+    .getConfiguration("mirrorlake-color-highlighter")
+    .get<boolean>("enableNamedColors", false);
 }
