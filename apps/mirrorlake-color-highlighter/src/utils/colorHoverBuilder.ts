@@ -10,7 +10,8 @@ import {
 export class ColorHoverBuilder {
   async createColorHover(
     color: string,
-    range: vscode.Range
+    range: vscode.Range,
+    originalColor?: string
   ): Promise<vscode.Hover> {
     const content = new vscode.MarkdownString();
     content.isTrusted = true;
@@ -21,19 +22,27 @@ export class ColorHoverBuilder {
     const parsedHsl = await parseAndNormalizeColor(color, "hsl");
 
     if (!parsedHex.valid) {
-      content.appendMarkdown(`**Invalid color:** \`${color}\``);
+      content.appendMarkdown(
+        `**Invalid color:** \`${originalColor || color}\``
+      );
       return new vscode.Hover(content, range);
     }
 
     const colorInfo = await this.getColorInfo(parsedHex.normalized);
     const rangeObj = this.createRangeObject(range);
 
+    // Use original color name if it was a named color, otherwise use detected name
+    const displayName =
+      originalColor && originalColor !== color
+        ? originalColor
+        : colorInfo.colorName;
+
     // Swatch + name
     content.appendMarkdown(
-      `![](https://singlecolorimage.com/get/${colorInfo.hex.replace("#", "").slice(0, 6)}/16x16) **${colorInfo.colorName}**\n\n`
+      `![](https://singlecolorimage.com/get/${colorInfo.hex.replace("#", "").slice(0, 6)}/16x16) **${displayName}**\n\n`
     );
 
-    // Clickable conversions
+    // Clickable conversions - always use the converted hex value for replacements
     this.addClickableConversions(content, colorInfo, rangeObj);
 
     // More info link

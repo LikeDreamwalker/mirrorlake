@@ -7,6 +7,7 @@ import {
   parseAndNormalizeColor,
   buildColorWithAlpha,
   getAlphaFromColorString,
+  nameToColor,
 } from "@mirrorlake/color-tools";
 
 export class ColorDecorationManager {
@@ -52,17 +53,30 @@ export class ColorDecorationManager {
     );
 
     for (const color in colorRanges) {
-      const backgroundColor = await this.getBackgroundColor(color);
+      // Convert named colors to hex for consistent processing
+      const processedColor = await this.processColor(color);
+      const backgroundColor = await this.getBackgroundColor(processedColor);
       const decoType = this.createDecorationType(
         backgroundColor,
         borderColor,
         fg,
-        color
+        processedColor
       );
 
       this.dynamicDecorationTypes.push(decoType);
       editor.setDecorations(decoType, colorRanges[color]);
     }
+  }
+
+  private async processColor(color: string): Promise<string> {
+    // Check if it's a named color and convert it
+    if (this.configManager.isNamedColorEnabled()) {
+      const namedColorHex = nameToColor(color, true);
+      if (namedColorHex) {
+        return namedColorHex;
+      }
+    }
+    return color;
   }
 
   private async getBackgroundColor(color: string): Promise<string | undefined> {

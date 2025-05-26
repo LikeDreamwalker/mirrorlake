@@ -27,22 +27,30 @@ export class ColorHoverProvider implements vscode.HoverProvider {
       let match;
       while ((match = regex.exec(document.getText())) !== null) {
         let color = match[0];
+        const originalColor = color; // Keep track of original for display
         const startPos = document.positionAt(match.index);
         const endPos = document.positionAt(match.index + color.length);
         const range = new vscode.Range(startPos, endPos);
 
-        // Only highlight named colors if they are valid CSS color names
-        if (format === "named" && this.configManager.isNamedColorEnabled()) {
+        // Handle named colors consistently
+        if (format === "named") {
+          if (!this.configManager.isNamedColorEnabled()) {
+            continue;
+          }
           const namedColor = nameToColor(color, true);
           if (namedColor) {
-            color = namedColor;
+            color = namedColor; // Convert to hex for processing
           } else {
             continue;
           }
         }
 
         if (this.isPositionInRange(position, range)) {
-          return this.hoverBuilder.createColorHover(color, range);
+          return this.hoverBuilder.createColorHover(
+            color,
+            range,
+            originalColor
+          );
         }
       }
     }
