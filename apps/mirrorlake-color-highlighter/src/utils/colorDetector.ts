@@ -12,6 +12,16 @@ export class ColorDetector {
     const allRanges: vscode.Range[] = [];
 
     for (const { format, regex } of COLOR_REGEXES) {
+      // Skip RGB4 format if not enabled
+      if (format === "rgb4" && !configManager.isRgb4Enabled()) {
+        continue;
+      }
+
+      // Skip HSL4 format if not enabled
+      if (format === "hsl4" && !configManager.isRgb4Enabled()) {
+        continue;
+      }
+
       let match;
       while ((match = regex.exec(text)) !== null) {
         const color = match[0];

@@ -1,11 +1,12 @@
 import * as vscode from "vscode";
 import { COLOR_REGEXES, nameToColor } from "@mirrorlake/color-tools";
 import { ColorHoverBuilder } from "../utils/colorHoverBuilder";
-import { ConfigurationManager } from "../config/configurationManager";
+import type { ConfigurationManager } from "../config/configurationManager";
 
 export class ColorHoverProvider implements vscode.HoverProvider {
-  private configManager = new ConfigurationManager();
   private hoverBuilder = new ColorHoverBuilder();
+
+  constructor(private configManager: ConfigurationManager) {}
 
   async provideHover(
     document: vscode.TextDocument,
@@ -13,6 +14,16 @@ export class ColorHoverProvider implements vscode.HoverProvider {
     token: vscode.CancellationToken
   ): Promise<vscode.Hover | null> {
     for (const { format, regex } of COLOR_REGEXES) {
+      // Skip RGB4 format if not enabled
+      if (format === "rgb4" && !this.configManager.isRgb4Enabled()) {
+        continue;
+      }
+
+      // Skip HSL4 format if not enabled
+      if (format === "hsl4" && !this.configManager.isRgb4Enabled()) {
+        continue;
+      }
+
       let match;
       while ((match = regex.exec(document.getText())) !== null) {
         let color = match[0];

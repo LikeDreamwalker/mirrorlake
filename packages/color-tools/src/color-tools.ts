@@ -39,31 +39,18 @@ export const COLOR_REGEXES = [
     regex: /hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)/gi,
   },
   {
-    format: "named",
-    // Matches CSS identifiers (words), not numbers, not followed by '(' (to avoid functions)
-    regex: /\b([a-zA-Z][a-zA-Z0-9-]*)\b(?!\s*\()/g,
-  },
-  {
     format: "hsl4",
-    // Matches: 240 3.7% 15.9% / 0.7 or hsl(240 3.7% 15.9% / 0.7)
     regex:
       /(?:hsl[a]?\()?(\d{1,3})\s+(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%(?:\s*\/\s*(\d*\.?\d+))?\)?/gi,
   },
+  // {
+  //   format: "rgb4",
+  //   regex:
+  //     /(?:rgb[a]?\()?(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s*\/\s*(\d*\.?\d+))?\)?/gi,
+  // },
   {
-    format: "rgb4",
-    // Matches: 0 170 255 or 0 170 255 / 0.5 or rgb(0 170 255 / 0.5)
-    regex:
-      /(?:rgb[a]?\()?(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})(?:\s*\/\s*(\d*\.?\d+))?\)?/gi,
-  },
-  {
-    format: "rgb-comma",
-    // Matches: 0, 170, 255 or 0,170,255 (for custom props)
-    regex: /(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})/g,
-  },
-  {
-    format: "hsl-comma",
-    // Matches: 195, 100%, 50% or 195,100%,50% (for custom props)
-    regex: /(\d{1,3}),\s*(\d{1,3})%,\s*(\d{1,3})%/g,
+    format: "named",
+    regex: /\b([a-zA-Z][a-zA-Z0-9-]*)\b(?!\s*\()/g,
   },
 ];
 

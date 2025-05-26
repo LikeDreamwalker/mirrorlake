@@ -1,7 +1,7 @@
 {
   "name": "mirrorlake-color-highlighter",
   "publisher": "LikeDreamwalker",
-  "displayName": "mirrorlake-color-highlighter",
+  "displayName": "MirrorLake Color Highlighter",
   "description": "Highlight HSL, HEX and so on color codes.",
   "version": "0.0.1",
   "repository": {
@@ -15,19 +15,25 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished",
-    "onLanguage:css",
-    "onLanguage:scss",
-    "onLanguage:less",
-    "onLanguage:javascript",
-    "onLanguage:typescript",
-    "onLanguage:javascriptreact",
-    "onLanguage:typescriptreact",
-    "onLanguage:html"
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "commands": [],
+    "commands": [
+      {
+        "command": "mirrorlake-color-highlighter.toggleHighlighting",
+        "title": "Toggle Color Highlighting",
+        "category": "MirrorLake"
+      },
+      {
+        "command": "mirrorlake-color-highlighter.replaceColor",
+        "title": "Replace Color"
+      },
+      {
+        "command": "mirrorlake-color-highlighter.openColorInWebView",
+        "title": "Open Color in WebView"
+      }
+    ],
     "configuration": {
       "title": "MirrorLake Color Highlighter",
       "properties": {
@@ -48,12 +54,35 @@
             "*.js",
             "*.ts"
           ],
-          "description": "Glob patterns for files where MirrorLake Color Highlighter is enabled."
+          "description": "Glob patterns for files where color highlighting is enabled. Leave empty to use default patterns."
+        },
+        "mirrorlake-color-highlighter.supportedLanguages": {
+          "type": "array",
+          "default": [
+            "css",
+            "scss",
+            "sass",
+            "less",
+            "stylus",
+            "postcss",
+            "html",
+            "vue",
+            "javascript",
+            "typescript",
+            "javascriptreact",
+            "typescriptreact"
+          ],
+          "description": "Language IDs where color highlighting is enabled. This works for both saved and unsaved files. Leave empty to use default languages."
         },
         "mirrorlake-color-highlighter.enableNamedColors": {
           "type": "boolean",
           "default": false,
           "description": "EXPERIMENTAL: Enable highlighting of named colors (e.g. 'red', 'Blue Ribbon'). May cause false positives."
+        },
+        "mirrorlake-color-highlighter.enableRgb4Colors": {
+          "type": "boolean",
+          "default": false,
+          "description": "EXPERIMENTAL: Enable highlighting of CSS4 space-separated RGB colors (e.g., rgb(255 0 0) or rgb(255 0 0 / 0.5))"
         }
       }
     }
@@ -72,7 +101,7 @@
     "vsce:package": "vsce package --no-dependencies"
   },
   "dependencies": {
-    "@mirrorlake/color-tools": "workspace:*",
+    "@mirrorlake/color-tools": "^1.0.0",
     "minimatch": "^10.0.1"
   },
   "devDependencies": {
