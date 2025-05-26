@@ -1,34 +1,121 @@
 {
   "name": "mirrorlake-color-highlighter",
-  "publisher": "mirrorlake",
-  "displayName": "mirrorlake-color-highlighter",
-  "description": "Highlight HSL, HEX and so on color codes.",
-  "version": "0.0.1-beta.1",
+  "publisher": "LikeDreamwalker",
+  "displayName": "MirrorLake Color Highlighter",
+  "description": "Intelligent color highlighting and conversion tools for web developers. Supports HEX, RGB, HSL, named colors with hover info and MirrorLake integration.",
+  "version": "1.0.0",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LikeDreamwalker/mirrorlake/tree/main/apps/mirrorlake-color-highlighter"
+  },
+  "bugs": {
+    "url": "https://github.com/LikeDreamwalker/mirrorlake/issues"
+  },
+  "homepage": "https://github.com/LikeDreamwalker/mirrorlake#readme",
+  "license": "MIT",
+  "author": {
+    "name": "LikeDreamwalker",
+    "url": "https://github.com/LikeDreamwalker"
+  },
+  "keywords": [
+    "color",
+    "highlighter",
+    "css",
+    "hex",
+    "rgb",
+    "hsl",
+    "color-picker",
+    "web-development",
+    "accessibility",
+    "color-theory",
+    "mirrorlake",
+    "design"
+  ],
   "engines": {
     "vscode": "^1.100.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Themes",
+    "Visualization"
   ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "activationEvents": [
-    "onStartupFinished",
-    "onLanguage:css",
-    "onLanguage:scss",
-    "onLanguage:less",
-    "onLanguage:javascript",
-    "onLanguage:typescript",
-    "onLanguage:javascriptreact",
-    "onLanguage:typescriptreact",
-    "onLanguage:html"
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "mirrorlake-color-highlighter.helloWorld",
-        "title": "Hello World"
+        "command": "mirrorlake-color-highlighter.toggleHighlighting",
+        "title": "Toggle Color Highlighting",
+        "category": "MirrorLake"
+      },
+      {
+        "command": "mirrorlake-color-highlighter.replaceColor",
+        "title": "Replace Color"
+      },
+      {
+        "command": "mirrorlake-color-highlighter.openColorInWebView",
+        "title": "Open Color in WebView"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "MirrorLake Color Highlighter",
+      "properties": {
+        "mirrorlake-color-highlighter.supportedFileGlobs": {
+          "type": "array",
+          "default": [
+            "*.css",
+            "*.scss",
+            "*.sass",
+            "*.less",
+            "*.styl",
+            "*.pcss",
+            "*.html",
+            "*.htm",
+            "*.vue",
+            "*.jsx",
+            "*.tsx",
+            "*.js",
+            "*.ts"
+          ],
+          "description": "Glob patterns for files where color highlighting is enabled. Leave empty to use default patterns."
+        },
+        "mirrorlake-color-highlighter.supportedLanguages": {
+          "type": "array",
+          "default": [
+            "css",
+            "scss",
+            "sass",
+            "less",
+            "stylus",
+            "postcss",
+            "html",
+            "vue",
+            "javascript",
+            "typescript",
+            "javascriptreact",
+            "typescriptreact"
+          ],
+          "description": "Language IDs where color highlighting is enabled. This works for both saved and unsaved files. Leave empty to use default languages."
+        },
+        "mirrorlake-color-highlighter.enableNamedColors": {
+          "type": "boolean",
+          "default": false,
+          "description": "EXPERIMENTAL: Enable highlighting of named colors (e.g. 'red', 'Blue Ribbon'). May cause false positives."
+        },
+        "mirrorlake-color-highlighter.enableRgb4Colors": {
+          "type": "boolean",
+          "default": false,
+          "description": "EXPERIMENTAL: Enable highlighting of CSS4 space-separated RGB colors (e.g., rgb(255 0 0) or rgb(255 0 0 / 0.5))"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",
@@ -41,10 +128,11 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vscode-test",
-    "vsce:package": "vsce package"
+    "vsce:package": "vsce package --no-dependencies"
   },
   "dependencies": {
-    "@mirrorlake/color-tools": "workspace:*"
+    "@mirrorlake/color-tools": "workspace:*",
+    "minimatch": "^10.0.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
