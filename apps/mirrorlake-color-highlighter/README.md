@@ -3,9 +3,9 @@
 A powerful VSCode extension that provides intelligent color highlighting and conversion tools for web developers. Connects with the [MirrorLake Color Agent](https://mirrorlake.ldwid.com/) to provider advanced color advices and color picker tools.
 ![MirrorLake Color Highlighter Demo](https://raw.githubusercontent.com/LikeDreamwalker/mirrorlake/main/apps/mirrorlake-color-highlighter/demo.png)
 
-## ✨ Features
+## Features
 
-### 🎨 **Comprehensive Color Format Support**
+### **Comprehensive Color Format Support**
 
 - **HEX Colors**: `#ff0000`, `#f00`, `#ff0000ff`, `#f00f`
 - **RGB/RGBA**: `rgb(255, 0, 0)`, `rgba(255, 0, 0, 0.5)`
@@ -13,33 +13,33 @@ A powerful VSCode extension that provides intelligent color highlighting and con
 - **CSS4 Space-Separated**: `rgb(255 0 0)`, `hsl(0 100% 50% / 0.5)` _(experimental)_
 - **Named Colors**: `red`, `blue`, `cornflowerblue` _(experimental)_
 
-### 🔍 **Smart Color Detection**
+### **Smart Color Detection**
 
 - Supports **multiple file types**: CSS, SCSS, Sass, Less, Stylus, HTML, Vue, JavaScript, TypeScript, JSX, TSX
 - **Configurable file type support**
 
-### 🎯 **Interactive Color Tools**
+### **Interactive Color Tools**
 
 - **Hover for instant color info** with color name, HEX, RGB, HSL conversions
 - **Click to replace colors** directly in your code
 - **Visual color swatches** next to each color value
 - **Integration with MirrorLake** color tools for advanced color manipulation
 
-### ⚙️ **Highly Configurable**
+### **Highly Configurable**
 
 - **Custom file type support** - add your own file patterns
 - **Language-based detection** - works with VSCode's language modes
 - **Optional features** - enable/disable experimental color formats
 - **Performance optimized** with smart debouncing
 
-## 🚀 Installation
+## Installation
 
 1. Open VSCode
 2. Go to Extensions (`Ctrl+Shift+X` / `Cmd+Shift+X`)
 3. Search for "MirrorLake Color Highlighter"
 4. Click Install
 
-## 📖 Usage
+## Usage
 
 ### Basic Usage
 
@@ -60,7 +60,7 @@ A powerful VSCode extension that provides intelligent color highlighting and con
 - **Toggle Color Highlighting**: `Ctrl+Shift+P` → "MirrorLake: Toggle Color Highlighting"
 - **Open Color in MirrorLake**: Click "More on MirrorLake" in hover popup
 
-## ⚙️ Configuration
+## Configuration
 
 ### File Type Support
 
@@ -126,7 +126,7 @@ Add support for custom file types:
 }
 ```
 
-## 🎨 Supported File Types
+## Supported File Types
 
 | Language   | Extensions      | Unsaved Files |
 | ---------- | --------------- | ------------- |
@@ -143,7 +143,7 @@ Add support for custom file types:
 | React JSX  | `.jsx`          | ✅            |
 | React TSX  | `.tsx`          | ✅            |
 
-## 🔧 Settings Reference
+## Settings Reference
 
 | Setting              | Type      | Default                    | Description                                       |
 | -------------------- | --------- | -------------------------- | ------------------------------------------------- |
@@ -152,7 +152,7 @@ Add support for custom file types:
 | `enableNamedColors`  | `boolean` | `false`                    | Enable named color highlighting (experimental)    |
 | `enableRgb4Colors`   | `boolean` | `false`                    | Enable CSS4 space-separated colors (experimental) |
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Colors not highlighting?
 
@@ -176,15 +176,15 @@ Add support for custom file types:
 
 This is a known issue as expected, and I am working on it. Please try move your cursor to reopen the hover popup then insert the color code again.
 
-## 🤝 Contributing
+## Contributing
 
 Found a bug or have a feature request? Please open an issue on our [GitHub repository](https://github.com/LikeDreamwalker/mirrorlake).
 
-## 📄 License
+## License
 
 This extension is licensed under the MIT License.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with ❤️ by [LikeDreamwalker](https://ldwid.com/)
 - Powered by [MirrorLake](https://github.com/LikeDreamwalker/mirrorlake)
