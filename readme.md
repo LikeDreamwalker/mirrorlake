@@ -4,6 +4,10 @@ A modern, AI-powered color engineering suite for developers, designers, and crea
 
 ![Screen Shot](public/screenshot.png)
 
+Visit [MirrorLake Color Agent](https://mirrorlake.ldwid.com)
+
+Visit [MirrorLake Color Highlighter](https://marketplace.visualstudio.com/items?itemName=LikeDreamwalker.mirrorlake-color-highlighter)
+
 ## Overview
 
 MirrorLake is a **turborepo** containing:
