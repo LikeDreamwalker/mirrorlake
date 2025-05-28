@@ -1,102 +1,158 @@
-# Mirrorlake Color Agent
+# MirrorLake
 
-An aggregated color agent with LLM, engineering, and other AI capabilities.
+A modern, AI-powered color engineering suite for developers, designers, and creators. MirrorLake brings together advanced color tools, intelligent agents, and seamless VSCode integration.
 
 ![Screen Shot](public/screenshot.png)
 
+## Overview
+
+MirrorLake is a **turborepo** containing:
+
+- **MirrorLake Color Agent**: An AI-augmented color picker and theme agent web app ([apps/agent](./apps/agent)), offering color analysis, advice, and theme management with LLM and Python-powered reasoning.
+- **MirrorLake Color Highlighter**: A powerful VSCode extension ([apps/mirrorlake-color-highlighter](./apps/mirrorlake-color-highlighter)) for intelligent color highlighting, conversion, and instant color info in your code.
+
+## Features
+
+### Color Agent (Web App)
+
+- Interactive color picker with AI-powered color advice
+- Theme creation and management
+- Deep color analysis (client, server, and Python-powered)
+- Reasoning Engine integration (DeepSeek, AI SDK, or your own provider)
+- Multi-layered architecture: Next.js (client/server), Python (Edge/Server), and LLM
+
+### VSCode Color Highlighter
+
+- Highlights all major color formats: HEX, RGB(A), HSL(A), CSS4, named colors
+- Hover for instant color info, conversions, and color names
+- Click to replace color codes in your code
+- Visual color swatches and advanced color picker integration
+- Highly configurable: file types, languages, experimental features
+
 ## Getting Started
 
-### Online
+### Online Demo
 
-Visit [mirrorlake.ldwid.com](https://mirrorlake.ldwid.com).
+Try the Color Agent at [mirrorlake.ldwid.com](https://mirrorlake.ldwid.com).
 
-> _The online version is hosted on Vercel and uses my own DeepSeek API key._
->
-> _The online version and the original project won't save your data on the server side._
+### Local Development
 
-### Local
+#### Prerequisites
 
-> **This project is designed to deploy on Vercel.**
->
-> If you want to deploy on other services (including your own server), you should extract the Python part to an independent service.
->
-> _Before you get started, please make sure you have Python 3.12+ in your local environment_
+- [Node.js](https://nodejs.org/) (v22+ recommended)
+- [pnpm](https://pnpm.io/) (see `packageManager` in root)
+- [Python 3.12+](https://www.python.org/) (for advanced color analysis)
 
-1. Clone this repository
-2. Run `python3 -m venv venv`
-3. Run `source venv/bin/activate` on Mac or `venv\Scripts\activate` on Windows
-4. Install dependencies with `pnpm i`
-5. Run the development server with `pnpm dev`
-6. Open [http://localhost:3000](http://localhost:3000) with your browser to see the app
-7. To use the Reasoning Engine, you need to set up the DeepSeek API KEY in the `.env.local` file. We're using AI SDK, so you can change the actual reasoning engine to any provider you prefer.
+#### Setup
 
-```bash
-DEEPSEEK_API_KEY=your_deepseek_api_key
+1. **Clone this repository**
+2. **Install dependencies**
+   ```sh
+   pnpm install
+   ```
+3. **Set up Python environment**
+   ```sh
+   python3 -m venv venv
+   # On Mac/Linux:
+   source venv/bin/activate
+   # On Windows:
+   venv\Scripts\activate
+   ```
+4. **Run the development server**
+   ```sh
+   pnpm dev
+   ```
+5. **Open [http://localhost:3000](http://localhost:3000) in your browser**
+
+6. **(Optional) Set up DeepSeek API key for AI features**
+   Create `.env.local` in the root or `apps/agent`:
+   ```
+   DEEPSEEK_API_KEY=your_deepseek_api_key
+   ```
+
+#### VSCode Extension
+
+1. Open VSCode in the repo root.
+2. Go to `apps/mirrorlake-color-highlighter`.
+3. Run `pnpm install` if needed.
+4. Press `F5` to launch the extension in a new Extension Development Host window.
+
+## Monorepo Structure
+
+```
+mirrorlake/
+├── apps/
+│   ├── agent/                     # MirrorLake Color Agent (Next.js + Python)
+│   └── mirrorlake-color-highlighter/ # VSCode extension
+├── packages/
+│   └── color-tools/               # Shared color utilities
+├── ...
 ```
 
-## How to Use
+---
 
-You can pick a color from the color picker and view related basic color information. The agent will also provide advice about this color.
+## Configuration
 
-You can also talk to the agent to perform various tasks, such as:
+### Color Agent
 
-- "Give me a random color"
-- "Give me a 'You need a blue sky holiday' theme and add it to my theme"
-- "Reset my theme to default"
-- "Tell me more about `#0066FF`"
+- See [apps/agent/readme.md](./apps/agent/readme.md) for full usage, deployment, and architecture details.
 
-## Annotation
+### VSCode Extension
 
-### What is this agent about?
+- See [apps/mirrorlake-color-highlighter/README.md](./apps/mirrorlake-color-highlighter/README.md) for features, settings, and troubleshooting.
 
-The Color Picker, or the Color Agent idea, comes from my earlier project [Mirrorlake Theme Editor](https://github.com/LikeDreamwalker/mirrorlake-theme-editor), which I used to help myself set up custom themes in Vuetify.
+#### Example VSCode Settings
 
-Building on this foundation, I developed Mirrorlake as a complete modern AI agent, aimed at offering a better experience in selecting colors and building themes. It uses AI to replace some traditional UI/UX elements and manual tasks.
+```json
+{
+  "mirrorlake-color-highlighter.supportedFileGlobs": [
+    "*.css",
+    "*.scss",
+    "*.sass",
+    "*.less",
+    "*.styl",
+    "*.pcss",
+    "*.html",
+    "*.htm",
+    "*.vue",
+    "*.jsx",
+    "*.tsx",
+    "*.js",
+    "*.ts"
+  ],
+  "mirrorlake-color-highlighter.enableNamedColors": false,
+  "mirrorlake-color-highlighter.enableRgb4Colors": false
+}
+```
 
-> _This project is not designed for commercial use, but rather serves as a best practice template for myself, incorporating multiple capabilities I use today._
+---
 
-### Details
+## Architecture
 
-Mirrorlake uses a multi-layered architecture:
+MirrorLake uses a multi-layered approach:
 
-- **Client Side Runtime (Next.js Client Side)**: Handles states and responds to user actions immediately
-- **Server Side Runtime (Hybrid)**: Controls basic logic and computing, bridging the client side and reasoning engine
-  - **Next.js Server Side**: Handles rendering, routing, and API calls; connects to edge services and the reasoning engine
-    - Reserved for connecting to databases and fetching specific data
-  - **Python Server Side**: Handles complex computing and color analysis jobs; runs on Vercel Edge Services or with Liquid Computing
-    - Since Mirrorlake is designed for Vercel deployment, its actual power is limited by Edge Services. It would be more common to build an independent Python server to handle complex computing tasks
-- **Reasoning Engine (DeepSeek Online Services)**: Handles complex logic and understands user inputs; uses Tool Calling to execute actions for users on the client side; reserved for bidirectional MCP communication
+- **Client Side (Next.js)**: Fast, interactive color tools and agent UI
+- **Server Side (Next.js & Python)**: Color analysis, theme logic, and heavy computation
+- **Reasoning Engine (LLM/DeepSeek)**: AI-powered advice, theme suggestions, and user queries
+- **VSCode Extension**: Real-time color highlighting and conversion in your editor
 
-From a business perspective, we have three service levels:
+---
 
-- Basic color actions are handled by the Next.js Client Side
-- Color analysis is performed by the Next.js Server Side and Python Server Side working together
-- Specific user needs are addressed by the Reasoning Engine, which coordinates with both server and client sides
+## Acknowledgments
 
-By working together, these components allow Mirrorlake to offer a flexible experience with lower costs.
+- [colord](https://github.com/omgovich/colord) for color analysis
+- [color-names](https://github.com/meodai/color-names) for color naming
+- [nextjs-fastapi](https://github.com/digitros/nextjs-fastapi) for project structure inspiration
+- All open-source dependencies and contributors
 
-### Thanks to
-
-- **[nextjs-fastapi](https://github.com/digitros/nextjs-fastapi)** for inspiring the project structure, offering a brilliant way to combine Python Runtime and Next.js Runtime in both local and production environments.
-- **[colord](https://github.com/omgovich/colord)** for color analysis on Next.js runtime. This is the core of Mirrorlake, saving me significant time in building basic color capabilities.
-- **[color-names](https://github.com/meodai/color-names)** for generating color names. We built a server action to fetch specific color names from the Next.js Server Side, avoiding memory costs on the Client Side.
-
-...and all the dependencies this project uses!
-
-## Why This?
-
-I appreciate the AI era, but I believe we often expect too much from reasoning models while neglecting traditional engineering that can accomplish many tasks efficiently. Mirrorlake is designed with this philosophy in mind—we only use AI when truly needed and to improve performance, rather than simply offering users a chat interface to do their work. What's the difference between that and giving users a terminal to command themselves?
-
-An agent, or an app that truly integrates AI with engineering, represents the future of AI applications.
-
-## To Contribute
-
-Feel free to open an issue or a pull request! Mirrorlake has potential for many additional features, such as asking AI to provide information about specific colors, or using AI-generated content to create images or videos based on the current theme. I don't have enough time to implement all these ideas, so if you're interested in this project, you're welcome to contribute.
+---
 
 ## License
 
 MIT License and All Rights Reserved.
 
-![LikeDreamwalker](public/ldw.svg)
+---
 
-Meet me at [likedreamwalker.space](https://likedreamwalker.space)
+**Enjoy beautiful, intelligent color workflows with MirrorLake!**
+
+[![LikeDreamwalker](public/ldw.svg)](https://likedreamwalker.space)
