@@ -76,7 +76,7 @@ export class ColorDecorationManager {
         return namedColorHex;
       }
     }
-    return color;
+    return (await parseAndNormalizeColor(color, "hex")).normalized;
   }
 
   private async getBackgroundColor(color: string): Promise<string | undefined> {
@@ -122,7 +122,7 @@ export class ColorDecorationManager {
       before: {
         height: "100%",
         backgroundColor: backgroundColor,
-        color: backgroundColor ? color : color,
+        color: color,
         contentText: "\u2009■\u2009",
         border: `1px solid ${borderColor}`,
       },
