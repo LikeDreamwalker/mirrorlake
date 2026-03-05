@@ -46,21 +46,14 @@ export class ColorHoverProvider implements vscode.HoverProvider {
         }
 
         if (this.isPositionInRange(position, range)) {
-          return this.hoverBuilder.createColorHover(
-            color,
-            range,
-            originalColor
-          );
+          return this.hoverBuilder.createColorHover(color, range, originalColor);
         }
       }
     }
     return null;
   }
 
-  private isPositionInRange(
-    position: vscode.Position,
-    range: vscode.Range
-  ): boolean {
+  private isPositionInRange(position: vscode.Position, range: vscode.Range): boolean {
     return (
       position.line >= range.start.line &&
       position.line <= range.end.line &&

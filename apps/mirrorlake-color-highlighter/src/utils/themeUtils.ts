@@ -11,8 +11,7 @@ export class ThemeUtils {
     const darkBorder = "hsl(240, 3.7%, 15.9%)";
 
     // Detect user's current theme
-    const isEditorDark =
-      vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
+    const isEditorDark = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark;
 
     return {
       borderColor: isEditorDark ? darkBorder : lightBorder,

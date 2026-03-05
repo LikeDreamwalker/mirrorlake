@@ -17,11 +17,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
         className: "justify-start",
         classNames: {
           toast:
-            "!bg-background !text-foreground !border-border !rounded-3xl !backdrop-blur-md !shadow-lg",
-          description: "!text-muted-foreground !font-light",
-          title: "!text-foreground !font-bold",
-          actionButton: "!bg-primary !text-primary-foreground",
-          cancelButton: "!bg-muted !text-muted-foreground",
+            "bg-background! text-foreground! border-border! rounded-3xl! backdrop-blur-md! shadow-lg!",
+          description: "text-muted-foreground! font-light!",
+          title: "text-foreground! font-bold!",
+          actionButton: "bg-primary! text-primary-foreground!",
+          cancelButton: "bg-muted! text-muted-foreground!",
           icon: "size-6",
         },
       }}

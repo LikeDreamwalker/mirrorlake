@@ -15,11 +15,7 @@ export class ConfigurationManager {
     this.enabled = !this.enabled;
     await vscode.workspace
       .getConfiguration()
-      .update(
-        "editor.colorDecorators",
-        !this.enabled,
-        vscode.ConfigurationTarget.Global
-      );
+      .update("editor.colorDecorators", !this.enabled, vscode.ConfigurationTarget.Global);
 
     vscode.window.showInformationMessage(
       `MirrorLake Color highlighting: ${this.enabled ? "Enabled" : "Disabled"}`
@@ -53,20 +49,12 @@ export class ConfigurationManager {
   async disableBuiltInColorDecorators(): Promise<void> {
     await vscode.workspace
       .getConfiguration()
-      .update(
-        "editor.colorDecorators",
-        false,
-        vscode.ConfigurationTarget.Global
-      );
+      .update("editor.colorDecorators", false, vscode.ConfigurationTarget.Global);
   }
 
   async enableBuiltInColorDecorators(): Promise<void> {
     await vscode.workspace
       .getConfiguration()
-      .update(
-        "editor.colorDecorators",
-        true,
-        vscode.ConfigurationTarget.Global
-      );
+      .update("editor.colorDecorators", true, vscode.ConfigurationTarget.Global);
   }
 }

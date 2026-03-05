@@ -15,12 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ExternalLink, ImageOff } from "lucide-react";
 import Image from "next/image";
 
@@ -61,41 +56,29 @@ function ColorHighlightMarkdownBase({
         </h2>
       ),
       h3: ({ children, ...props }) => (
-        <h3
-          className="scroll-m-20 text-2xl font-semibold tracking-tight mt-8 mb-4"
-          {...props}
-        >
+        <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mt-8 mb-4" {...props}>
           {children}
         </h3>
       ),
       h4: ({ children, ...props }) => (
-        <h4
-          className="scroll-m-20 text-xl font-semibold tracking-tight mt-6 mb-3"
-          {...props}
-        >
+        <h4 className="scroll-m-20 text-xl font-semibold tracking-tight mt-6 mb-3" {...props}>
           {children}
         </h4>
       ),
       h5: ({ children, ...props }) => (
-        <h5
-          className="scroll-m-20 text-lg font-semibold tracking-tight mt-6 mb-2"
-          {...props}
-        >
+        <h5 className="scroll-m-20 text-lg font-semibold tracking-tight mt-6 mb-2" {...props}>
           {children}
         </h5>
       ),
       h6: ({ children, ...props }) => (
-        <h6
-          className="scroll-m-20 text-base font-semibold tracking-tight mt-6 mb-2"
-          {...props}
-        >
+        <h6 className="scroll-m-20 text-base font-semibold tracking-tight mt-6 mb-2" {...props}>
           {children}
         </h6>
       ),
 
       // Paragraphs and text
       p: ({ children, ...props }) => (
-        <span className="leading-7 [&:not(:first-child)]:mt-6" {...props}>
+        <span className="leading-7 not-first:mt-6" {...props}>
           {children}
         </span>
       ),
@@ -179,21 +162,11 @@ function ColorHighlightMarkdownBase({
           <Table {...props}>{children}</Table>
         </Card>
       ),
-      thead: ({ children, ...props }) => (
-        <TableHeader {...props}>{children}</TableHeader>
-      ),
-      tbody: ({ children, ...props }) => (
-        <TableBody {...props}>{children}</TableBody>
-      ),
-      tr: ({ children, ...props }) => (
-        <TableRow {...props}>{children}</TableRow>
-      ),
-      th: ({ children, ...props }) => (
-        <TableHead {...props}>{children}</TableHead>
-      ),
-      td: ({ children, ...props }) => (
-        <TableCell {...props}>{children}</TableCell>
-      ),
+      thead: ({ children, ...props }) => <TableHeader {...props}>{children}</TableHeader>,
+      tbody: ({ children, ...props }) => <TableBody {...props}>{children}</TableBody>,
+      tr: ({ children, ...props }) => <TableRow {...props}>{children}</TableRow>,
+      th: ({ children, ...props }) => <TableHead {...props}>{children}</TableHead>,
+      td: ({ children, ...props }) => <TableCell {...props}>{children}</TableCell>,
 
       // Horizontal rule - using Separator
       hr: ({ ...props }) => <Separator className="my-6" {...props} />,
@@ -207,8 +180,7 @@ function ColorHighlightMarkdownBase({
               <ImageOff className="h-10 w-10 mb-2 opacity-50" />
               <span className="text-sm font-medium">{alt || "Image"}</span>
               <span className="text-xs mt-1 max-w-xs text-center">
-                This image is not available or is an external link. Click to
-                view it.
+                This image is not available or is an external link. Click to view it.
               </span>
             </Card>
           );
@@ -226,21 +198,17 @@ function ColorHighlightMarkdownBase({
                   typeof src === "string"
                     ? src
                     : src
-                    ? URL.createObjectURL(src)
-                    : "/placeholder.svg"
+                      ? URL.createObjectURL(src)
+                      : "/placeholder.svg"
                 }
                 alt={alt || ""}
                 width={800}
                 height={600}
-                className="object-contain w-full h-auto max-h-[30rem]"
+                className="object-contain w-full h-auto max-h-120"
                 unoptimized
               />
             </div>
-            {alt && (
-              <span className="mt-2 text-center text-sm text-muted-foreground">
-                {alt}
-              </span>
-            )}
+            {alt && <span className="mt-2 text-center text-sm text-muted-foreground">{alt}</span>}
           </div>
         );
       },
@@ -260,17 +228,12 @@ function ColorHighlightMarkdownBase({
 
           if (colorCode) {
             // If it's wrapped in ColorPreview tags, render the ColorPreview component
-            return (
-              <ColorPreview colorCode={colorCode} reverseTheme={reverseTheme} />
-            );
+            return <ColorPreview colorCode={colorCode} reverseTheme={reverseTheme} />;
           }
 
           // If it's not wrapped in ColorPreview tags, render as normal inline code
           return (
-            <code
-              className="px-1 py-0.5 bg-muted rounded text-sm font-mono"
-              {...props}
-            >
+            <code className="px-1 py-0.5 bg-muted rounded text-sm font-mono" {...props}>
               {children}
             </code>
           );

@@ -23,18 +23,12 @@ export function activate(context: vscode.ExtensionContext) {
     const configManager = new ConfigurationManager();
     decorationManager = new ColorDecorationManager(configManager);
     const webViewManager = new WebViewManager(context);
-    const commandManager = new CommandManager(
-      decorationManager,
-      webViewManager,
-      configManager
-    );
+    const commandManager = new CommandManager(decorationManager, webViewManager, configManager);
     const hoverProvider = new ColorHoverProvider(configManager);
 
     // Register commands and providers
     commandManager.registerCommands(context);
-    context.subscriptions.push(
-      vscode.languages.registerHoverProvider("*", hoverProvider)
-    );
+    context.subscriptions.push(vscode.languages.registerHoverProvider("*", hoverProvider));
 
     // Register event listeners
     registerEventListeners(context, decorationManager, configManager);
@@ -48,9 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
       decorationManager.updateColorDecorations(activeEditor);
     }
   } catch (error) {
-    vscode.window.showErrorMessage(
-      `MirrorLake Color Highlighter failed to activate: ${error}`
-    );
+    vscode.window.showErrorMessage(`MirrorLake Color Highlighter failed to activate: ${error}`);
   }
 }
 
@@ -81,11 +73,7 @@ function registerEventListeners(
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((event) => {
       const editor = vscode.window.activeTextEditor;
-      if (
-        editor &&
-        event.document === editor.document &&
-        configManager.isEnabled()
-      ) {
+      if (editor && event.document === editor.document && configManager.isEnabled()) {
         decorationManager.updateColorDecorations(editor);
       }
     })
@@ -97,10 +85,7 @@ function registerEventListeners(
       if (event.affectsConfiguration("mirrorlake-color-highlighter")) {
         // Validate new configuration
         const validation = FileUtils.validateUserConfiguration(configManager);
-        if (
-          validation.invalidLanguages.length > 0 ||
-          validation.invalidGlobs.length > 0
-        ) {
+        if (validation.invalidLanguages.length > 0 || validation.invalidGlobs.length > 0) {
           vscode.window.showWarningMessage(
             `MirrorLake Color Highlighter: Invalid configuration detected. Check console for details.`
           );

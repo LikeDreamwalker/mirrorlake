@@ -26,7 +26,7 @@ export default async function Page(props: { searchParams: SearchParams }) {
 
   return (
     <ColorStoreProvider initialColor={color} initialTheme={initialTheme}>
-      <main className="flex flex-col h-full w-full overflow-hidden sm:max-w-screen-sm md:max-w-screen-md lg:max-w-screen-2xl mx-auto p-2">
+      <main className="flex flex-col h-full w-full overflow-hidden sm:max-w-(--breakpoint-sm) md:max-w-(--breakpoint-md) lg:max-w-(--breakpoint-2xl) mx-auto p-2">
         <StructuredData />
         <InvisibleSEOHeading title="Mirrorlake - Color Agent" level={1} />
         <GradientBackground className="fixed inset-0 -z-10" />

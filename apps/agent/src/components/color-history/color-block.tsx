@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode, MouseEvent } from "react";
+import type { ReactNode } from "react";
 
 interface ColorBlockProps {
   color: string;
@@ -9,13 +9,8 @@ interface ColorBlockProps {
   className?: string;
 }
 
-export default function ColorBlock({
-  color,
-  onClick,
-  children,
-  className = "",
-}: ColorBlockProps) {
-  const handleClick = (e: MouseEvent<HTMLDivElement>) => {
+export default function ColorBlock({ color, onClick, children, className = "" }: ColorBlockProps) {
+  const handleClick = () => {
     // Only call onClick if provided, but don't stop propagation
     if (onClick) {
       onClick();

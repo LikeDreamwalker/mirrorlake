@@ -56,10 +56,7 @@ export class ColorDetector {
     return colorRanges;
   }
 
-  private rangeOverlaps(
-    existing: vscode.Range[],
-    candidate: vscode.Range
-  ): boolean {
+  private rangeOverlaps(existing: vscode.Range[], candidate: vscode.Range): boolean {
     return existing.some((r) => candidate.intersection(r) !== undefined);
   }
 }

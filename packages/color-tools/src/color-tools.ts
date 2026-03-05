@@ -22,8 +22,7 @@ export const COLOR_REGEXES = [
   },
   {
     format: "rgba",
-    regex:
-      /rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/gi,
+    regex: /rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(0|1|0?\.\d+)\s*\)/gi,
   },
   {
     format: "rgb",
@@ -31,8 +30,7 @@ export const COLOR_REGEXES = [
   },
   {
     format: "hsla",
-    regex:
-      /hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/gi,
+    regex: /hsla\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*,\s*(0|1|0?\.\d+)\s*\)/gi,
   },
   {
     format: "hsl",
@@ -57,9 +55,7 @@ export const COLOR_REGEXES = [
 /**
  * Try to match a color string and return its format and match.
  */
-export function matchColorString(
-  str: string
-): { format: string; match: string } | null {
+export function matchColorString(str: string): { format: string; match: string } | null {
   for (const { format, regex } of COLOR_REGEXES) {
     regex.lastIndex = 0; // Reset regex state for global regexes
     const match = regex.exec(str);
@@ -124,10 +120,7 @@ export const getContrastColor = (hex: string): string => {
   return colord(hex).isDark() ? "#FFFFFF" : "#000000";
 };
 
-export const getContrastRatio = (
-  foreground: string,
-  background: string
-): number => {
+export const getContrastRatio = (foreground: string, background: string): number => {
   return colord(foreground).contrast(colord(background));
 };
 
@@ -146,18 +139,11 @@ export const getColorName = async (color: string): Promise<string | null> => {
   }
 };
 
-export const mixColors = (
-  color1: string,
-  color2: string,
-  ratio = 0.5
-): string => {
+export const mixColors = (color1: string, color2: string, ratio = 0.5): string => {
   return colord(color1).mix(color2, ratio).toHex().toUpperCase();
 };
 
-export const adjustColorBrightness = (
-  color: string,
-  amount: number
-): string => {
+export const adjustColorBrightness = (color: string, amount: number): string => {
   return amount > 0
     ? colord(color).lighten(amount).toHex().toUpperCase()
     : colord(color).darken(Math.abs(amount)).toHex().toUpperCase();
@@ -207,18 +193,12 @@ export const calculateAnalogous = (
   hsl?: { h: number; s: number; l: number }
 ): string[] => {
   const analogousColors = colord(hexColor).harmonies("analogous");
-  return [
-    analogousColors[1].toHex().toUpperCase(),
-    analogousColors[2].toHex().toUpperCase(),
-  ];
+  return [analogousColors[1].toHex().toUpperCase(), analogousColors[2].toHex().toUpperCase()];
 };
 
 export const calculateTriadic = (hexColor: string): string[] => {
   const triadicColors = colord(hexColor).harmonies("triadic");
-  return [
-    triadicColors[1].toHex().toUpperCase(),
-    triadicColors[2].toHex().toUpperCase(),
-  ];
+  return [triadicColors[1].toHex().toUpperCase(), triadicColors[2].toHex().toUpperCase()];
 };
 
 export const calculateTetradic = (hexColor: string): string[] => {
@@ -298,9 +278,7 @@ export type ColorBlindnessSimulation = {
   tritanopia: string;
 };
 
-export function simulateColorBlindness(
-  hexColor: string
-): ColorBlindnessSimulation {
+export function simulateColorBlindness(hexColor: string): ColorBlindnessSimulation {
   const c = colord(hexColor);
   const rgb = c.toRgb();
   const r = rgb.r / 255;
@@ -340,15 +318,9 @@ export function checkColorBlindAccessibility(
   const fgBlind = simulateColorBlindness(foreground);
   const bgBlind = simulateColorBlindness(background);
 
-  const protanopiaContrast = colord(fgBlind.protanopia).contrast(
-    bgBlind.protanopia
-  );
-  const deuteranopiaContrast = colord(fgBlind.deuteranopia).contrast(
-    bgBlind.deuteranopia
-  );
-  const tritanopiaContrast = colord(fgBlind.tritanopia).contrast(
-    bgBlind.tritanopia
-  );
+  const protanopiaContrast = colord(fgBlind.protanopia).contrast(bgBlind.protanopia);
+  const deuteranopiaContrast = colord(fgBlind.deuteranopia).contrast(bgBlind.deuteranopia);
+  const tritanopiaContrast = colord(fgBlind.tritanopia).contrast(bgBlind.tritanopia);
 
   const minContrast = 4.5;
 
@@ -373,9 +345,7 @@ export function isValidHexColor(color: string): boolean {
   return /^([0-9A-Fa-f]{3}){1,2}$/.test(hex);
 }
 
-export function parseHsl4(
-  str: string
-): { h: number; s: number; l: number; a: number } | null {
+export function parseHsl4(str: string): { h: number; s: number; l: number; a: number } | null {
   // Matches: 240 3.7% 15.9% / 0.7 or hsl(240 3.7% 15.9% / 0.7)
   const match =
     /(?:hsl[a]?\()?(\d{1,3})\s+(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%(?:\s*\/\s*(\d*\.?\d+))?\)?/.exec(
@@ -390,12 +360,7 @@ export function parseHsl4(
   };
 }
 
-export function toHsl4String(
-  h: number,
-  s: number,
-  l: number,
-  a: number = 1
-): string {
+export function toHsl4String(h: number, s: number, l: number, a: number = 1): string {
   return `${h} ${s}% ${l}%${a < 1 ? ` / ${a}` : ""}`;
 }
 
@@ -610,25 +575,47 @@ export function getAlphaFromColorString(color: string): number {
   return c.alpha();
 }
 
+/**
+ * Generate a balanced palette using the golden ratio for even hue distribution.
+ * Ported from the Python backend's ColorPaletteGenerator._generate_balanced_palette.
+ */
+export function generateBalancedPalette(seedColor: string, count: number = 5): string[] {
+  const c = colord(seedColor);
+  const hsl = c.toHsl();
+  let h = hsl.h;
+  const s = hsl.s;
+  const l = hsl.l;
+
+  const palette: string[] = [c.toHex().toUpperCase()];
+  const GOLDEN_RATIO = 0.618033988749895;
+  const variations = [-10, 0, 10];
+
+  for (let i = 0; i < count - 1; i++) {
+    h = (h + 360 * GOLDEN_RATIO) % 360;
+    const sVariation = variations[Math.floor(Math.random() * variations.length)];
+    const lVariation = variations[Math.floor(Math.random() * variations.length)];
+    const newS = Math.max(0, Math.min(100, s + sVariation));
+    const newL = Math.max(10, Math.min(90, l + lVariation));
+
+    palette.push(colord({ h, s: newS, l: newL }).toHex().toUpperCase());
+  }
+
+  return palette;
+}
+
 export function generateThemePalette(baseColor: string): string[] {
   // Normalize to #HEX
-  const hex = baseColor.startsWith("#")
-    ? baseColor.toUpperCase()
-    : `#${baseColor.toUpperCase()}`;
+  const hex = baseColor.startsWith("#") ? baseColor.toUpperCase() : `#${baseColor.toUpperCase()}`;
   const c = colord(hex);
 
   // Analogous colors
-  const analogous = c
-    .harmonies("analogous")
-    .map((col) => col.toHex().toUpperCase());
+  const analogous = c.harmonies("analogous").map((col) => col.toHex().toUpperCase());
 
   // Complementary color
   const complementary = c.rotate(180).toHex().toUpperCase();
 
   // Triadic colors
-  const triadic = c
-    .harmonies("triadic")
-    .map((col) => col.toHex().toUpperCase());
+  const triadic = c.harmonies("triadic").map((col) => col.toHex().toUpperCase());
 
   // Tint (lighter)
   const tint = c.mix("#FFFFFF", 0.7).toHex().toUpperCase();

@@ -5,7 +5,7 @@ import { ExternalLink, Github } from "lucide-react";
 
 import Logo from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useColorStore } from "@/provider";
 
 export default function Contact() {
@@ -26,19 +26,13 @@ export default function Contact() {
           </Link>
         </Button>
         <Button variant="outline" asChild>
-          <Link
-            href="https://likedreamwalker.space"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <Link href="https://likedreamwalker.space" target="_blank" rel="noopener noreferrer">
             <ExternalLink className="mr-2 h-4 w-4" />
             Meet LikeDreamwalker
           </Link>
         </Button>
         <Logo className="w-full my-4"></Logo>
-        <p className="text-xs font-light mt-2">
-          MIT License, All Rights Reserved
-        </p>
+        <p className="text-xs font-light mt-2">MIT License, All Rights Reserved</p>
       </CardContent>
     </Card>
   );

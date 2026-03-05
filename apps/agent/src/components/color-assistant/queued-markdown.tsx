@@ -14,7 +14,6 @@ interface QueuedMarkdownProps {
 function QueuedMarkdownBase({
   content,
   id,
-  isComplete,
   releaseInterval = 3, // Default: release every 3ms
 }: QueuedMarkdownProps) {
   // The content we're currently displaying
@@ -40,36 +39,6 @@ function QueuedMarkdownBase({
 
   // Store the full content for fallback
   const fullContentRef = useRef("");
-
-  // Reset everything when the message ID changes
-  useEffect(() => {
-    // Reset state for new messages
-    setDisplayedContent("");
-    queueRef.current = [];
-    displayedCountRef.current = 0;
-    hasStartedRef.current = false;
-    isFirstUpdateRef.current = true;
-    fullContentRef.current = content || "";
-
-    if (animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
-    // Initialize with the current content if available
-    if (content) {
-      queueRef.current = content.split("");
-      startAnimation();
-    }
-
-    // Cleanup function
-    return () => {
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-    };
-  }, [id]); // Only reset when ID changes
 
   // Start the animation
   const startAnimation = useCallback(() => {
@@ -109,6 +78,37 @@ function QueuedMarkdownBase({
     animationFrameRef.current = requestAnimationFrame(renderLoop);
   }, [releaseInterval]);
 
+  // Reset everything when the message ID changes
+  useEffect(() => {
+    // Reset state for new messages
+    setDisplayedContent("");
+    queueRef.current = [];
+    displayedCountRef.current = 0;
+    hasStartedRef.current = false;
+    isFirstUpdateRef.current = true;
+    fullContentRef.current = content || "";
+
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    // Initialize with the current content if available
+    if (content) {
+      queueRef.current = content.split("");
+      startAnimation();
+    }
+
+    // Cleanup function
+    return () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, startAnimation]); // Reset when ID changes
+
   // Handle content updates (for streaming)
   useEffect(() => {
     // Update the full content reference
@@ -146,9 +146,7 @@ function QueuedMarkdownBase({
     // If content exists but nothing is displaying after 1.5 seconds, show all content
     const fallbackTimer = setTimeout(() => {
       if (fullContentRef.current && displayedContent === "") {
-        console.warn(
-          "QueuedMarkdown animation may have failed, displaying full content"
-        );
+        console.warn("QueuedMarkdown animation may have failed, displaying full content");
         setDisplayedContent(fullContentRef.current);
       }
     }, 1500);
@@ -165,12 +163,7 @@ function QueuedMarkdownBase({
 }
 
 // Export a memoized version to prevent unnecessary re-renders
-export const QueuedMarkdown = memo(
-  QueuedMarkdownBase,
-  (prevProps, nextProps) => {
-    // Only re-render if the ID changes or if content changes for the same ID
-    return (
-      prevProps.id === nextProps.id && prevProps.content === nextProps.content
-    );
-  }
-);
+export const QueuedMarkdown = memo(QueuedMarkdownBase, (prevProps, nextProps) => {
+  // Only re-render if the ID changes or if content changes for the same ID
+  return prevProps.id === nextProps.id && prevProps.content === nextProps.content;
+});

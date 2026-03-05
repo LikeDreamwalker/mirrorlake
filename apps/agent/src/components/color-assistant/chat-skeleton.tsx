@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton"
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ChatSkeleton() {
   return (
@@ -28,5 +28,5 @@ export function ChatSkeleton() {
         <Skeleton className="h-10 w-full rounded-md" />
       </div>
     </div>
-  )
+  );
 }

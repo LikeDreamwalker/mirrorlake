@@ -1,20 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import {
-  Palette,
-  MessageSquare,
-  History,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Palette, MessageSquare, History, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 export default function NavigationControls() {
   const [activeCard, setActiveCard] = useState(0);
-  const [needsScrolling, setNeedsScrolling] = useState(false);
 
   // Card metadata
   const cards = [
@@ -35,17 +28,6 @@ export default function NavigationControls() {
     },
   ];
 
-  // Check if we need scrolling controls based on screen width
-  useEffect(() => {
-    const checkScrolling = () => {
-      setNeedsScrolling(window.innerWidth < 1024);
-    };
-
-    checkScrolling();
-    window.addEventListener("resize", checkScrolling);
-    return () => window.removeEventListener("resize", checkScrolling);
-  }, []);
-
   // Handle scroll events to update active card
   useEffect(() => {
     const scrollContainer = document.getElementById("scroll-container");
@@ -56,11 +38,7 @@ export default function NavigationControls() {
         const containerWidth = scrollContainer.clientWidth;
         const newActiveCard = Math.round(scrollPosition / containerWidth);
 
-        if (
-          newActiveCard !== activeCard &&
-          newActiveCard >= 0 &&
-          newActiveCard < cards.length
-        ) {
+        if (newActiveCard !== activeCard && newActiveCard >= 0 && newActiveCard < cards.length) {
           setActiveCard(newActiveCard);
         }
       }
@@ -101,9 +79,7 @@ export default function NavigationControls() {
           <ChevronLeft
             className={cn(
               "h-5 w-5",
-              activeCard === 0
-                ? "text-muted-foreground/40"
-                : "text-muted-foreground"
+              activeCard === 0 ? "text-muted-foreground/40" : "text-muted-foreground"
             )}
           />
         </Button>
@@ -127,9 +103,7 @@ export default function NavigationControls() {
               {React.cloneElement(card.icon, {
                 className: cn(
                   "h-5 w-5",
-                  activeCard === index
-                    ? "text-primary"
-                    : "text-muted-foreground"
+                  activeCard === index ? "text-primary" : "text-muted-foreground"
                 ),
               })}
 
@@ -137,9 +111,7 @@ export default function NavigationControls() {
               <span
                 className={cn(
                   "ml-1.5 text-sm hidden md:inline-block",
-                  activeCard === index
-                    ? "text-primary font-medium"
-                    : "text-muted-foreground"
+                  activeCard === index ? "text-primary font-medium" : "text-muted-foreground"
                 )}
               >
                 {card.title}
@@ -153,18 +125,14 @@ export default function NavigationControls() {
           variant="ghost"
           size="icon"
           className="p-1 rounded-full h-auto w-auto"
-          onClick={() =>
-            scrollToCard(Math.min(cards.length - 1, activeCard + 1))
-          }
+          onClick={() => scrollToCard(Math.min(cards.length - 1, activeCard + 1))}
           disabled={activeCard === cards.length - 1}
           aria-label="Next card"
         >
           <ChevronRight
             className={cn(
               "h-5 w-5",
-              activeCard === cards.length - 1
-                ? "text-muted-foreground/40"
-                : "text-muted-foreground"
+              activeCard === cards.length - 1 ? "text-muted-foreground/40" : "text-muted-foreground"
             )}
           />
         </Button>

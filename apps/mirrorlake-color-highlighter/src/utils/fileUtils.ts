@@ -30,15 +30,12 @@ export class FileUtils {
   ): boolean {
     const fileName = document.fileName.split(/[/\\]/).pop() || "";
     const languageId = document.languageId;
-    const isUnsavedFile =
-      document.uri.scheme === "untitled" || fileName.startsWith("Untitled");
+    const isUnsavedFile = document.uri.scheme === "untitled" || fileName.startsWith("Untitled");
 
     // Get configuration
     const userLanguages = configManager.getSupportedLanguages();
     const supportedLanguages =
-      userLanguages.length > 0
-        ? userLanguages
-        : this.DEFAULT_SUPPORTED_LANGUAGES;
+      userLanguages.length > 0 ? userLanguages : this.DEFAULT_SUPPORTED_LANGUAGES;
 
     // For unsaved files, only check by language ID
     if (isUnsavedFile) {
@@ -57,8 +54,7 @@ export class FileUtils {
     configManager: ConfigurationManager
   ): boolean {
     const userGlobs = configManager.getSupportedFileGlobs();
-    const supportedGlobs =
-      userGlobs.length > 0 ? userGlobs : this.getDefaultFileGlobs();
+    const supportedGlobs = userGlobs.length > 0 ? userGlobs : this.getDefaultFileGlobs();
 
     return supportedGlobs.some((glob) => minimatch(fileName, glob));
   }

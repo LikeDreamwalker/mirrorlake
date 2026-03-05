@@ -2,7 +2,6 @@
 
 import type React from "react";
 import { useMemo } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +13,7 @@ import { useColorStore } from "@/provider";
 import { copyToClipboard as copyToClipboardOriginal } from "@/lib/utils";
 
 export function ColorDetails() {
-  const { hexValue, hexError, setHexValue, setHexError, colorName } =
-    useColorPicker();
+  const { hexValue, hexError, setHexValue, setHexError, colorName } = useColorPicker();
 
   const {
     currentColorInfo,
@@ -143,10 +141,7 @@ export function ColorDetails() {
   return (
     <>
       <div className="flex items-center">
-        <div
-          className="w-12 h-12 rounded-md mr-3"
-          style={{ backgroundColor: currentColor }}
-        ></div>
+        <div className="w-12 h-12 rounded-md mr-3" style={{ backgroundColor: currentColor }}></div>
         <div className="flex-1">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-lg">{colorName}</h3>
@@ -196,9 +191,7 @@ export function ColorDetails() {
               onChange={handleHexChange}
               onBlur={handleHexBlur}
               onKeyDown={handleHexKeyDown}
-              className={`font-mono uppercase flex-1 ${
-                hexError ? "border-destructive" : ""
-              }`}
+              className={`font-mono uppercase flex-1 ${hexError ? "border-destructive" : ""}`}
               maxLength={9}
               aria-label="Hex color value"
               aria-invalid={!!hexError}
@@ -219,11 +212,7 @@ export function ColorDetails() {
 
       <div className="grid grid-cols-2 gap-2">
         {/* Color format values for copying */}
-        <DetailItem
-          label="HEX"
-          value={color}
-          onClick={() => copyToClipboard(color)}
-        />
+        <DetailItem label="HEX" value={color} onClick={() => copyToClipboard(color)} />
         <DetailItem
           label="RGB"
           value={`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`}
@@ -237,11 +226,7 @@ export function ColorDetails() {
         <DetailItem
           label="RGBA"
           value={`rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(2)})`}
-          onClick={() =>
-            copyToClipboard(
-              `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(2)})`
-            )
-          }
+          onClick={() => copyToClipboard(`rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(2)})`)}
         />
       </div>
     </>

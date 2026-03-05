@@ -58,10 +58,7 @@ export class CommandManager {
     await editor.edit((editBuilder) => {
       const range = args.range
         ? new vscode.Range(
-            new vscode.Position(
-              args.range.start.line,
-              args.range.start.character
-            ),
+            new vscode.Position(args.range.start.line, args.range.start.character),
             new vscode.Position(args.range.end.line, args.range.end.character)
           )
         : editor.selection;

@@ -1,5 +1,5 @@
-import { ChatMessages } from "./chat-messages"
-import { ChatInput } from "./chat-input"
+import { ChatMessages } from "./chat-messages";
+import { ChatInput } from "./chat-input";
 
 export function ChatContainer() {
   return (
@@ -14,5 +14,5 @@ export function ChatContainer() {
         <ChatInput />
       </div>
     </>
-  )
+  );
 }

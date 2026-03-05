@@ -6,22 +6,16 @@ import { useColorPicker } from "./context";
 import { useColorStore } from "@/provider";
 
 export function ColorWheel() {
-  const {
-    localHue,
-    localSaturation,
-    setLocalHue,
-    setLocalSaturation,
-    isDragging,
-    setIsDragging,
-  } = useColorPicker();
+  const { localHue, localSaturation, setLocalHue, setLocalSaturation, isDragging, setIsDragging } =
+    useColorPicker();
 
-  const { currentColorInfo, currentColor, updateColorValues, setColorFromHex } =
-    useColorStore((state) => ({
+  const { currentColorInfo, currentColor, updateColorValues } = useColorStore(
+    (state) => ({
       currentColorInfo: state.currentColorInfo,
       currentColor: state.currentColor,
       updateColorValues: state.updateColorValues,
-      setColorFromHex: state.setColorFromHex,
-    }));
+    })
+  );
 
   // Memoize the color value to avoid unnecessary re-renders
   const color = useMemo(() => currentColorInfo.color, [currentColorInfo.color]);
@@ -190,7 +184,7 @@ export function ColorWheel() {
       >
         <div
           ref={wheelRef}
-          className="relative w-full max-w-full aspect-square rounded-full cursor-crosshair touch-none shadow-sm"
+          className="relative w-full max-w-full aspect-square rounded-full cursor-crosshair touch-none shadow-xs"
           style={{
             background: `conic-gradient(
               from 0deg,
@@ -228,9 +222,7 @@ export function ColorWheel() {
             style={{
               left: `${markerPosition.x}%`,
               top: `${markerPosition.y}%`,
-              backgroundColor: isDragging
-                ? `hsl(${localHue}, ${localSaturation}%, 50%)`
-                : color,
+              backgroundColor: isDragging ? `hsl(${localHue}, ${localSaturation}%, 50%)` : color,
               transitionBehavior: "background-color",
               transitionDuration: "0.3s",
               transitionProperty: "background-color",

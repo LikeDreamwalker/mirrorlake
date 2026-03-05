@@ -1,48 +1,15 @@
+import { generateBalancedPalette } from "@mirrorlake/color-tools";
 import type { AdvancedColorData } from "./types";
 
 /**
- * Fetch advanced color analysis from Python API
+ * Generate advanced color data using the balanced palette algorithm.
  */
-export async function fetchAdvancedColorData(
-  hexColor: string,
-  baseUrl: string
-): Promise<AdvancedColorData> {
+export function getAdvancedColorData(hexColor: string): AdvancedColorData {
   try {
-    const apiUrl = `${baseUrl}/api/py/advanced-color`;
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        color: hexColor,
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        palette: data.palette || [],
-        cultural_variations: data.cultural_variations || {},
-        similar_colors: data.similar_colors || [],
-        contrasting_emotions: data.contrasting_emotions || [],
-      };
-    }
-
-    return {
-      palette: [],
-      cultural_variations: {},
-      similar_colors: [],
-      contrasting_emotions: [],
-    };
+    const palette = generateBalancedPalette(hexColor, 5);
+    return { palette };
   } catch (error) {
-    console.error("Error fetching advanced color data:", error);
-    // Return empty data with default values if there's an error
-    return {
-      palette: [],
-      cultural_variations: {},
-      similar_colors: [],
-      contrasting_emotions: [],
-    };
+    console.error("Error generating advanced color data:", error);
+    return { palette: [] };
   }
 }

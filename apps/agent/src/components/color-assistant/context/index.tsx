@@ -1,44 +1,44 @@
 "use client";
 
 import type React from "react";
-import {
-  createContext,
-  useContext,
-  useRef,
-  useState,
-  useEffect,
-  useMemo,
-} from "react";
-import { useChat, type Message } from "@ai-sdk/react";
+import { createContext, useContext, useRef, useState, useEffect, useMemo, useCallback } from "react";
+import { useChat, type UIMessage } from "@ai-sdk/react";
+
 import { useColorStore } from "@/provider";
 import { getColorAdvice } from "@/app/actions/color-advice";
 import { toast } from "sonner";
 
 // Define a type for client actions
 interface ClientAction {
-  type: "client-action";
   action: string;
-  params: any;
+  params: Record<string, unknown>;
 }
 
 // Type guard to check if an object is a client action
-function isClientAction(obj: any): obj is ClientAction {
+function isClientAction(obj: unknown): obj is ClientAction {
   return (
-    obj &&
     typeof obj === "object" &&
-    obj.type === "client-action" &&
-    typeof obj.action === "string" &&
-    obj.params !== undefined
+    obj !== null &&
+    "action" in obj &&
+    typeof (obj as Record<string, unknown>).action === "string" &&
+    "params" in obj
   );
+}
+
+// Helper to extract text content from a UIMessage
+export function getMessageContent(message: UIMessage): string {
+  return message.parts
+    .filter((part): part is { type: "text"; text: string } => part.type === "text")
+    .map((part) => part.text)
+    .join("");
 }
 
 // Context type definition
 interface ChatContextType {
-  messages: Message[];
+  messages: UIMessage[];
   input: string;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
-  isLoading: boolean;
+  setInput: (value: string) => void;
+  sendMessage: (content: string) => void;
   status: "submitted" | "streaming" | "ready" | "error";
   isProcessingColor: boolean;
   messageCompletionStatus: Record<string, boolean>;
@@ -48,9 +48,8 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType>({
   messages: [],
   input: "",
-  handleInputChange: () => {},
-  handleSubmit: () => {},
-  isLoading: false,
+  setInput: () => {},
+  sendMessage: () => {},
   status: "ready",
   isProcessingColor: false,
   messageCompletionStatus: {},
@@ -61,105 +60,53 @@ export const useChatContext = () => useContext(ChatContext);
 
 // Provider component
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  // Extract all necessary store methods
   const {
-    // Color picker state
-    currentColorInfo,
-    currentColor,
-    format,
-    isDark,
-
-    // Color picker actions
-    setBaseColor,
-    getFullColor,
-    generateRandomColor,
-    setColorFromHex,
-    setColorFromRgb,
-    setColorFromHsl,
-    updateColorValues,
-    getColorName,
-
-    // Theme actions
-    colors,
-    addColor,
-    removeColor,
-    updateColor,
-    toggleFavorite,
-    getColorById,
-    setCurrentColorFromItem,
-
-    // Theme management actions
     addColorsToTheme,
     updateTheme,
     resetTheme,
     removeColorsFromTheme,
     markColorAsFavorite,
+    setColorFromHex,
+    setColorFromRgb,
+    setColorFromHsl,
+    generateRandomColor,
+    getColorById,
+    setCurrentColorFromItem,
+    currentColor,
   } = useColorStore((state) => ({
-    // Color picker state
-    currentColorInfo: state.currentColorInfo,
-    currentColor: state.currentColor,
-    format: state.format,
-    isDark: state.isDark,
-
-    // Color picker actions
-    setBaseColor: state.setBaseColor,
-    getFullColor: state.getFullColor,
-    generateRandomColor: state.generateRandomColor,
-    setColorFromHex: state.setColorFromHex,
-    setColorFromRgb: state.setColorFromRgb,
-    setColorFromHsl: state.setColorFromHsl,
-    updateColorValues: state.updateColorValues,
-    getColorName: state.getColorName,
-
-    // Theme actions
-    colors: state.colors,
-    addColor: state.addColor,
-    removeColor: state.removeColor,
-    updateColor: state.updateColor,
-    toggleFavorite: state.toggleFavorite,
-    getColorById: state.getColorById,
-    setCurrentColorFromItem: state.setCurrentColorFromItem,
-
-    // Theme management actions
     addColorsToTheme: state.addColorsToTheme,
     updateTheme: state.updateTheme,
     resetTheme: state.resetTheme,
     removeColorsFromTheme: state.removeColorsFromTheme,
     markColorAsFavorite: state.markColorAsFavorite,
+    setColorFromHex: state.setColorFromHex,
+    setColorFromRgb: state.setColorFromRgb,
+    setColorFromHsl: state.setColorFromHsl,
+    generateRandomColor: state.generateRandomColor,
+    getColorById: state.getColorById,
+    setCurrentColorFromItem: state.setCurrentColorFromItem,
+    currentColor: state.currentColor,
   }));
 
   const [isProcessingColor, setIsProcessingColor] = useState(false);
+  const [input, setInput] = useState("");
   const lastProcessedColor = useRef<string | null>(null);
   const hasInitialized = useRef(false);
   const isFirstLoad = useRef(true);
 
   // Track which client actions have been processed to prevent duplicates
   const processedActions = useRef<Set<string>>(new Set());
+  const lastUserMessageCount = useRef<number>(0);
 
-  // Track which messages are complete
-  const [completedMessages, setCompletedMessages] = useState<
-    Record<string, boolean>
-  >({});
-
-  // Initialize chat with AI SDK
+  // Initialize chat with AI SDK v6
   const {
     messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    isLoading,
     status,
     setMessages,
-    data, // This contains the custom data sent from the server
+    sendMessage: chatSendMessage,
   } = useChat({
-    api: "/api/chat",
-    initialMessages: [],
-    onFinish: (message) => {
-      console.log("Chat finished with message:", message);
-      setCompletedMessages((prev) => ({
-        ...prev,
-        [message.id]: true,
-      }));
+    onFinish: ({ message }) => {
+      console.log("Chat finished with message:", message.id);
     },
     onError: (error) => {
       console.error("Chat error:", error);
@@ -167,110 +114,88 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  // Reset processed actions when a new user message is added
+  // Process client actions from data parts in messages
   useEffect(() => {
-    const userMessageCount = messages.filter((m) => m.role === "user").length;
-    if (
-      userMessageCount > 0 &&
-      userMessageCount !== lastUserMessageCount.current
-    ) {
-      console.log("New user message detected, resetting processed actions");
-      processedActions.current = new Set();
-      lastUserMessageCount.current = userMessageCount;
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== "assistant") {
+      return;
     }
-  }, [messages]);
 
-  // Keep track of the last user message count
-  const lastUserMessageCount = useRef<number>(0);
+    for (const part of lastMessage.parts) {
+      if (part.type !== "data-client-action") {
+        continue;
+      }
 
-  // Process client actions from the data stream
-  useEffect(() => {
-    if (!data || data.length === 0) return;
+      const item = (part as { type: string; data: unknown }).data;
+      if (!isClientAction(item)) {
+        continue;
+      }
 
-    // Process the latest data item
-    const latestData = data[data.length - 1];
-
-    // Use the type guard to check if it's a client action
-    if (isClientAction(latestData)) {
-      console.log("Received client action:", latestData);
-
-      try {
-        const { action, params } = latestData;
-
-        // Create a unique ID for this action to prevent duplicate execution
+      {
+        const { action, params } = item;
         const actionId = `${action}-${JSON.stringify(params)}`;
 
-        // Skip if we've already processed this action
         if (processedActions.current.has(actionId)) {
-          console.log("Skipping already processed action:", actionId);
-          return;
+          continue;
         }
 
-        // Execute the action on the client side using the store functions
-        switch (action) {
-          case "addColorsToTheme":
-            addColorsToTheme(params);
-            break;
-
-          case "updateTheme":
-            updateTheme(params);
-            break;
-
-          case "resetTheme":
-            resetTheme();
-            break;
-
-          case "removeColorsFromTheme":
-            removeColorsFromTheme(params);
-            break;
-
-          case "markColorAsFavorite":
-            markColorAsFavorite(params);
-            break;
-
-          case "setColorFromHex":
-            setColorFromHex(params.hex);
-            break;
-
-          case "setColorFromRgb":
-            const { r, g, b } = params;
-            setColorFromRgb(r, g, b);
-            break;
-
-          case "setColorFromHsl":
-            const { h, s, l } = params;
-            setColorFromHsl(h, s, l);
-            break;
-
-          case "generateRandomColor":
-            generateRandomColor();
-            break;
-
-          case "setCurrentColorFromItem":
-            const colorItem = getColorById(params.colorId);
-            if (colorItem) {
-              setCurrentColorFromItem(colorItem);
+        try {
+          switch (action) {
+            case "addColorsToTheme":
+              addColorsToTheme(params as Parameters<typeof addColorsToTheme>[0]);
+              break;
+            case "updateTheme":
+              updateTheme(params as Parameters<typeof updateTheme>[0]);
+              break;
+            case "resetTheme":
+              resetTheme();
+              break;
+            case "removeColorsFromTheme":
+              removeColorsFromTheme(params as Parameters<typeof removeColorsFromTheme>[0]);
+              break;
+            case "markColorAsFavorite":
+              markColorAsFavorite(params as Parameters<typeof markColorAsFavorite>[0]);
+              break;
+            case "setColorFromHex":
+              setColorFromHex((params as { hex: string }).hex);
+              break;
+            case "setColorFromRgb": {
+              const { r, g, b } = params as { r: number; g: number; b: number };
+              setColorFromRgb(r, g, b);
+              break;
             }
-            break;
+            case "setColorFromHsl": {
+              const { h, s, l } = params as { h: number; s: number; l: number };
+              setColorFromHsl(h, s, l);
+              break;
+            }
+            case "generateRandomColor":
+              generateRandomColor();
+              break;
+            case "setCurrentColorFromItem": {
+              const colorItem = getColorById((params as { colorId: string }).colorId);
+              if (colorItem) {
+                setCurrentColorFromItem(colorItem);
+              }
+              break;
+            }
+            default:
+              console.warn(`Unknown client action: ${action}`);
+              continue;
+          }
 
-          default:
-            console.warn(`Unknown client action: ${action}`);
-            return;
+          processedActions.current.add(actionId);
+        } catch (error) {
+          console.error("Error executing client action:", error);
+          toast.error(
+            "Error executing action: " +
+              (error instanceof Error ? error.message : String(error))
+          );
         }
-
-        // Mark this action as processed
-        processedActions.current.add(actionId);
-        console.log("Marked action as processed:", actionId);
-      } catch (error) {
-        console.error("Error executing client action:", error);
-        toast.error(
-          "Error executing action: " +
-            (error instanceof Error ? error.message : String(error))
-        );
       }
     }
   }, [
-    data,
+    messages,
     addColorsToTheme,
     updateTheme,
     resetTheme,
@@ -283,6 +208,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     getColorById,
     setCurrentColorFromItem,
   ]);
+
+  // Reset processed actions when a new user message is added
+  useEffect(() => {
+    const userMessageCount = messages.filter((m) => m.role === "user").length;
+    if (
+      userMessageCount > 0 &&
+      userMessageCount !== lastUserMessageCount.current
+    ) {
+      processedActions.current = new Set();
+      lastUserMessageCount.current = userMessageCount;
+    }
+  }, [messages]);
 
   // Create a map of message completion status
   const messageCompletionStatus = useMemo(() => {
@@ -303,7 +240,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     });
 
     return statusMap;
-  }, [messages, status, completedMessages]);
+  }, [messages, status]);
+
+  // Send message handler
+  const sendMessage = useCallback(
+    (content: string) => {
+      if (!content.trim()) {
+        return;
+      }
+      processedActions.current = new Set();
+      chatSendMessage({ role: "user", parts: [{ type: "text", text: content }] });
+      setInput("");
+    },
+    [chatSendMessage]
+  );
 
   // Initialize with default color and first user message
   useEffect(() => {
@@ -312,7 +262,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         {
           id: "initial-color-selection",
           role: "user",
-          content: `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`,
+          parts: [
+            {
+              type: "text",
+              text: `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`,
+            },
+          ],
         },
       ]);
       isFirstLoad.current = false;
@@ -323,7 +278,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Process color changes
   useEffect(() => {
     const processColorChange = async () => {
-      // Skip if this is the first load or if we're already processing
       if (isFirstLoad.current || isProcessingColor) {
         return;
       }
@@ -333,90 +287,76 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         lastProcessedColor.current = currentColor;
 
         try {
-          // Skip if this is the initial color and we already have messages
           if (
             currentColor === "#0066FF" &&
             messages.length > 0 &&
-            messages[0]?.content?.includes("#0066ff")
+            getMessageContent(messages[0])?.includes("#0066ff")
           ) {
             setIsProcessingColor(false);
             return;
           }
 
-          // Check if the last message is from the user
           const lastMessage = messages[messages.length - 1];
           if (lastMessage && lastMessage.role === "user") {
-            console.log(
-              "Waiting for assistant response before adding new user message"
-            );
             setIsProcessingColor(false);
             return;
           }
 
-          // Add user message about selecting the color
-          const userMessage = `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`;
+          const userContent = `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`;
           const userMessageId = Date.now().toString();
 
-          // Create new messages array with user message
-          const newMessages: Message[] = [
+          const newMessages: UIMessage[] = [
             ...messages,
             {
               id: userMessageId,
               role: "user" as const,
-              content: userMessage,
+              parts: [{ type: "text", text: userContent }],
             },
           ];
 
           setMessages(newMessages);
 
-          // Get color advice from your Python part
           const response = await getColorAdvice(currentColor);
 
           if (response.error) {
             throw new Error(response.message);
           }
 
-          // Add assistant response from Python part with a special ID format
           const pythonMessageId = `python-${Date.now() + 1}`;
-          const assistantMessage: Message = {
+          const assistantMessage: UIMessage = {
             id: pythonMessageId,
             role: "assistant" as const,
-            content: response.advice,
+            parts: [{ type: "text", text: response.advice }],
           };
 
-          // Set the messages with the new assistant response
           setMessages([...newMessages, assistantMessage]);
-
-          // Mark the Python message as complete
-          setCompletedMessages((prev) => ({
-            ...prev,
-            [pythonMessageId]: true,
-          }));
         } catch (error) {
           console.error("Error processing color:", error);
 
-          // Add error message
           const errorMessageId = `python-error-${Date.now() + 1}`;
           setMessages([
             ...messages,
             {
               id: Date.now().toString(),
               role: "user" as const,
-              content: `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`,
-            } as Message,
+              parts: [
+                {
+                  type: "text",
+                  text: `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`,
+                },
+              ],
+            },
             {
               id: errorMessageId,
               role: "assistant" as const,
-              content:
-                "I'm sorry, I couldn't analyze that color right now. Please try again or ask me something else.",
-            } as Message,
+              parts: [
+                {
+                  type: "text",
+                  text: "I'm sorry, I couldn't analyze that color right now. Please try again or ask me something else.",
+                },
+              ],
+            },
           ]);
-
-          // Mark the error message as complete
-          setCompletedMessages((prev) => ({
-            ...prev,
-            [errorMessageId]: true,
-          }));
           toast.error(
             "I'm sorry, I couldn't analyze that color right now. Please try again or ask me something else."
           );
@@ -429,15 +369,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     processColorChange();
   }, [currentColor, messages, setMessages, isProcessingColor]);
 
-  // Provide the chat context to children
   return (
     <ChatContext.Provider
       value={{
         messages,
         input,
-        handleInputChange,
-        handleSubmit,
-        isLoading,
+        setInput,
+        sendMessage,
         status,
         isProcessingColor,
         messageCompletionStatus,

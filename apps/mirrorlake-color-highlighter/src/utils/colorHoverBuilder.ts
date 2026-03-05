@@ -29,16 +29,11 @@ export class ColorHoverBuilder {
     const parsedHex = await parseAndNormalizeColor(color, "hex");
 
     if (!parsedHex.valid) {
-      content.appendMarkdown(
-        `**❌ Invalid color:** \`${originalColor || color}\``
-      );
+      content.appendMarkdown(`**❌ Invalid color:** \`${originalColor || color}\``);
       return new vscode.Hover(content, range);
     }
 
-    const colorInfo = await this.getExtendedColorInfo(
-      parsedHex.normalized,
-      originalColor
-    );
+    const colorInfo = await this.getExtendedColorInfo(parsedHex.normalized, originalColor);
     const rangeObj = this.createRangeObject(range);
 
     // Header with color swatch and name
@@ -68,8 +63,7 @@ export class ColorHoverBuilder {
     const rgbObj = hexToRgb(hex);
     const hslObj = hexToHsl(hex);
     const colorName = (await getColorName(hex)) || "Unknown";
-    const displayName =
-      originalColor && originalColor !== hex ? originalColor : colorName;
+    const displayName = originalColor && originalColor !== hex ? originalColor : colorName;
 
     // Get color attributes
     const attributes = getColorAttributes(displayName, hslObj);
@@ -121,16 +115,10 @@ export class ColorHoverBuilder {
     const swatch = `![](https://singlecolorimage.com/get/${colorInfo.hex.replace("#", "").slice(0, 6)}/16x16)`;
     const attributes = colorInfo.attributes.slice(0, 3).join(", ");
 
-    content.appendMarkdown(
-      `${swatch} **${colorInfo.colorName}**\n\n` + `*${attributes}*\n\n`
-    );
+    content.appendMarkdown(`${swatch} **${colorInfo.colorName}**\n\n` + `*${attributes}*\n\n`);
   }
 
-  private addColorValues(
-    content: vscode.MarkdownString,
-    colorInfo: any,
-    rangeObj: any
-  ): void {
+  private addColorValues(content: vscode.MarkdownString, colorInfo: any, rangeObj: any): void {
     content.appendMarkdown(`#### Color Values\n\n`);
 
     // Make the entire line clickable for color replacement
@@ -144,10 +132,7 @@ export class ColorHoverBuilder {
     );
   }
 
-  private addColorProperties(
-    content: vscode.MarkdownString,
-    colorInfo: any
-  ): void {
+  private addColorProperties(content: vscode.MarkdownString, colorInfo: any): void {
     content.appendMarkdown(`#### Properties\n\n`);
 
     const brightness = colorInfo.isDark ? "Dark" : "Light";
@@ -159,10 +144,7 @@ export class ColorHoverBuilder {
     );
   }
 
-  private addColorHarmonies(
-    content: vscode.MarkdownString,
-    colorInfo: any
-  ): void {
+  private addColorHarmonies(content: vscode.MarkdownString, colorInfo: any): void {
     content.appendMarkdown(`#### Color Harmonies\n\n`);
 
     // Create clickable links that open in MirrorLake webview
@@ -174,15 +156,10 @@ export class ColorHoverBuilder {
     const analog1Link = `[${analog1Swatch} **Analogous** \`${colorInfo.analogous[0]}\`](command:mirrorlake-color-highlighter.openColorInWebView?${encodeURIComponent(JSON.stringify({ color: colorInfo.analogous[0] }))})`;
     const analog2Link = `[${analog2Swatch} **Analogous** \`${colorInfo.analogous[1]}\`](command:mirrorlake-color-highlighter.openColorInWebView?${encodeURIComponent(JSON.stringify({ color: colorInfo.analogous[1] }))})`;
 
-    content.appendMarkdown(
-      `${compLink}\n\n` + `${analog1Link}\n\n` + `${analog2Link}\n\n`
-    );
+    content.appendMarkdown(`${compLink}\n\n` + `${analog1Link}\n\n` + `${analog2Link}\n\n`);
   }
 
-  private addAccessibilityInfo(
-    content: vscode.MarkdownString,
-    colorInfo: any
-  ): void {
+  private addAccessibilityInfo(content: vscode.MarkdownString, colorInfo: any): void {
     content.appendMarkdown(`#### Accessibility\n\n`);
 
     // Contrast ratios
@@ -216,8 +193,7 @@ export class ColorHoverBuilder {
     const tritanLink = `[${tritanSwatch} Blue-blind](command:mirrorlake-color-highlighter.openColorInWebView?${encodeURIComponent(JSON.stringify({ color: colorInfo.colorBlindSim.tritanopia }))})`;
 
     content.appendMarkdown(
-      `**Color Blindness Simulation:**\n` +
-        `${protanLink} • ${deuterLink} • ${tritanLink}\n\n`
+      `**Color Blindness Simulation:**\n` + `${protanLink} • ${deuterLink} • ${tritanLink}\n\n`
     );
   }
 

@@ -4,12 +4,7 @@ import { ColorItem } from "@/store";
 import { useColorStore } from "@/provider";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ColorPreview } from "@/components/color-assistant/color-preview";
@@ -43,10 +38,7 @@ export default function CurrentTheme() {
             <EmptyState />
           ) : (
             colors.map((color) => (
-              <Card
-                key={color.id}
-                className="w-full rounded-xl overflow-hidden my-2"
-              >
+              <Card key={color.id} className="w-full rounded-xl overflow-hidden my-2">
                 <CardContent
                   className="h-20"
                   style={{

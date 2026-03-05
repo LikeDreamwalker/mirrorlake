@@ -1,9 +1,6 @@
 "use server";
 
-import {
-  nameToColor as nameToColorM,
-  colorToName as colorToNameM,
-} from "@mirrorlake/color-tools";
+import { nameToColor as nameToColorM, colorToName as colorToNameM } from "@mirrorlake/color-tools";
 
 /**
  * Convert a color code to the nearest color name

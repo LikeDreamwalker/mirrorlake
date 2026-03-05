@@ -13,14 +13,6 @@
       "cache": false,
       "persistent": true
     },
-    "fastapi-dev": {
-      "cache": false,
-      "persistent": true
-    },
-    "next-dev": {
-      "cache": false,
-      "persistent": true
-    },
     "clean": {
       "cache": false
     }

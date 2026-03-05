@@ -10,8 +10,8 @@
     "vsce:package": "turbo run vsce:package"
   },
   "devDependencies": {
-    "turbo": "latest",
-    "prettier": "^3.0.0"
+    "turbo": "^2.8.13",
+    "prettier": "^3.8.1"
   },
   "packageManager": "pnpm@10.5.2"
 }

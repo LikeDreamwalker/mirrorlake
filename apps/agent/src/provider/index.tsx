@@ -8,9 +8,7 @@ import { useTheme } from "next-themes";
 import { isColorDark } from "@mirrorlake/color-tools";
 import { createColorItem } from "@/store";
 import { useShallow } from "zustand/react/shallow";
-export const ColorStoreContext = createContext<ReturnType<
-  typeof createColorStore
-> | null>(null);
+export const ColorStoreContext = createContext<ReturnType<typeof createColorStore> | null>(null);
 
 interface ColorStoreProviderProps {
   children: React.ReactNode;
@@ -25,26 +23,21 @@ export function ColorStoreProvider({
 }: ColorStoreProviderProps) {
   const storeRef = useRef<ReturnType<typeof createColorStore> | null>(null);
 
-  if (!storeRef.current) {
+  if (storeRef.current == null) {
     storeRef.current = createColorStore(initialColor, initialTheme);
   }
 
   return (
+    // eslint-disable-next-line react-hooks/refs -- standard Zustand lazy store init pattern
     <ColorStoreContext.Provider value={storeRef.current}>
-      <ColorProviderInner
-        initialColor={initialColor}
-        initialTheme={initialTheme}
-      >
+      <ColorProviderInner initialTheme={initialTheme}>
         {children}
       </ColorProviderInner>
     </ColorStoreContext.Provider>
   );
 }
 
-function ColorProviderInner({
-  children,
-  initialColor,
-}: ColorStoreProviderProps) {
+function ColorProviderInner({ children }: Omit<ColorStoreProviderProps, "initialColor">) {
   const store = useContext(ColorStoreContext);
   if (!store) throw new Error("ColorStoreProvider not found");
 
@@ -101,22 +94,18 @@ function useColorThemeSwitcher() {
 }
 
 // Export the hook for direct usage with SSR safety
-export function useColorStoreOriginal<T>(
-  selector: (store: ColorStore) => T
-): T {
+export function useColorStoreOriginal<T>(selector: (store: ColorStore) => T): T {
   const store = useContext(ColorStoreContext);
-  if (!store)
-    throw new Error("useColorStore must be used within ColorStoreProvider");
+  if (!store) throw new Error("useColorStore must be used within ColorStoreProvider");
 
-  const state = store.getState();
+  const storeValue = useStore(store, selector);
 
-  // For SSR safety, we can use a client-side check
+  // For SSR safety, fall back to getState() during server rendering
   if (typeof window === "undefined") {
-    // Return a default value during SSR - you might need to adjust this based on your selector
-    return selector(state);
+    return selector(store.getState());
   }
 
-  return useStore(store, selector);
+  return storeValue;
 }
 
 // For when you need multiple values, use useShallow

@@ -11,9 +11,7 @@ export function DetailItem({
 }) {
   return (
     <div
-      className={`p-2 rounded-md bg-muted ${
-        onClick ? "cursor-pointer hover:bg-muted/80" : ""
-      }`}
+      className={`p-2 rounded-md bg-muted ${onClick ? "cursor-pointer hover:bg-muted/80" : ""}`}
       onClick={onClick}
     >
       <div className="text-xs text-muted-foreground">{label}</div>

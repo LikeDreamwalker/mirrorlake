@@ -1,7 +1,6 @@
 "use client";
 
-import type React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useColorPicker } from "./context";
@@ -12,32 +11,19 @@ import { useColorStore } from "@/provider";
 const DEBOUNCE_TIMEOUT = 50;
 
 export function ColorSliders() {
-  const { localLightness, localAlpha, setLocalLightness, setLocalAlpha } =
-    useColorPicker();
+  const { localLightness, setLocalLightness } = useColorPicker();
 
-  // Track if user is currently sliding
-  const [isSliding, setIsSliding] = useState(false);
-
-  const { currentColorInfo, updateColorValues, setColorFromHex, colors } =
-    useColorStore((state) => ({
-      currentColorInfo: state.currentColorInfo,
+  const { updateColorValues } = useColorStore(
+    (state) => ({
       updateColorValues: state.updateColorValues,
-      setColorFromHex: state.setColorFromHex,
-      colors: state.colors,
-    }));
-
-  // Memoize values from currentColorInfo to avoid unnecessary re-renders
-  const rgb = useMemo(() => currentColorInfo.rgb, [currentColorInfo.rgb]);
+    })
+  );
 
   // Create debounced update function
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedUpdateColor = useCallback(
     debounce(
-      (updates: {
-        hue?: number;
-        saturation?: number;
-        lightness?: number;
-        alpha?: number;
-      }) => {
+      (updates: { hue?: number; saturation?: number; lightness?: number; alpha?: number }) => {
         updateColorValues(updates);
       },
       DEBOUNCE_TIMEOUT
@@ -51,32 +37,10 @@ export function ColorSliders() {
     setLocalLightness(value[0]);
   };
 
-  // Handle alpha slider change (during sliding)
-  const handleAlphaChange = (value: number[]) => {
-    // Only update local state for immediate visual feedback
-    setLocalAlpha(value[0]);
-  };
-
   // Handle when user stops sliding the lightness slider
   const handleLightnessCommit = (value: number[]) => {
     // Update the store when user commits the value
     debouncedUpdateColor({ lightness: value[0] });
-  };
-
-  // Handle when user stops sliding the alpha slider
-  const handleAlphaCommit = (value: number[]) => {
-    // Update the store when user commits the value
-    debouncedUpdateColor({ alpha: value[0] });
-  };
-
-  // Handle when user starts sliding
-  const handleSlideStart = () => {
-    setIsSliding(true);
-  };
-
-  // Handle when user stops sliding
-  const handleSlideEnd = () => {
-    setIsSliding(false);
   };
 
   return (
@@ -92,8 +56,6 @@ export function ColorSliders() {
           value={[localLightness]}
           onValueChange={handleLightnessChange}
           onValueCommit={handleLightnessCommit}
-          onPointerDown={handleSlideStart}
-          onPointerUp={handleSlideEnd}
         />
       </div>
       {/* NOTE We have issues in updating alpha */}

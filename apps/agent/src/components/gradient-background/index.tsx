@@ -33,8 +33,7 @@ export function generateRandomColorSets(
 
   for (let i = 0; i < numSets; i++) {
     // Determine random size for this set between min and max
-    const setSize =
-      Math.floor(Math.random() * (maxSize - minSize + 1)) + minSize;
+    const setSize = Math.floor(Math.random() * (maxSize - minSize + 1)) + minSize;
 
     // Create a copy of colors array to avoid duplicates in a single set
     const availableColors = [...colors];
@@ -68,10 +67,7 @@ interface PlaylistItem {
   id: number; // Unique identifier for tracking
 }
 
-export function GradientBackground({
-  className,
-  transitionSpeed = 10,
-}: GradientBackgroundProps) {
+export function GradientBackground({ className, transitionSpeed = 10 }: GradientBackgroundProps) {
   // Color state
   const { colors } = useColorStore((state) => ({
     colors: state.colors,
@@ -102,8 +98,7 @@ export function GradientBackground({
     const themeColors = colors.map((item) => item.color);
 
     // Check if colors have changed
-    const hasChanged =
-      JSON.stringify(themeColors) !== JSON.stringify(lastColorsRef.current);
+    const hasChanged = JSON.stringify(themeColors) !== JSON.stringify(lastColorsRef.current);
     if (hasChanged) {
       setColorsChanged(true);
     }
@@ -165,6 +160,7 @@ export function GradientBackground({
       setPlaylistIdCounter(newIdCounter);
       setColorsChanged(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colorSets, colorsChanged, isTransitioning]);
 
   // Animation loop
@@ -219,13 +215,7 @@ export function GradientBackground({
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Draw current layer (fading out)
-      drawGradientLayer(
-        ctx,
-        canvas.width,
-        canvas.height,
-        currentLayer,
-        1 - progress
-      );
+      drawGradientLayer(ctx, canvas.width, canvas.height, currentLayer, 1 - progress);
 
       // Draw next layer (fading in)
       drawGradientLayer(ctx, canvas.width, canvas.height, nextLayer, progress);

@@ -11,7 +11,7 @@ import {
   hslToHex,
   hslToRgb,
 } from "@mirrorlake/color-tools";
-import { colorToName, colorsToNames } from "@/app/actions/color";
+import { colorToName } from "@/app/actions/color";
 
 export type ColorFormat = "hex" | "rgb" | "hsl";
 
@@ -29,11 +29,7 @@ export interface ColorItem {
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
-export const createColorItem = (
-  color: string,
-  name = "",
-  info = ""
-): ColorItem => {
+export const createColorItem = (color: string, name = "", info = ""): ColorItem => {
   const normalizedColor = color.toUpperCase();
   const rgb = hexToRgb(normalizedColor);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
@@ -50,13 +46,6 @@ export const createColorItem = (
     favorite: false,
   };
 };
-
-function getInitialColor(providedColor?: string): string {
-  if (providedColor && /^#?[0-9A-Fa-f]{6}$/.test(providedColor)) {
-    return providedColor.startsWith("#") ? providedColor : `#${providedColor}`;
-  }
-  return "#0066ff"; // fallback
-}
 
 interface StoreState {
   currentColorInfo: ColorItem;
@@ -108,10 +97,7 @@ interface StoreActions {
   updateCurrentColorInfo: (updates: Partial<ColorItem>) => void;
   addColor: (color: string, name?: string, info?: string) => Promise<void>;
   removeColor: (colorId: string) => void;
-  updateColor: (
-    colorId: string,
-    updates: Partial<Omit<ColorItem, "id">>
-  ) => void;
+  updateColor: (colorId: string, updates: Partial<Omit<ColorItem, "id">>) => void;
   toggleFavorite: (colorId: string) => void;
   getColorById: (colorId: string) => ColorItem | null;
   getColorName: (params: { color?: string }) => Promise<string>;
@@ -135,11 +121,8 @@ export const createColorStore = (
   initialColor?: string,
   initialTheme?: Array<{ color: string; name: string }>
 ) => {
-  const palette = (initialTheme || []).map((c) =>
-    createColorItem(c.color, c.name)
-  );
-  const initialItem =
-    palette[0] || createColorItem(initialColor || "#0066ff", "Default");
+  const palette = (initialTheme || []).map((c) => createColorItem(c.color, c.name));
+  const initialItem = palette[0] || createColorItem(initialColor || "#0066ff", "Default");
 
   const store = createStore<ColorStore>((set, get) => ({
     currentColorInfo: initialItem,
@@ -223,14 +206,8 @@ export const createColorStore = (
       ) {
         const newHsl = {
           h: params.hue !== undefined ? params.hue : currentColorInfo.hsl.h,
-          s:
-            params.saturation !== undefined
-              ? params.saturation
-              : currentColorInfo.hsl.s,
-          l:
-            params.lightness !== undefined
-              ? params.lightness
-              : currentColorInfo.hsl.l,
+          s: params.saturation !== undefined ? params.saturation : currentColorInfo.hsl.s,
+          l: params.lightness !== undefined ? params.lightness : currentColorInfo.hsl.l,
         };
 
         updates.hsl = newHsl;
@@ -434,9 +411,7 @@ export const createColorStore = (
         }
       }
       const newColor = createColorItem(normalizedColor, colorName, info);
-      const existingColorIndex = get().colors.findIndex(
-        (c) => c.color === normalizedColor
-      );
+      const existingColorIndex = get().colors.findIndex((c) => c.color === normalizedColor);
       if (existingColorIndex !== -1) {
         set((state) => {
           const updatedColors = [...state.colors];
@@ -509,18 +484,14 @@ export const createColorStore = (
       const { themeName, colors } = params;
       const store = get();
       colors.forEach((colorItem) => {
-        const existingColors = store.colors.filter(
-          (c) => c.name === colorItem.name
-        );
+        const existingColors = store.colors.filter((c) => c.name === colorItem.name);
         existingColors.forEach((color) => {
           store.removeColor(color.id);
         });
         store.addColor(colorItem.color, colorItem.name);
       });
       if (typeof toast !== "undefined") {
-        toast.success(
-          `Updated "${themeName}" theme with ${colors.length} colors`
-        );
+        toast.success(`Updated "${themeName}" theme with ${colors.length} colors`);
       }
     },
 
@@ -556,9 +527,7 @@ export const createColorStore = (
     markColorAsFavorite: (params) => {
       const { colorName } = params;
       const store = get();
-      const color = store.colors.find(
-        (c) => c.name.toLowerCase() === colorName.toLowerCase()
-      );
+      const color = store.colors.find((c) => c.name.toLowerCase() === colorName.toLowerCase());
       if (color) {
         store.toggleFavorite(color.id);
         if (typeof toast !== "undefined") {

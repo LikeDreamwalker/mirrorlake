@@ -46,22 +46,13 @@ export class ColorDecorationManager {
     this.clearAllDecorations(editor);
 
     const { borderColor, fg } = ThemeUtils.getThemeColors();
-    const colorRanges = this.colorDetector.detectColors(
-      text,
-      editor.document,
-      this.configManager
-    );
+    const colorRanges = this.colorDetector.detectColors(text, editor.document, this.configManager);
 
     for (const color in colorRanges) {
       // Convert named colors to hex for consistent processing
       const processedColor = await this.processColor(color);
       const backgroundColor = await this.getBackgroundColor(processedColor);
-      const decoType = this.createDecorationType(
-        backgroundColor,
-        borderColor,
-        fg,
-        processedColor
-      );
+      const decoType = this.createDecorationType(backgroundColor, borderColor, fg, processedColor);
 
       this.dynamicDecorationTypes.push(decoType);
       editor.setDecorations(decoType, colorRanges[color]);
@@ -89,11 +80,7 @@ export class ColorDecorationManager {
       let colorAlpha = 1;
       if (parsed.format === "hexa") {
         colorAlpha = Number.parseInt(color.slice(-2), 16) / 255;
-      } else if (
-        parsed.format === "rgba" ||
-        parsed.format === "hsla" ||
-        parsed.format === "hsl4"
-      ) {
+      } else if (parsed.format === "rgba" || parsed.format === "hsla" || parsed.format === "hsl4") {
         colorAlpha = getAlphaFromColorString(color);
       }
 

@@ -6,11 +6,7 @@ import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
 import { colord, extend } from "colord";
 import namesPlugin from "colord/plugins/names";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Copy, Pipette, Plus, Trash2 } from "lucide-react";
 
@@ -23,11 +19,7 @@ interface ColorPreviewProps {
   className?: string;
 }
 
-export function ColorPreview({
-  colorCode,
-  reverseTheme = false,
-  className,
-}: ColorPreviewProps) {
+export function ColorPreview({ colorCode, reverseTheme = false, className }: ColorPreviewProps) {
   const {
     setColorFromHex,
     getColorName,
@@ -137,17 +129,14 @@ export function ColorPreview({
         >
           {isValidColor && hexColor && (
             <span
-              className="inline-block w-4 h-4 rounded-md border border-border shadow-sm"
+              className="inline-block w-4 h-4 rounded-md border border-border shadow-xs"
               style={{ backgroundColor: hexColor }}
             />
           )}
           <code className="font-mono">{colorCode.trim()}</code>
         </span>
       </PopoverTrigger>
-      <PopoverContent
-        className="flex items-center justify-start gap-2 w-auto"
-        side="top"
-      >
+      <PopoverContent className="flex items-center justify-start gap-2 w-auto" side="top">
         {isValidColor ? (
           <>
             <div className="flex items-center gap-2 mr-4">
@@ -155,9 +144,7 @@ export function ColorPreview({
                 className="inline-block w-6 h-6 rounded-md border border-border"
                 style={{ backgroundColor: hexColor }}
               />
-              <span className="text-sm font-semibold">
-                {colorName || hexColor}
-              </span>
+              <span className="text-sm font-semibold">{colorName || hexColor}</span>
             </div>
             <Button variant="outline" size="icon" onClick={handleCopy}>
               <Copy />
@@ -186,9 +173,7 @@ export function ColorPreview({
             )}
           </>
         ) : (
-          <span className="text-xs text-muted-foreground">
-            Not supported yet
-          </span>
+          <span className="text-xs text-muted-foreground">Not supported yet</span>
         )}
       </PopoverContent>
     </Popover>

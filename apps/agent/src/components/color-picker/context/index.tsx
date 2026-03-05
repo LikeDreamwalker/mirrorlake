@@ -3,7 +3,6 @@
 import type React from "react";
 import { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { useColorStore } from "@/provider";
-import type { ColorItem } from "@/store";
 
 type ColorPickerContextType = {
   // Local state for immediate UI feedback
@@ -58,16 +57,10 @@ type ColorPickerContextType = {
 };
 
 // Create context with a default undefined value
-const ColorPickerContext = createContext<ColorPickerContextType | undefined>(
-  undefined
-);
+const ColorPickerContext = createContext<ColorPickerContextType | undefined>(undefined);
 
 // Provider component
-export function ColorPickerProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function ColorPickerProvider({ children }: { children: React.ReactNode }) {
   const { currentColorInfo, getFullColor } = useColorStore((state) => ({
     currentColorInfo: state.currentColorInfo,
     getFullColor: state.getFullColor,
@@ -105,7 +98,9 @@ export function ColorPickerProvider({
   const [isDragging, setIsDragging] = useState(false);
 
   // Update local state when store values change
+  // Syncing local state from external store is intentional here for immediate UI feedback
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalHue(hsl.h);
     setLocalSaturation(hsl.s);
     setLocalLightness(hsl.l);
@@ -113,7 +108,9 @@ export function ColorPickerProvider({
   }, [hsl.h, hsl.s, hsl.l, alpha]);
 
   // Update input values when color changes from outside
+  // Syncing local input state from external store is intentional
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHexValue(getFullColor());
     setRValue(rgb.r.toString());
     setGValue(rgb.g.toString());
@@ -133,16 +130,7 @@ export function ColorPickerProvider({
     setHError("");
     setSError("");
     setLError("");
-  }, [
-    getFullColor,
-    rgb.r,
-    rgb.g,
-    rgb.b,
-    hsl.h,
-    hsl.s,
-    hsl.l,
-    currentColorInfo.name,
-  ]);
+  }, [getFullColor, rgb.r, rgb.g, rgb.b, hsl.h, hsl.s, hsl.l, currentColorInfo.name]);
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo<ColorPickerContextType>(
@@ -216,11 +204,7 @@ export function ColorPickerProvider({
     ]
   );
 
-  return (
-    <ColorPickerContext.Provider value={contextValue}>
-      {children}
-    </ColorPickerContext.Provider>
-  );
+  return <ColorPickerContext.Provider value={contextValue}>{children}</ColorPickerContext.Provider>;
 }
 
 // Custom hook to use the context

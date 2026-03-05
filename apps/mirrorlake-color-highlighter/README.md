@@ -113,16 +113,8 @@ Add support for custom file types:
 
 ```json
 {
-  "mirrorlake-color-highlighter.supportedFileGlobs": [
-    "*.css",
-    "*.mycss",
-    "*.theme"
-  ],
-  "mirrorlake-color-highlighter.supportedLanguages": [
-    "css",
-    "scss",
-    "mylanguage"
-  ]
+  "mirrorlake-color-highlighter.supportedFileGlobs": ["*.css", "*.mycss", "*.theme"],
+  "mirrorlake-color-highlighter.supportedLanguages": ["css", "scss", "mylanguage"]
 }
 ```
 

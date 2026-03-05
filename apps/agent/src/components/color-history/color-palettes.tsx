@@ -4,12 +4,7 @@ import { useColorStore } from "@/provider";
 import { tailwindColors } from "@/lib/tailwind-colors";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import ColorBlock from "./color-block";
 import ColorGrid from "./color-grid";
 
@@ -53,9 +48,7 @@ export default function ColorPalettes() {
                         <p className="text-xs">
                           {colorFamily.name}-{color.value}
                         </p>
-                        <p className="text-xs font-mono">
-                          {color.hex.toUpperCase()}
-                        </p>
+                        <p className="text-xs font-mono">{color.hex.toUpperCase()}</p>
                       </TooltipContent>
                     </Tooltip>
                   ))}

@@ -1,14 +1,13 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useChatContext } from "./context";
-import { QueuedMarkdown } from "./queued-markdown";
+import { getMessageContent } from "./context";
 import { cn } from "@/lib/utils";
 import { ColorHighlightMarkdown } from "./color-highlight-markdown";
 
 export function ChatMessages() {
-  const { messages, messageCompletionStatus } = useChatContext();
+  const { messages } = useChatContext();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
@@ -22,10 +21,7 @@ export function ChatMessages() {
         {messages.map((message) => (
           <div
             key={message.id}
-            className={cn(
-              "flex w-full",
-              message.role === "user" ? "justify-end" : "justify-start"
-            )}
+            className={cn("flex w-full", message.role === "user" ? "justify-end" : "justify-start")}
           >
             <div
               className={cn(
@@ -37,7 +33,7 @@ export function ChatMessages() {
             >
               <ColorHighlightMarkdown
                 reverseTheme={message.role === "user"}
-                content={message.content}
+                content={getMessageContent(message)}
               />
             </div>
           </div>

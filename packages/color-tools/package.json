@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
-    "lint": "eslint src/**/*.ts",
+    "lint": "eslint src",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -15,8 +15,10 @@
     "color-name-list": "^11.15.0"
   },
   "devDependencies": {
-    "tsup": "^7.2.0",
-    "typescript": "^5.1.6",
-    "eslint": "^8.40.0"
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "eslint": "^9.25.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.8.3"
   }
 }
