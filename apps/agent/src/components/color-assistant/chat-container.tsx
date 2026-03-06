@@ -1,18 +1,25 @@
+"use client";
+
 import { ChatMessages } from "./chat-messages";
 import { ChatInput } from "./chat-input";
+import { PromptChips } from "./prompt-chips";
+import { useChatContext } from "./context";
 
 export function ChatContainer() {
+  const { messages } = useChatContext();
+  const isEmpty = messages.length === 0;
+
   return (
-    <>
-      {/* Chat messages area - takes up most of the space */}
+    <div className="flex flex-col h-full">
+      {/* Chat messages area or empty state */}
       <div className="flex-1 overflow-hidden">
-        <ChatMessages />
+        {isEmpty ? <PromptChips /> : <ChatMessages />}
       </div>
 
       {/* Input area with fixed height */}
       <div className="border-t w-full" style={{ height: "70px" }}>
         <ChatInput />
       </div>
-    </>
+    </div>
   );
 }

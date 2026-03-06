@@ -1,11 +1,10 @@
 "use client";
 
 import type React from "react";
-import { createContext, useContext, useRef, useState, useEffect, useMemo, useCallback } from "react";
+import { createContext, useContext, useRef, useEffect, useMemo, useCallback, useState } from "react";
 import { useChat, type UIMessage } from "@ai-sdk/react";
-
+import { DefaultChatTransport } from "ai";
 import { useColorStore } from "@/provider";
-import { getColorAdvice } from "@/app/actions/color-advice";
 import { toast } from "sonner";
 
 // Define a type for client actions
@@ -40,7 +39,6 @@ interface ChatContextType {
   setInput: (value: string) => void;
   sendMessage: (content: string) => void;
   status: "submitted" | "streaming" | "ready" | "error";
-  isProcessingColor: boolean;
   messageCompletionStatus: Record<string, boolean>;
 }
 
@@ -51,7 +49,6 @@ const ChatContext = createContext<ChatContextType>({
   setInput: () => {},
   sendMessage: () => {},
   status: "ready",
-  isProcessingColor: false,
   messageCompletionStatus: {},
 });
 
@@ -73,6 +70,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     getColorById,
     setCurrentColorFromItem,
     currentColor,
+    currentColorInfo,
+    colors,
   } = useColorStore((state) => ({
     addColorsToTheme: state.addColorsToTheme,
     updateTheme: state.updateTheme,
@@ -86,25 +85,36 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     getColorById: state.getColorById,
     setCurrentColorFromItem: state.setCurrentColorFromItem,
     currentColor: state.currentColor,
+    currentColorInfo: state.currentColorInfo,
+    colors: state.colors,
   }));
 
-  const [isProcessingColor, setIsProcessingColor] = useState(false);
   const [input, setInput] = useState("");
-  const lastProcessedColor = useRef<string | null>(null);
-  const hasInitialized = useRef(false);
-  const isFirstLoad = useRef(true);
 
   // Track which client actions have been processed to prevent duplicates
   const processedActions = useRef<Set<string>>(new Set());
   const lastUserMessageCount = useRef<number>(0);
 
+  // Build color context for AI system prompt
+  const colorContext = useMemo(
+    () => ({
+      currentColor,
+      currentColorName: currentColorInfo.name,
+      themeColors: colors.map((c) => ({ color: c.color, name: c.name })),
+    }),
+    [currentColor, currentColorInfo.name, colors]
+  );
+
   // Initialize chat with AI SDK v6
   const {
     messages,
     status,
-    setMessages,
     sendMessage: chatSendMessage,
   } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      body: { colorContext },
+    }),
     onFinish: ({ message }) => {
       console.log("Chat finished with message:", message.id);
     },
@@ -224,21 +234,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Create a map of message completion status
   const messageCompletionStatus = useMemo(() => {
     const statusMap: Record<string, boolean> = {};
-
     messages.forEach((message) => {
       if (message.role === "user") {
-        statusMap[message.id] = true;
-      } else if (
-        message.role === "assistant" &&
-        message.id.toString().startsWith("python-")
-      ) {
         statusMap[message.id] = true;
       } else if (message.role === "assistant") {
         const isLastMessage = message.id === messages[messages.length - 1]?.id;
         statusMap[message.id] = !(isLastMessage && status === "streaming");
       }
     });
-
     return statusMap;
   }, [messages, status]);
 
@@ -255,120 +258,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     [chatSendMessage]
   );
 
-  // Initialize with default color and first user message
-  useEffect(() => {
-    if (isFirstLoad.current && !hasInitialized.current) {
-      setMessages([
-        {
-          id: "initial-color-selection",
-          role: "user",
-          parts: [
-            {
-              type: "text",
-              text: `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`,
-            },
-          ],
-        },
-      ]);
-      isFirstLoad.current = false;
-      hasInitialized.current = true;
-    }
-  }, [setMessages, currentColor]);
-
-  // Process color changes
-  useEffect(() => {
-    const processColorChange = async () => {
-      if (isFirstLoad.current || isProcessingColor) {
-        return;
-      }
-
-      if (currentColor !== lastProcessedColor.current && currentColor) {
-        setIsProcessingColor(true);
-        lastProcessedColor.current = currentColor;
-
-        try {
-          if (
-            currentColor === "#0066FF" &&
-            messages.length > 0 &&
-            getMessageContent(messages[0])?.includes("#0066ff")
-          ) {
-            setIsProcessingColor(false);
-            return;
-          }
-
-          const lastMessage = messages[messages.length - 1];
-          if (lastMessage && lastMessage.role === "user") {
-            setIsProcessingColor(false);
-            return;
-          }
-
-          const userContent = `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`;
-          const userMessageId = Date.now().toString();
-
-          const newMessages: UIMessage[] = [
-            ...messages,
-            {
-              id: userMessageId,
-              role: "user" as const,
-              parts: [{ type: "text", text: userContent }],
-            },
-          ];
-
-          setMessages(newMessages);
-
-          const response = await getColorAdvice(currentColor);
-
-          if (response.error) {
-            throw new Error(response.message);
-          }
-
-          const pythonMessageId = `python-${Date.now() + 1}`;
-          const assistantMessage: UIMessage = {
-            id: pythonMessageId,
-            role: "assistant" as const,
-            parts: [{ type: "text", text: response.advice }],
-          };
-
-          setMessages([...newMessages, assistantMessage]);
-        } catch (error) {
-          console.error("Error processing color:", error);
-
-          const errorMessageId = `python-error-${Date.now() + 1}`;
-          setMessages([
-            ...messages,
-            {
-              id: Date.now().toString(),
-              role: "user" as const,
-              parts: [
-                {
-                  type: "text",
-                  text: `I just selected the color \`<ColorPreview>${currentColor}</ColorPreview>\`.`,
-                },
-              ],
-            },
-            {
-              id: errorMessageId,
-              role: "assistant" as const,
-              parts: [
-                {
-                  type: "text",
-                  text: "I'm sorry, I couldn't analyze that color right now. Please try again or ask me something else.",
-                },
-              ],
-            },
-          ]);
-          toast.error(
-            "I'm sorry, I couldn't analyze that color right now. Please try again or ask me something else."
-          );
-        } finally {
-          setIsProcessingColor(false);
-        }
-      }
-    };
-
-    processColorChange();
-  }, [currentColor, messages, setMessages, isProcessingColor]);
-
   return (
     <ChatContext.Provider
       value={{
@@ -377,7 +266,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setInput,
         sendMessage,
         status,
-        isProcessingColor,
         messageCompletionStatus,
       }}
     >

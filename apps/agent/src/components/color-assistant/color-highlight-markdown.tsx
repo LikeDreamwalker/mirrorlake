@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ExternalLink, ImageOff } from "lucide-react";
 import Image from "next/image";
 
@@ -136,23 +136,21 @@ function ColorHighlightMarkdownBase({
         }
 
         return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <a
-                  href={href}
-                  className="font-medium text-primary underline underline-offset-4 hover:text-primary/80 inline-flex items-center"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  {...props}
-                >
-                  {children}
-                  <ExternalLink className="ml-1 h-3 w-3" />
-                </a>
-              </TooltipTrigger>
-              <TooltipContent>Opens in a new tab</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href={href}
+                className="font-medium text-primary underline underline-offset-4 hover:text-primary/80 inline-flex items-center"
+                target="_blank"
+                rel="noopener noreferrer"
+                {...props}
+              >
+                {children}
+                <ExternalLink className="ml-1 h-3 w-3" />
+              </a>
+            </TooltipTrigger>
+            <TooltipContent>Opens in a new tab</TooltipContent>
+          </Tooltip>
         );
       },
 

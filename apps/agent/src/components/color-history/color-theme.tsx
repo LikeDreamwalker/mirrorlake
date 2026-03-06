@@ -4,76 +4,74 @@ import { ColorItem } from "@/store";
 import { useColorStore } from "@/provider";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ColorPreview } from "@/components/color-assistant/color-preview";
-import { Button } from "../ui/button";
-import { ScrollArea } from "../ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function CurrentTheme() {
-  const { colors, removeColor } = useColorStore((state) => ({
+  const { colors, removeColor, resetTheme, setColorFromHex } = useColorStore((state) => ({
     colors: state.colors,
     removeColor: state.removeColor,
+    resetTheme: state.resetTheme,
+    setColorFromHex: state.setColorFromHex,
   }));
 
-  const handleRemoveCurrentColor = (color: ColorItem) => {
+  const handleRemove = (color: ColorItem) => {
     removeColor(color.id);
-    toast("Color removed", {
-      description: `${color.color} has been removed from your theme`,
-      duration: 2000,
-    });
+    toast("Color removed", { description: `${color.color} removed`, duration: 2000 });
   };
 
-  return (
-    <Card>
-      <CardHeader className="flex flex-row justify-between items-center w-full pb-2">
-        <h3 className="font-medium text-lg">Current Theme</h3>
-        <Badge variant="outline">{colors.length} colors</Badge>
-      </CardHeader>
+  if (colors.length === 0) {
+    return (
+      <div className="py-4 text-center text-xs text-muted-foreground">
+        No colors in your theme yet
+      </div>
+    );
+  }
 
-      <CardContent>
-        <ScrollArea className="w-full h-[50vh] rounded-lg">
-          {colors.length === 0 ? (
-            <EmptyState />
-          ) : (
-            colors.map((color) => (
-              <Card key={color.id} className="w-full rounded-xl overflow-hidden my-2">
-                <CardContent
-                  className="h-20"
-                  style={{
-                    backgroundColor: color.color,
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">Theme ({colors.length})</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 text-xs text-muted-foreground px-2"
+          onClick={() => {
+            resetTheme();
+            toast("Theme cleared", { duration: 2000 });
+          }}
+        >
+          Clear
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {colors.map((color) => (
+          <Tooltip key={color.id}>
+            <TooltipTrigger asChild>
+              <button
+                className="group relative h-8 w-8 rounded-md border border-border cursor-pointer transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                style={{ backgroundColor: color.color }}
+                onClick={() => setColorFromHex(color.color)}
+                aria-label={`Select ${color.name}`}
+              >
+                <span
+                  className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(color);
                   }}
-                ></CardContent>
-                <Separator />
-                <CardFooter className="p-4 flex justify-between items-center">
-                  <span className="text-lg font-bold">{color.name}</span>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleRemoveCurrentColor(color)}
-                      className="h-8 w-8"
-                      aria-label="Remove color from theme"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <ColorPreview colorCode={color.color}></ColorPreview>
-                  </div>
-                </CardFooter>
-              </Card>
-            ))
-          )}
-        </ScrollArea>
-      </CardContent>
-    </Card>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="h-24 bg-muted/30 rounded-md flex items-center justify-center">
-      <span className="text-muted-foreground">No colors in your theme yet</span>
+                >
+                  <Trash2 className="h-2.5 w-2.5" />
+                </span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              <div>{color.name}</div>
+              <div className="font-mono text-muted-foreground">{color.color.toUpperCase()}</div>
+            </TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
 
@@ -80,13 +81,15 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="dark">
-          <Suspense>
-            <div className="flex justify-center h-screen w-screen">
-              {children}
-              <Analytics />
-            </div>
-          </Suspense>
-          <Toaster />
+          <TooltipProvider>
+            <Suspense>
+              <div className="flex justify-center h-screen w-screen">
+                {children}
+                <Analytics />
+              </div>
+            </Suspense>
+            <Toaster />
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

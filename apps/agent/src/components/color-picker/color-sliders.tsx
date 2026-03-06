@@ -3,7 +3,6 @@
 import { useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { useColorPicker } from "./context";
 import { debounce } from "@/lib/utils";
 import { useColorStore } from "@/provider";
 
@@ -11,13 +10,11 @@ import { useColorStore } from "@/provider";
 const DEBOUNCE_TIMEOUT = 50;
 
 export function ColorSliders() {
-  const { localLightness, setLocalLightness } = useColorPicker();
-
-  const { updateColorValues } = useColorStore(
-    (state) => ({
-      updateColorValues: state.updateColorValues,
-    })
-  );
+  const { localLightness, setLocalLightness, updateColorValues } = useColorStore((state) => ({
+    localLightness: state.pickerLocalLightness,
+    setLocalLightness: state.setPickerLocalLightness,
+    updateColorValues: state.updateColorValues,
+  }));
 
   // Create debounced update function
   // eslint-disable-next-line react-hooks/exhaustive-deps

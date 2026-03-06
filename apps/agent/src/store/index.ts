@@ -56,6 +56,14 @@ interface StoreState {
   autoSwitchTheme: boolean;
   colors: ColorItem[];
   recentColors: string[];
+  sidebarOpen: boolean;
+  // Picker UI state (for immediate feedback during drag/input)
+  pickerLocalHue: number;
+  pickerLocalSaturation: number;
+  pickerLocalLightness: number;
+  pickerHexInput: string;
+  pickerHexError: string;
+  pickerIsDragging: boolean;
 }
 
 interface ColorUpdateParams {
@@ -113,6 +121,16 @@ interface StoreActions {
   resetTheme: () => void;
   removeColorsFromTheme: (params: { colorNames: string[] }) => void;
   markColorAsFavorite: (params: { colorName: string }) => void;
+  toggleSidebar: () => void;
+  setSidebarOpen: (open: boolean) => void;
+  // Picker UI actions
+  setPickerLocalHue: (value: number) => void;
+  setPickerLocalSaturation: (value: number) => void;
+  setPickerLocalLightness: (value: number) => void;
+  setPickerHexInput: (value: string) => void;
+  setPickerHexError: (value: string) => void;
+  setPickerIsDragging: (value: boolean) => void;
+  syncPickerFromColor: () => void;
 }
 
 export type ColorStore = StoreState & StoreActions;
@@ -124,6 +142,9 @@ export const createColorStore = (
   const palette = (initialTheme || []).map((c) => createColorItem(c.color, c.name));
   const initialItem = palette[0] || createColorItem(initialColor || "#0066ff", "Default");
 
+  // Debounce timer for recentColors updates
+  let recentColorsTimer: ReturnType<typeof setTimeout> | null = null;
+
   const store = createStore<ColorStore>((set, get) => ({
     currentColorInfo: initialItem,
     currentColor: initialItem.color,
@@ -133,6 +154,37 @@ export const createColorStore = (
     autoSwitchTheme: true,
     colors: palette.length > 0 ? palette : [initialItem],
     recentColors: [initialItem.color],
+    sidebarOpen: true,
+    pickerLocalHue: initialItem.hsl.h,
+    pickerLocalSaturation: initialItem.hsl.s,
+    pickerLocalLightness: initialItem.hsl.l,
+    pickerHexInput: initialItem.color,
+    pickerHexError: "",
+    pickerIsDragging: false,
+
+    setPickerLocalHue: (value: number) => set({ pickerLocalHue: value }),
+    setPickerLocalSaturation: (value: number) => set({ pickerLocalSaturation: value }),
+    setPickerLocalLightness: (value: number) => set({ pickerLocalLightness: value }),
+    setPickerHexInput: (value: string) => set({ pickerHexInput: value }),
+    setPickerHexError: (value: string) => set({ pickerHexError: value }),
+    setPickerIsDragging: (value: boolean) => set({ pickerIsDragging: value }),
+    syncPickerFromColor: () => {
+      const { currentColorInfo, getFullColor } = get();
+      set({
+        pickerLocalHue: currentColorInfo.hsl.h,
+        pickerLocalSaturation: currentColorInfo.hsl.s,
+        pickerLocalLightness: currentColorInfo.hsl.l,
+        pickerHexInput: getFullColor(),
+        pickerHexError: "",
+      });
+    },
+
+    toggleSidebar: () => {
+      set((state) => ({ sidebarOpen: !state.sidebarOpen }));
+    },
+    setSidebarOpen: (open: boolean) => {
+      set({ sidebarOpen: open });
+    },
 
     convertColor: (params: ColorConversionParams) => {
       if (params.hex) {
@@ -165,6 +217,7 @@ export const createColorStore = (
 
       if (updates.color) {
         set({ isDark: isColorDark(updates.color) });
+        get().syncPickerFromColor();
         get()
           .getColorName({ color: updates.color })
           .then((name) => {
@@ -367,7 +420,7 @@ export const createColorStore = (
     },
 
     updateCurrentColor: () => {
-      const { currentColorInfo, recentColors, hslChanged } = get();
+      const { currentColorInfo, hslChanged } = get();
       if (hslChanged) {
         const { hsl } = currentColorInfo;
         const newHex = hslToHex(hsl.h, hsl.s, hsl.l).toUpperCase();
@@ -382,11 +435,19 @@ export const createColorStore = (
       const fullColor = get().getFullColor();
       set({ currentColor: fullColor });
       set({ isDark: isColorDark(currentColorInfo.color) });
-      if (!recentColors.includes(fullColor)) {
-        set({
-          recentColors: [fullColor, ...recentColors.slice(0, 7)],
-        });
+      // Debounce recentColors — only add after 500ms of stability
+      if (recentColorsTimer) {
+        clearTimeout(recentColorsTimer);
       }
+      recentColorsTimer = setTimeout(() => {
+        const { recentColors: current } = get();
+        const settled = get().getFullColor();
+        if (!current.includes(settled)) {
+          set({
+            recentColors: [settled, ...current.slice(0, 9)],
+          });
+        }
+      }, 500);
     },
 
     getColorName: async (params: { color?: string }) => {

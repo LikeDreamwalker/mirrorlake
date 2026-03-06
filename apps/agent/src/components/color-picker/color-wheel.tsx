@@ -1,24 +1,33 @@
 "use client";
 
 import type React from "react";
-import { useRef, useCallback, useEffect, useMemo } from "react";
-import { useColorPicker } from "./context";
+import { useRef, useCallback, useEffect } from "react";
 import { useColorStore } from "@/provider";
 
 export function ColorWheel() {
-  const { localHue, localSaturation, setLocalHue, setLocalSaturation, isDragging, setIsDragging } =
-    useColorPicker();
+  const {
+    localHue,
+    localSaturation,
+    setLocalHue: setPickerLocalHue,
+    setLocalSaturation: setPickerLocalSaturation,
+    isDragging,
+    setIsDragging: setPickerIsDragging,
+    color,
+    updateColorValues,
+  } = useColorStore((state) => ({
+    localHue: state.pickerLocalHue,
+    localSaturation: state.pickerLocalSaturation,
+    setLocalHue: state.setPickerLocalHue,
+    setLocalSaturation: state.setPickerLocalSaturation,
+    isDragging: state.pickerIsDragging,
+    setIsDragging: state.setPickerIsDragging,
+    color: state.currentColorInfo.color,
+    updateColorValues: state.updateColorValues,
+  }));
 
-  const { currentColorInfo, currentColor, updateColorValues } = useColorStore(
-    (state) => ({
-      currentColorInfo: state.currentColorInfo,
-      currentColor: state.currentColor,
-      updateColorValues: state.updateColorValues,
-    })
-  );
-
-  // Memoize the color value to avoid unnecessary re-renders
-  const color = useMemo(() => currentColorInfo.color, [currentColorInfo.color]);
+  const setLocalHue = setPickerLocalHue;
+  const setLocalSaturation = setPickerLocalSaturation;
+  const setIsDragging = setPickerIsDragging;
 
   const wheelRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -171,17 +180,6 @@ export function ColorWheel() {
 
   return (
     <div className="w-full flex flex-col items-center justify-center">
-      <div
-        className="rounded-xl w-full aspect-square flex items-center justify-center p-4 relative"
-        style={{
-          backgroundColor: currentColor,
-          transitionBehavior: "background-color",
-          transitionDuration: "0.3s",
-          transitionProperty: "background-color",
-          willChange: "background-color",
-          transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
-        }}
-      >
         <div
           ref={wheelRef}
           className="relative w-full max-w-full aspect-square rounded-full cursor-crosshair touch-none shadow-xs"
@@ -231,7 +229,6 @@ export function ColorWheel() {
             }}
           ></div>
         </div>
-      </div>
     </div>
   );
 }

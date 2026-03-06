@@ -1,23 +1,36 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { useChatContext } from "./context";
-import { getMessageContent } from "./context";
+import { useChatContext, getMessageContent } from "./context";
 import { cn } from "@/lib/utils";
 import { ColorHighlightMarkdown } from "./color-highlight-markdown";
 
-export function ChatMessages() {
-  const { messages } = useChatContext();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+function TypingIndicator() {
+  return (
+    <div className="flex justify-start w-full">
+      <div className="bg-background text-foreground border border-border rounded-xl p-3">
+        <div className="flex gap-1 items-center h-5">
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:0ms]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:150ms]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:300ms]" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  // Auto-scroll to bottom when messages change
+export function ChatMessages() {
+  const { messages, status } = useChatContext();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isWaiting = status === "submitted";
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, status]);
 
   return (
     <div className="h-full w-full overflow-y-auto">
-      <div className="space-y-4 w-full">
+      <div className="space-y-4 w-full p-4">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -38,6 +51,7 @@ export function ChatMessages() {
             </div>
           </div>
         ))}
+        {isWaiting && <TypingIndicator />}
         <div ref={messagesEndRef} />
       </div>
     </div>

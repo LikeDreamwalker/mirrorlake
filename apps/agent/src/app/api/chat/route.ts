@@ -9,13 +9,13 @@ import {
   stepCountIs,
   type ModelMessage,
 } from "ai";
-import { colorExpertSystemPrompt } from "@/lib/prompt";
+import { buildColorExpertSystemPrompt } from "@/lib/prompt";
 import { z } from "zod";
 import { colorToName } from "@/app/actions/color";
 
 export async function POST(req: Request) {
   try {
-    const { messages: originalMessages } = await req.json();
+    const { messages: originalMessages, colorContext } = await req.json();
 
     if (!process.env.DEEPSEEK_API_KEY) {
       throw new Error("DEEPSEEK_API_KEY is not set");
@@ -172,7 +172,7 @@ export async function POST(req: Request) {
           const result = streamText({
             model: deepseek("deepseek-chat"),
             messages: processedMessages,
-            system: colorExpertSystemPrompt,
+            system: buildColorExpertSystemPrompt(colorContext),
             temperature: 0.7,
             tools,
             stopWhen: stepCountIs(5),

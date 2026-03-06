@@ -6,7 +6,7 @@ import { Loader2, Send } from "lucide-react";
 import { useChatContext } from "./context";
 
 export function ChatInput() {
-  const { input, setInput, sendMessage, status, isProcessingColor } = useChatContext();
+  const { input, setInput, sendMessage, status } = useChatContext();
   const isLoading = status === "submitted" || status === "streaming";
 
   const handleSubmit = (e: FormEvent) => {
@@ -21,13 +21,13 @@ export function ChatInput() {
         onChange={(e) => setInput(e.target.value)}
         placeholder="Ask about colors or design..."
         className="flex-1"
-        disabled={isLoading || isProcessingColor}
+        disabled={isLoading}
       />
       <Button
         type="submit"
         size="icon"
         aria-label="Send message"
-        disabled={isLoading || isProcessingColor || !input.trim()}
+        disabled={isLoading || !input.trim()}
       >
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
       </Button>

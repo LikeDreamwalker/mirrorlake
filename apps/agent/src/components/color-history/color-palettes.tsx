@@ -3,8 +3,13 @@
 import { useColorStore } from "@/provider";
 import { tailwindColors } from "@/lib/tailwind-colors";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import ColorBlock from "./color-block";
 import ColorGrid from "./color-grid";
 
@@ -22,17 +27,16 @@ export default function ColorPalettes() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <h3 className="font-medium text-lg">Palettes</h3>
-      </CardHeader>
-
-      <CardContent>
-        <TooltipProvider>
-          <div className="space-y-3">
+    <Accordion type="single" collapsible>
+      <AccordionItem value="tailwind" className="border-none">
+        <AccordionTrigger className="py-2 text-xs text-muted-foreground hover:no-underline">
+          Tailwind Palettes
+        </AccordionTrigger>
+        <AccordionContent>
+          <div className="space-y-2 pt-1">
             {Object.entries(tailwindColors).map(([key, colorFamily]) => (
-              <div key={key} className="space-y-1">
-                <ColorGrid columns={11} gap="gap-1.5">
+              <div key={key}>
+                <ColorGrid columns={11} gap="gap-1">
                   {colorFamily.colors.map((color) => (
                     <Tooltip key={`${key}-${color.value}`}>
                       <TooltipTrigger asChild>
@@ -56,8 +60,8 @@ export default function ColorPalettes() {
               </div>
             ))}
           </div>
-        </TooltipProvider>
-      </CardContent>
-    </Card>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }

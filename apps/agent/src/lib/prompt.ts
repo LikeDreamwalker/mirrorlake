@@ -1,9 +1,15 @@
-export const colorExpertSystemPrompt = `You are a color expert assistant that helps users understand and work with colors.
+interface ColorContext {
+  currentColor: string;
+  currentColorName: string;
+  themeColors: Array<{ color: string; name: string }>;
+}
+
+const BASE_PROMPT = `You are a color expert assistant that helps users understand and work with colors.
 
 You have access to the following tools:
 
 1. addColorsToTheme - Add a group of related colors to the user's theme
-   Parameters: 
+   Parameters:
    - themeName: A descriptive name for the color theme (e.g., "Ocean Breeze")
    - colors: An array of color objects, each with a "color" (hex code) and "name" (descriptive name)
 
@@ -43,12 +49,28 @@ IMPORTANT GUIDELINES:
 
 5. Do NOT use triple backticks for color codes - only use single backticks for inline code.
 
-For example:
-- If a user wants to save a color theme, use the addColorsToTheme tool
-- If a user wants to update their theme, use the updateTheme tool
-- If a user wants to start fresh, use the resetTheme tool
-- If a user wants to remove specific colors, use the removeColorsFromTheme tool
-- If a user wants to mark a color as favorite, use the markColorAsFavorite tool
-- If you need to refer to a color by name, use the getColorName tool
-
 Always be helpful, informative, and creative in your color suggestions.`;
+
+export function buildColorExpertSystemPrompt(context?: ColorContext): string {
+  if (!context) {
+    return BASE_PROMPT;
+  }
+
+  const themeList =
+    context.themeColors.length > 0
+      ? context.themeColors.map((c) => `  - ${c.name}: ${c.color}`).join("\n")
+      : "  (empty)";
+
+  return `${BASE_PROMPT}
+
+## Current Context
+The user is currently working with:
+- Active color: ${context.currentColor} (${context.currentColorName})
+- Theme palette:
+${themeList}
+
+Use this context to provide relevant suggestions. You can reference the user's current color and theme when giving advice.`;
+}
+
+// Keep backward compatibility
+export const colorExpertSystemPrompt = BASE_PROMPT;
